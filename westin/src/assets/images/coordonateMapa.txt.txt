@@ -1,0 +1,45 @@
+	X Y
+Alastor: 350 611
+
+metine Gheata Alastor: 484 353
+		       754 637
+		       897 646
+
+Bos de Apa Gigant : 689 498
+
+
+Crab Kerhan 389 995
+
+Metine Crab Kerhan : 590 902
+		     791 1001
+		     563 1100
+
+Bos de Padure Rosu Gigant : 423 1706
+
+En-Tai: 806 1356
+
+Metine Sarpe En-Tai : 800 1199
+		      527 1288
+		      512 1450
+
+Metine Ou Gheata-Foc : 1067 1123
+		       1006 1349
+		       1175 1408
+
+Argos : 1800 1455
+
+Metine Sarpe Argos : 1466 1523
+		     1613 1330
+		     1665 1095
+
+Maimuta Zeu-Lord: 1445 366
+
+Ou Maimuta Zeu-Lord: 1486 532
+		     1684 604
+		     1614 769
+
+Stone Man : 1085 532
+	 
+Piatra Stone Man: 1283 526
+		  1158 674
+		  1301 787
