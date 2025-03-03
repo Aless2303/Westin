@@ -22,7 +22,8 @@ export default {
         "pulse-slow": "pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite",
         "spin-slow": "spin 8s linear infinite",
         "shake-slow": "shake 2.5s ease-in-out infinite",
-        "slide-up": "slideUp 0.8s ease-out"
+        "slide-up": "slideUp 0.8s ease-out",
+        "fade-pulse": "fadePulse 1.5s ease-out"
       },
       keyframes: {
         shake: {
@@ -33,6 +34,11 @@ export default {
         slideUp: {
           "0%": { transform: "translateY(20px)", opacity: "0" },
           "100%": { transform: "translateY(0)", opacity: "1" }
+        },
+        fadePulse: {
+          "0%": { opacity: "0", transform: "translate(-50%, -50%) scale(0.8)" },
+          "50%": { opacity: "0.7", transform: "translate(-50%, -50%) scale(1.2)" },
+          "100%": { opacity: "0", transform: "translate(-50%, -50%) scale(0.8)" }
         }
       },
       boxShadow: {

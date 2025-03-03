@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import mapImage from '../assets/images/westinmap.jpg';
 import mobi from '../data/mobi.json';
+import CharacterStatus from '../components/ui/CharacterStatus';
 
 const GamePage: React.FC = () => {
   // Dimensiunile reale ale hărții
@@ -13,6 +14,27 @@ const GamePage: React.FC = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [animation, setAnimation] = useState<{ x: number; y: number; visible: boolean } | null>(null);
+  
+// Mock character data for testing (would come from backend/context in a real app)
+const mockCharacterData = {
+  name: "Ravensword",
+  level: 134,
+  race: "Ninja",
+  gender: "Masculin",
+  background: "/Backgrounds/western2.jpg",
+  hp: {
+    current: 2303,
+    max: 7500
+  },
+  stamina: {
+    current: 84,
+    max: 100
+  },
+  experience: {
+    current: 12345,   // Experiență curentă (valoare absolută)
+    percentage: 63    // Procentul de experiență către nivelul următor
+  }
+};
   
   // Limitele de zoom
   const MIN_SCALE = 1.0; // 100% - zoom minim
@@ -164,16 +186,17 @@ const GamePage: React.FC = () => {
         overflow: 'hidden'
       }}
     >
-      {/* Div-ul de debug pentru obținerea coordonatelor (poți elimina după testare) */}
-      {/* <div
-        onClick={(e) => {
-          const rect = e.currentTarget.getBoundingClientRect();
-          const x = e.clientX - rect.left;
-          const y = e.clientY - rect.top;
-          console.log(`Coordonate: x: ${Math.round(x / scale + Math.abs(position.x))}, y: ${Math.round(y / scale + Math.abs(position.y))}`);
-        }}
-        className="absolute inset-0 z-10 bg-transparent"
-      /> */}
+      {/* Character status UI component */}
+      <CharacterStatus 
+        name={mockCharacterData.name}
+        level={mockCharacterData.level}
+        race={mockCharacterData.race}
+        gender={mockCharacterData.gender}
+        background={mockCharacterData.background}
+        hp={mockCharacterData.hp}
+        stamina={mockCharacterData.stamina}
+        experience={mockCharacterData.experience}
+      />
 
       {/* Containerul pentru hartă care se va mișca și scala */}
       <div 
@@ -240,11 +263,11 @@ const GamePage: React.FC = () => {
         </div>
       </div>
       
-      {/* Informații de debug */}
-      <div className="absolute top-4 left-4 bg-black/50 text-white p-2 rounded select-none z-10">
+      {/* Informații de debug - uncomment când e nevoie */}
+      {/* <div className="absolute top-4 left-4 bg-black/50 text-white p-2 rounded select-none z-10">
         <div>Poziție: X: {Math.round(position.x)}, Y: {Math.round(position.y)}</div>
         <div>Zoom: {Math.round(scale * 100)}%</div>
-      </div>
+      </div> */}
     </div>
   );
 };
