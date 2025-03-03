@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import mapImage from '../assets/images/westinmap.jpg';
 import mobi from '../data/mobi.json';
 import CharacterStatus from '../components/ui/CharacterStatus';
+import BottomPanel from '../components/ui/BottomPanel';
 
 const GamePage: React.FC = () => {
   // Dimensiunile reale ale hărții
@@ -181,7 +182,7 @@ const mockCharacterData = {
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseLeave}
       onWheel={handleWheel}
-      style={{ 
+      style={{  zIndex: 0, 
         cursor: isDragging ? 'grabbing' : 'grab',
         overflow: 'hidden'
       }}
@@ -197,6 +198,9 @@ const mockCharacterData = {
         stamina={mockCharacterData.stamina}
         experience={mockCharacterData.experience}
       />
+
+      {/* Bottom panel with inventory button */}
+      <BottomPanel playerRace={mockCharacterData.race} />
 
       {/* Containerul pentru hartă care se va mișca și scala */}
       <div 
