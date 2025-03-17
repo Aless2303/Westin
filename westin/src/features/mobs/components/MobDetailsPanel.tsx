@@ -6,12 +6,16 @@ interface MobDetailsPanelProps {
   isOpen: boolean;
   onClose: () => void;
   selectedMob: MobType | null;
+  characterX: number;
+  characterY: number;
 }
 
 const MobDetailsPanel: React.FC<MobDetailsPanelProps> = ({ 
   isOpen, 
   onClose, 
-  selectedMob 
+  selectedMob,
+  characterX,
+  characterY
 }) => {
   const [position, setPosition] = useState({ x: 200, y: 100 });
   const [isDragging, setIsDragging] = useState(false);
@@ -46,26 +50,9 @@ const MobDetailsPanel: React.FC<MobDetailsPanelProps> = ({
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isDragging, dragStart]);
+  }, [isDragging]);
 
   if (!isOpen || !selectedMob) return null;
-
-  const getDrops = (mobType: string) => {
-    if (mobType === 'boss') {
-      return [
-        { name: `Yang (${selectedMob.yang})`, chance: "100%" },
-        { name: "Piatră de spirit", chance: "75%" },
-        { name: "Armă legendară", chance: mobType === 'boss' ? "5%" : "1%" },
-        { name: "Material rar", chance: "25%" },
-      ];
-    } else {
-      return [
-        { name: `Yang (${selectedMob.yang})`, chance: "100%" },
-        { name: "Cristale", chance: "50%" },
-        { name: "Material comun", chance: "30%" }
-      ];
-    }
-  };
 
   const stopPropagation = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -86,13 +73,52 @@ const MobDetailsPanel: React.FC<MobDetailsPanelProps> = ({
     return num.toLocaleString('ro-RO');
   };
 
+  // Calculate travel time with speed (141.42 units = 1 minute)
+  const calculateTravelTime = (charX: number, charY: number, mobX: number, mobY: number): string => {
+    const distance = Math.sqrt(Math.pow(mobX - charX, 2) + Math.pow(mobY - charY, 2));
+    const tolerance = 1;
+
+    if (distance <= tolerance) {
+      return "00:00";
+    }
+
+    const seconds = Math.round((distance / 141.42) * 60);
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+
+    const minutesStr = minutes.toString().padStart(2, '0');
+    const secondsStr = remainingSeconds.toString().padStart(2, '0');
+    return `${minutesStr}:${secondsStr}`;
+  };
+
+  const travelTime = calculateTravelTime(characterX, characterY, selectedMob.x, selectedMob.y);
+
+  // Calculate fixed rewards based on specified percentages
+  const calculateReward = (percentage: number) => {
+    const fullExp = selectedMob.exp;
+    const fullYang = selectedMob.yang;
+
+    const expReward = (fullExp * percentage) / 100;
+    const yangReward = (fullYang * percentage) / 100;
+
+    return {
+      exp: Math.round(expReward),
+      yang: Math.round(yangReward),
+    };
+  };
+
+  // Rewards for each attack duration (fixed percentages)
+  const reward15s = calculateReward(0.65); // 0.65% (midpoint of 0.6–0.7%)
+  const reward10m = calculateReward(4.5);  // 4.5% (midpoint of 4–5%)
+  const reward1h = calculateReward(100);   // 100%
+
   return (
     <div 
       ref={panelRef}
       className={`fixed z-50 bg-metin-dark/95 border-2 ${panelColorClass} rounded-lg shadow-lg`}
       style={{ 
-        width: '450px', 
-        height: '420px',
+        width: '360px', 
+        height: '500px', // Adjusted height to fit the new layout
         top: `${position.y}px`, 
         left: `${position.x}px`,
         cursor: isDragging ? 'grabbing' : 'auto'
@@ -118,34 +144,32 @@ const MobDetailsPanel: React.FC<MobDetailsPanelProps> = ({
       
       <div className="p-4 flex flex-col h-[calc(100%-44px)]">
         <div className="flex mb-4">
-          {/* Updated Image Container */}
           <div className="relative w-24 h-24 bg-black/60 border border-metin-gold/30 rounded-lg overflow-hidden mr-4 flex items-center justify-center">
             <Image 
-                src={selectedMob.image}
-                alt={selectedMob.name}
-                width={96}
-                height={96}
-                className="object-contain w-full h-full"
-                style={{ objectPosition: 'center' }}
-                quality={100}
+              src={selectedMob.image}
+              alt={selectedMob.name}
+              width={96}
+              height={96}
+              className="object-contain w-full h-full"
+              style={{ objectPosition: 'center' }}
+              quality={100}
             />
-            </div>
+          </div>
           
-            <div className="flex-1">
+          <div className="flex-1">
             <h3 className="text-metin-gold text-lg mb-2">{selectedMob.name}</h3>
             <div className="grid grid-cols-2 gap-2">
-                <div className="text-metin-light/80 text-sm">
+              <div className="text-metin-light/80 text-sm">
                 Nivel: <span className="text-metin-gold">{selectedMob.level}</span>
-                </div>
-                <div className="text-metin-light/80 text-sm">
+              </div>
+              <div className="text-metin-light/80 text-sm">
                 Tip: <span className="text-metin-gold capitalize">{selectedMob.type}</span>
-                </div>
-                {/* Make Dificultate span across both columns */}
-                <div className="text-metin-light/80 text-sm col-span-2">
+              </div>
+              <div className="text-metin-light/80 text-sm col-span-2">
                 Dificultate: <span className="text-metin-gold">{getLevelRating(selectedMob.level)}</span>
-                </div>
+              </div>
             </div>
-            </div>
+          </div>
         </div>
 
         <div className="bg-black/30 p-3 rounded-lg mb-4">
@@ -170,12 +194,51 @@ const MobDetailsPanel: React.FC<MobDetailsPanelProps> = ({
           </div>
         </div>
 
+        {/* Travel Time Section */}
+        <div className="bg-black/30 p-3 rounded-lg mb-4">
+          <h4 className="text-metin-gold text-sm mb-2">Timp de deplasare:</h4>
+          <div className="text-metin-light/80 text-sm">
+            Timp estimat: <span className="text-metin-gold">{travelTime}</span>
+          </div>
+        </div>
 
-        
-        <div className="mt-4 flex justify-between space-x-2">
-          <button className="flex-1 py-2 bg-metin-brown/40 hover:bg-metin-brown/60 text-metin-light border border-metin-gold/30 rounded-md transition-colors">
-            Atacă
+        {/* Attack Buttons with Rewards (3x3 Grid Layout) */}
+        <div className="mt-auto grid grid-cols-3 gap-x-4 gap-y-2 text-center">
+          {/* Row 1: Buttons */}
+          <button className="w-12 h-12 mx-auto bg-metin-red/30 rounded-full border border-metin-gold/50 flex flex-col items-center justify-center animate-spin-slow overflow-hidden transition-transform hover:scale-110">
+            <span className="text-metin-gold text-lg font-bold">⚔</span>
+            <span className="text-metin-light text-xs">15s</span>
           </button>
+          <button className="w-12 h-12 mx-auto bg-metin-red/30 rounded-full border border-metin-gold/50 flex flex-col items-center justify-center animate-spin-slow overflow-hidden transition-transform hover:scale-110">
+            <span className="text-metin-gold text-lg font-bold">⚔</span>
+            <span className="text-metin-light text-xs">10m</span>
+          </button>
+          <button className="w-12 h-12 mx-auto bg-metin-red/30 rounded-full border border-metin-gold/50 flex flex-col items-center justify-center animate-spin-slow overflow-hidden transition-transform hover:scale-110">
+            <span className="text-metin-gold text-lg font-bold">⚔</span>
+            <span className="text-metin-light text-xs">1h</span>
+          </button>
+
+          {/* Row 2: Experience */}
+          <div className="text-metin-light/80 text-xs">
+            Experiență: <span className="text-metin-gold">{formatNumber(reward15s.exp)}</span>
+          </div>
+          <div className="text-metin-light/80 text-xs">
+            Experiență: <span className="text-metin-gold">{formatNumber(reward10m.exp)}</span>
+          </div>
+          <div className="text-metin-light/80 text-xs">
+            Experiență: <span className="text-metin-gold">{formatNumber(reward1h.exp)}</span>
+          </div>
+
+          {/* Row 3: Yang */}
+          <div className="text-metin-light/80 text-xs">
+            Yang: <span className="text-metin-gold">{formatNumber(reward15s.yang)}</span>
+          </div>
+          <div className="text-metin-light/80 text-xs">
+            Yang: <span className="text-metin-gold">{formatNumber(reward10m.yang)}</span>
+          </div>
+          <div className="text-metin-light/80 text-xs">
+            Yang: <span className="text-metin-gold">{formatNumber(reward1h.yang)}</span>
+          </div>
         </div>
       </div>
     </div>

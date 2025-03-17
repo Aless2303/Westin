@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import Image from 'next/image'; // Import Image for the character marker
 import mapImage from '../assets/images/westinmap.jpg';
 import mobi from '../data/mobi.json';
 import CharacterStatus from '../components/ui/CharacterStatus';
@@ -13,6 +14,29 @@ interface MobType {
   type: "boss" | "metin";
 }
 
+// Interface pentru datele personajului
+interface CharacterType {
+  name: string;
+  level: number;
+  race: string;
+  gender: string;
+  background: string;
+  hp: {
+    current: number;
+    max: number;
+  };
+  stamina: {
+    current: number;
+    max: number;
+  };
+  experience: {
+    current: number;
+    percentage: number;
+  };
+  x: number;
+  y: number;
+}
+
 const GamePage: React.FC = () => {
   // Dimensiunile reale ale hărții
   const MAP_WIDTH = 2048;
@@ -20,7 +44,7 @@ const GamePage: React.FC = () => {
   
   // Starea pentru poziția hărții, zoom, și animație
   const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [scale, setScale] = useState(1.0); // Zoom inițial 100%
+  const [scale, setScale] = useState(1.0);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [animation, setAnimation] = useState<{ x: number; y: number; visible: boolean } | null>(null);
@@ -29,34 +53,60 @@ const GamePage: React.FC = () => {
   const [isMobDetailsOpen, setIsMobDetailsOpen] = useState(false);
   const [selectedMob, setSelectedMob] = useState<MobType | null>(null);
   
-// Mock character data for testing (would come from backend/context in a real app)
-const mockCharacterData = {
-  name: "Ravensword",
-  level: 134,
-  race: "Ninja",
-  gender: "Masculin",
-  background: "/Backgrounds/western2.jpg",
-  hp: {
-    current: 2303,
-    max: 7500
-  },
-  stamina: {
-    current: 84,
-    max: 100
-  },
-  experience: {
-    current: 12345,   // Experiență curentă (valoare absolută)
-    percentage: 63    // Procentul de experiență către nivelul următor
-  }
-};
+  // Datele mock pentru personaj
+  const mockCharacterData: CharacterType = {
+    name: "Ravensword",
+    level: 134,
+    race: "Ninja",
+    gender: "Masculin",
+    background: "/Backgrounds/western2.jpg",
+    hp: {
+      current: 2303,
+      max: 7500,
+    },
+    stamina: {
+      current: 84,
+      max: 100,
+    },
+    experience: {
+      current: 12345,
+      percentage: 63,
+    },
+    x: 350,
+    y: 611,
+  };
   
   // Limitele de zoom
-  const MIN_SCALE = 1.0; // 100% - zoom minim
-  const MAX_SCALE = 2.5; // 250% - zoom maxim
+  const MIN_SCALE = 1.0;
+  const MAX_SCALE = 2.5;
   
   // Referința către containerul hărții
   const mapContainerRef = useRef<HTMLDivElement>(null);
   
+  // Calculează cel mai apropiat mob de personaj
+  const findClosestMob = (characterX: number, characterY: number): MobType => {
+    let closestMob = mobi[0];
+    let minDistance = Infinity;
+
+    mobi.forEach((mob) => {
+      const distance = Math.sqrt(
+        Math.pow(mob.x - characterX, 2) + Math.pow(mob.y - characterY, 2)
+      );
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestMob = mob;
+      }
+    });
+
+    return closestMob;
+  };
+
+  // Găsește cel mai apropiat mob
+  const closestMob = findClosestMob(mockCharacterData.x, mockCharacterData.y);
+
+  // Construiește calea către imaginea personajului bazată pe rasă și gen
+  const characterImagePath = `/Races/${mockCharacterData.gender.toLowerCase()}/${mockCharacterData.race.toLowerCase()}.png`;
+
   // Handler pentru începerea tragerii
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -171,24 +221,16 @@ const mockCharacterData = {
     setScale(1.0);
   }, []);
 
+  // Log the character's coordinates and closest mob for debugging
+  useEffect(() => {
+    console.log(`Character position: x=${mockCharacterData.x}, y=${mockCharacterData.y}`);
+    console.log(`Closest mob: ${closestMob.name} at x=${closestMob.x}, y=${closestMob.y}`);
+  }, []);
+
   // Handler pentru click pe butoane (diferit pentru metin și boss, cu animație)
   const handleItemClick = (item: MobType) => {
-    // Setează mobul selectat și deschide panoul de detalii
     setSelectedMob(item);
     setIsMobDetailsOpen(true);
-    
-    // Afișează animația la coordonatele item-ului
-    setAnimation({ x: item.x, y: item.y, visible: true });
-    
-    // Ascunde animația după 1.5 secunde
-    setTimeout(() => setAnimation(null), 1500);
-    
-    // Loguri console pentru debugging
-    if (item.type === 'metin') {
-      console.log(`Interacționezi cu Metin: ${item.name}`);
-    } else if (item.type === 'boss') {
-      console.log(`Începi lupta cu Boss-ul: ${item.name}`);
-    }
   };
 
   return (
@@ -200,7 +242,8 @@ const mockCharacterData = {
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseLeave}
       onWheel={handleWheel}
-      style={{  zIndex: 0, 
+      style={{ 
+        zIndex: 0, 
         cursor: isDragging ? 'grabbing' : 'grab',
         overflow: 'hidden'
       }}
@@ -220,11 +263,13 @@ const mockCharacterData = {
       {/* Bottom panel with inventory button */}
       <BottomPanel playerRace={mockCharacterData.race} />
       
-      {/* Mob Details Panel */}
+      {/* Mob Details Panel with character coordinates */}
       <MobDetailsPanel
         isOpen={isMobDetailsOpen}
         onClose={() => setIsMobDetailsOpen(false)}
         selectedMob={selectedMob}
+        characterX={mockCharacterData.x}
+        characterY={mockCharacterData.y}
       />
 
       {/* Containerul pentru hartă care se va mișca și scala */}
@@ -261,23 +306,46 @@ const mockCharacterData = {
               onClick={() => handleItemClick(item)}
               className="absolute rounded-full transition-all hover:bg-metin-gold/20"
               style={{
-                width: '60px', // Dimensiune fixă de 60x60 pixeli (cerc)
+                width: '60px',
                 height: '60px',
-                left: `${(item.x / MAP_WIDTH) * 100}%`, // Poziționare procentuală pe axa X
-                top: `${(item.y / MAP_HEIGHT) * 100}%`, // Poziționare procentuală pe axa Y
-                transform: 'translate(-50%, -50%)', // Centrează butonul pe coordonate
-                backgroundColor: 'transparent', // Fără fundal (invizibil)
-                border: 'none', // Fără bordură
-                pointerEvents: 'auto', // Permite interacțiunea cu butonul
-                zIndex: 20, // Asigură că butonul este deasupra hărții
+                left: `${(item.x / MAP_WIDTH) * 100}%`,
+                top: `${(item.y / MAP_HEIGHT) * 100}%`,
+                transform: 'translate(-50%, -50%)',
+                backgroundColor: 'transparent',
+                border: 'none',
+                pointerEvents: 'auto',
+                zIndex: 20,
               }}
             >
-              {/* Indicator subtil pentru tip-ul de mob (opțional, pentru debugging) */}
               <span className="absolute inset-0 flex items-center justify-center text-xs text-metin-gold/30">
                 {item.type === 'boss' ? '⚔️' : '🗿'}
               </span>
             </button>
           ))}
+          {/* Marker pentru personaj (imagine bazată pe rasă și gen, în cerc cu fundal alb și bordură neagră) */}
+          <div
+            className="absolute rounded-full bg-white border-2 border-black"
+            style={{
+              width: '40px',
+              height: '40px',
+              // Poziționează markerul în stânga și ușor deasupra coordonatelor celui mai apropiat mob
+              left: `${((closestMob.x - 40) / MAP_WIDTH) * 100}%`, // 40px la stânga
+              top: `${((closestMob.y + 20) / MAP_HEIGHT) * 100}%`, // 20px deasupra
+              transform: 'translate(-50%, -50%)',
+              pointerEvents: 'none',
+              zIndex: 25,
+              overflow: 'hidden', // Ensures the image stays within the circle
+            }}
+            title={mockCharacterData.name}
+          >
+            <Image
+              src={characterImagePath}
+              alt={`${mockCharacterData.name} marker`}
+              width={40}
+              height={40}
+              className="object-cover"
+            />
+          </div>
           {/* Animația personalizată pentru click pe butoane */}
           {animation && (
             <div
@@ -288,7 +356,7 @@ const mockCharacterData = {
                 left: `${(animation.x / MAP_WIDTH) * 100}%`,
                 top: `${(animation.y / MAP_HEIGHT) * 100}%`,
                 transform: 'translate(-50%, -50%)',
-                zIndex: 30, // Deasupra butoanelor și hărții
+                zIndex: 30,
               }}
             />
           )}
