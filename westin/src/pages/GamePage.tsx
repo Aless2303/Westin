@@ -3,6 +3,15 @@ import mapImage from '../assets/images/westinmap.jpg';
 import mobi from '../data/mobi.json';
 import CharacterStatus from '../components/ui/CharacterStatus';
 import BottomPanel from '../components/ui/BottomPanel';
+import { MobDetailsPanel } from '../features/mobs';
+
+// Interface pentru tipul de mob
+interface MobType {
+  name: string;
+  x: number;
+  y: number;
+  type: "boss" | "metin";
+}
 
 const GamePage: React.FC = () => {
   // Dimensiunile reale ale hărții
@@ -15,6 +24,10 @@ const GamePage: React.FC = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [animation, setAnimation] = useState<{ x: number; y: number; visible: boolean } | null>(null);
+  
+  // Stare pentru panoul de detalii mob
+  const [isMobDetailsOpen, setIsMobDetailsOpen] = useState(false);
+  const [selectedMob, setSelectedMob] = useState<MobType | null>(null);
   
 // Mock character data for testing (would come from backend/context in a real app)
 const mockCharacterData = {
@@ -159,17 +172,22 @@ const mockCharacterData = {
   }, []);
 
   // Handler pentru click pe butoane (diferit pentru metin și boss, cu animație)
-  const handleItemClick = (itemName: string, itemType: string, itemX: number, itemY: number) => {
-    if (itemType === 'metin') {
-      console.log(`Interacționezi cu Metin: ${itemName}`);
-      // Afișează animația la coordonatele item-ului
-      setAnimation({ x: itemX, y: itemY, visible: true });
-      // Ascunde animația după 1.5 secunde
-      setTimeout(() => setAnimation(null), 1500);
-    } else if (itemType === 'boss') {
-      console.log(`Începi lupta cu Boss-ul: ${itemName}`);
-      setAnimation({ x: itemX, y: itemY, visible: true });
-      setTimeout(() => setAnimation(null), 1500);
+  const handleItemClick = (item: MobType) => {
+    // Setează mobul selectat și deschide panoul de detalii
+    setSelectedMob(item);
+    setIsMobDetailsOpen(true);
+    
+    // Afișează animația la coordonatele item-ului
+    setAnimation({ x: item.x, y: item.y, visible: true });
+    
+    // Ascunde animația după 1.5 secunde
+    setTimeout(() => setAnimation(null), 1500);
+    
+    // Loguri console pentru debugging
+    if (item.type === 'metin') {
+      console.log(`Interacționezi cu Metin: ${item.name}`);
+    } else if (item.type === 'boss') {
+      console.log(`Începi lupta cu Boss-ul: ${item.name}`);
     }
   };
 
@@ -201,6 +219,13 @@ const mockCharacterData = {
 
       {/* Bottom panel with inventory button */}
       <BottomPanel playerRace={mockCharacterData.race} />
+      
+      {/* Mob Details Panel */}
+      <MobDetailsPanel
+        isOpen={isMobDetailsOpen}
+        onClose={() => setIsMobDetailsOpen(false)}
+        selectedMob={selectedMob}
+      />
 
       {/* Containerul pentru hartă care se va mișca și scala */}
       <div 
@@ -233,8 +258,8 @@ const mockCharacterData = {
           {mobi.map((item, index) => (
             <button
               key={index}
-              onClick={() => handleItemClick(item.name, item.type, item.x, item.y)}
-              className="absolute rounded-full transition-all"
+              onClick={() => handleItemClick(item)}
+              className="absolute rounded-full transition-all hover:bg-metin-gold/20"
               style={{
                 width: '60px', // Dimensiune fixă de 60x60 pixeli (cerc)
                 height: '60px',
@@ -247,7 +272,10 @@ const mockCharacterData = {
                 zIndex: 20, // Asigură că butonul este deasupra hărții
               }}
             >
-              {/* Butonul este complet transparent, fără text sau conținut vizibil */}
+              {/* Indicator subtil pentru tip-ul de mob (opțional, pentru debugging) */}
+              <span className="absolute inset-0 flex items-center justify-center text-xs text-metin-gold/30">
+                {item.type === 'boss' ? '⚔️' : '🗿'}
+              </span>
             </button>
           ))}
           {/* Animația personalizată pentru click pe butoane */}
