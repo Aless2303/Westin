@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { MobType } from '../types';
+import { useWorks } from '../../works/context/WorksContext';
 
 interface MobDetailsPanelProps {
   isOpen: boolean;
@@ -14,13 +15,76 @@ const MobDetailsPanel: React.FC<MobDetailsPanelProps> = ({
   isOpen, 
   onClose, 
   selectedMob,
-  characterX,
+  characterX, // We still accept these props
   characterY
 }) => {
   const [position, setPosition] = useState({ x: 200, y: 100 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const panelRef = useRef<HTMLDivElement>(null);
+  
+  // Import useWorks hook to add jobs
+  const { addJob, characterPosition, jobs } = useWorks();
+  
+  // Keep track of local calculation of travel time - update only when needed
+  const [travelTimeText, setTravelTimeText] = useState("00:00");
+  const [travelTimeFromLastJobText, setTravelTimeFromLastJobText] = useState("00:00");
+  
+  // Format time display (minutes:seconds) - Defined BEFORE it's used
+  const formatTime = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+  
+  // Calculate travel time with speed (141.42 units = 1 minute) - Defined BEFORE it's used
+  const calculateTravelTimeSeconds = (charX: number, charY: number, mobX: number, mobY: number): number => {
+    const distance = Math.sqrt(Math.pow(mobX - charX, 2) + Math.pow(mobY - charY, 2));
+    const tolerance = 1;
+
+    if (distance <= tolerance) {
+      return 0;
+    }
+
+    // Convert to seconds
+    const seconds = Math.round((distance / 141.42) * 60);
+    return seconds;
+  };
+  
+  // Get position of the last job in queue
+  const getLastJobPosition = (): { x: number, y: number } => {
+    if (jobs.length === 0) {
+      return characterPosition;
+    }
+    
+    // Return the position of the last job in queue
+    const lastJob = jobs[jobs.length - 1];
+    return { x: lastJob.mobX, y: lastJob.mobY };
+  };
+  
+  // Update travel time when character position, jobs or selected mob changes
+  useEffect(() => {
+    if (selectedMob) {
+      // Calculate time from current position
+      const secondsFromCurrent = calculateTravelTimeSeconds(
+        characterPosition.x, 
+        characterPosition.y, 
+        selectedMob.x, 
+        selectedMob.y
+      );
+      setTravelTimeText(formatTime(secondsFromCurrent));
+      
+      // Calculate time from last job position
+      const lastPos = getLastJobPosition();
+      const secondsFromLastJob = calculateTravelTimeSeconds(
+        lastPos.x, 
+        lastPos.y, 
+        selectedMob.x, 
+        selectedMob.y
+      );
+      setTravelTimeFromLastJobText(formatTime(secondsFromLastJob));
+    }
+  }, [characterPosition, jobs, selectedMob]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -52,6 +116,48 @@ const MobDetailsPanel: React.FC<MobDetailsPanelProps> = ({
     };
   }, [isDragging]);
 
+  // Handle job creation when attack button is clicked
+  const handleAttack = (duration: '15s' | '10m' | '1h') => {
+    if (!selectedMob) return;
+    
+    // Set job remaining time based on the button clicked
+    const durationInSeconds = 
+      duration === '15s' ? 15 : 
+      duration === '10m' ? 600 : 
+      3600; // 1h
+    
+    // Get the expected starting position for this job (current position or end of last job)
+    const startPos = getLastJobPosition();
+    
+    // Calculate travel time in seconds from start position
+    const travelTimeSeconds = calculateTravelTimeSeconds(
+      startPos.x, 
+      startPos.y, 
+      selectedMob.x, 
+      selectedMob.y
+    );
+    
+    // Add the job with mob coordinates for position updating
+    const wasAdded = addJob({
+      type: duration,
+      remainingTime: durationInSeconds,
+      travelTime: travelTimeSeconds,
+      isInProgress: false,
+      mobName: selectedMob.name,
+      mobImage: selectedMob.image,
+      mobX: selectedMob.x,
+      mobY: selectedMob.y
+    });
+    
+    if (!wasAdded) {
+      // Aici puteți afișa un mesaj de eroare către utilizator
+      console.log('Maximum 3 jobs allowed!');
+    } else {
+      // Close the panel after adding a job
+      onClose();
+    }
+  };
+
   if (!isOpen || !selectedMob) return null;
 
   const stopPropagation = (e: React.MouseEvent) => {
@@ -72,26 +178,6 @@ const MobDetailsPanel: React.FC<MobDetailsPanelProps> = ({
   const formatNumber = (num: number): string => {
     return num.toLocaleString('ro-RO');
   };
-
-  // Calculate travel time with speed (141.42 units = 1 minute)
-  const calculateTravelTime = (charX: number, charY: number, mobX: number, mobY: number): string => {
-    const distance = Math.sqrt(Math.pow(mobX - charX, 2) + Math.pow(mobY - charY, 2));
-    const tolerance = 1;
-
-    if (distance <= tolerance) {
-      return "00:00";
-    }
-
-    const seconds = Math.round((distance / 141.42) * 60);
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-
-    const minutesStr = minutes.toString().padStart(2, '0');
-    const secondsStr = remainingSeconds.toString().padStart(2, '0');
-    return `${minutesStr}:${secondsStr}`;
-  };
-
-  const travelTime = calculateTravelTime(characterX, characterY, selectedMob.x, selectedMob.y);
 
   // Calculate fixed rewards based on specified percentages
   const calculateReward = (percentage: number) => {
@@ -172,7 +258,7 @@ const MobDetailsPanel: React.FC<MobDetailsPanelProps> = ({
           </div>
         </div>
 
-        <div className="bg-black/30 p-3 rounded-lg mb-4">
+        <div className="bg-black/30 p-3 rounded-lg mb-2">
           <h4 className="text-metin-gold text-sm mb-2">Statistici:</h4>
           <div className="grid grid-cols-2 gap-x-4 gap-y-2">
             <div className="flex justify-between">
@@ -194,26 +280,38 @@ const MobDetailsPanel: React.FC<MobDetailsPanelProps> = ({
           </div>
         </div>
 
-        {/* Travel Time Section */}
-        <div className="bg-black/30 p-3 rounded-lg mb-4">
+        {/* Travel Time Section - modified to show both travel times */}
+        <div className="bg-black/30 p-3 rounded-lg mb-2">
           <h4 className="text-metin-gold text-sm mb-2">Timp de deplasare:</h4>
+          <div className="text-metin-light/80 text-sm mb-1">
+            Timp estimat: <span className="text-metin-gold">{travelTimeText}</span> <span className="text-yellow-300">(Poziția curentă)</span>
+          </div>
           <div className="text-metin-light/80 text-sm">
-            Timp estimat: <span className="text-metin-gold">{travelTime}</span>
+            Timp estimat: <span className="text-metin-gold">{travelTimeFromLastJobText}</span> <span className="text-yellow-300">(Ultima poziție)</span>
           </div>
         </div>
 
         {/* Attack Buttons with Rewards (3x3 Grid Layout) */}
         <div className="mt-auto grid grid-cols-3 gap-x-4 gap-y-2 text-center">
           {/* Row 1: Buttons */}
-          <button className="w-12 h-12 mx-auto bg-metin-red/30 rounded-full border border-metin-gold/50 flex flex-col items-center justify-center animate-spin-slow overflow-hidden transition-transform hover:scale-110">
+          <button 
+            className="w-12 h-12 mx-auto bg-metin-red/30 rounded-full border border-metin-gold/50 flex flex-col items-center justify-center animate-spin-slow overflow-hidden transition-transform hover:scale-110"
+            onClick={() => handleAttack('15s')}
+          >
             <span className="text-metin-gold text-lg font-bold">⚔</span>
             <span className="text-metin-light text-xs">15s</span>
           </button>
-          <button className="w-12 h-12 mx-auto bg-metin-red/30 rounded-full border border-metin-gold/50 flex flex-col items-center justify-center animate-spin-slow overflow-hidden transition-transform hover:scale-110">
+          <button 
+            className="w-12 h-12 mx-auto bg-metin-red/30 rounded-full border border-metin-gold/50 flex flex-col items-center justify-center animate-spin-slow overflow-hidden transition-transform hover:scale-110"
+            onClick={() => handleAttack('10m')}
+          >
             <span className="text-metin-gold text-lg font-bold">⚔</span>
             <span className="text-metin-light text-xs">10m</span>
           </button>
-          <button className="w-12 h-12 mx-auto bg-metin-red/30 rounded-full border border-metin-gold/50 flex flex-col items-center justify-center animate-spin-slow overflow-hidden transition-transform hover:scale-110">
+          <button 
+            className="w-12 h-12 mx-auto bg-metin-red/30 rounded-full border border-metin-gold/50 flex flex-col items-center justify-center animate-spin-slow overflow-hidden transition-transform hover:scale-110"
+            onClick={() => handleAttack('1h')}
+          >
             <span className="text-metin-gold text-lg font-bold">⚔</span>
             <span className="text-metin-light text-xs">1h</span>
           </button>
