@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import Image from 'next/image'; // Import Image for the character marker
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import mapImage from '../assets/images/westinmap.jpg';
 import mobi from '../data/mobi.json';
 import CharacterStatus from '../components/ui/CharacterStatus';
@@ -7,7 +7,7 @@ import BottomPanel from '../components/ui/BottomPanel';
 import { MobDetailsPanel } from '../features/mobs';
 import { WorksProvider } from '../features/works';
 import { ReportsProvider } from '../features/reports';
-
+import { hardcodedPlayers } from '../features/duels';
 
 // Interface pentru tipul de mob
 interface MobType {
@@ -48,7 +48,6 @@ interface CharacterType {
   defense: number;
 }
 
-
 const GamePage: React.FC = () => {
   // Dimensiunile reale ale hărții
   const MAP_WIDTH = 2048;
@@ -65,31 +64,34 @@ const GamePage: React.FC = () => {
   const [isMobDetailsOpen, setIsMobDetailsOpen] = useState(false);
   const [selectedMob, setSelectedMob] = useState<MobType | null>(null);
   
+  // Flag pentru a afișa sau ascunde mesaje de sistem
+  const [showSystemMessage, setShowSystemMessage] = useState(false);
+  const [systemMessage, setSystemMessage] = useState('');
+  
   // Datele pentru personaj cu stare actualizabilă (poziție)
-// Apoi în starea pentru personaj, adăugăm valorile pentru attack și defense
-const [characterData, setCharacterData] = useState<CharacterType>({
-  name: "Ravensword",
-  level: 134,
-  race: "Ninja",
-  gender: "Masculin",
-  background: "/Backgrounds/western2.jpg",
-  hp: {
-    current: 6339,
-    max: 7500,
-  },
-  stamina: {
-    current: 84,
-    max: 100,
-  },
-  experience: {
-    current: 12345,
-    percentage: 63,
-  },
-  x: 350,
-  y: 611,
-  // Adăugăm valori pentru attack și defense
-  attack: 5000,
-  defense: 200
+  const [characterData, setCharacterData] = useState<CharacterType>({
+    name: "Ravensword",
+    level: 134,
+    race: "Ninja",
+    gender: "Masculin",
+    background: "/Backgrounds/western2.jpg",
+    hp: {
+      current: 6339,
+      max: 7500,
+    },
+    stamina: {
+      current: 84,
+      max: 100,
+    },
+    experience: {
+      current: 12345,
+      percentage: 63,
+    },
+    x: 350,
+    y: 611,
+    // Adăugăm valori pentru attack și defense
+    attack: 5000,
+    defense: 200
   });
   
   // Limitele de zoom
@@ -98,6 +100,95 @@ const [characterData, setCharacterData] = useState<CharacterType>({
   
   // Referința către containerul hărții
   const mapContainerRef = useRef<HTMLDivElement>(null);
+  
+  // Function to update player HP
+  const updatePlayerHp = useCallback((newHp: number) => {
+    setCharacterData(prev => {
+      // If HP drops below 0, set it to 0 and show message
+      if (newHp <= 0) {
+        setSystemMessage('Ai pierdut toată viața! Folosește poțiuni pentru a te vindeca.');
+        setShowSystemMessage(true);
+        
+        // Auto-hide message after 5 seconds
+        setTimeout(() => {
+          setShowSystemMessage(false);
+        }, 5000);
+        
+        return {
+          ...prev,
+          hp: {
+            ...prev.hp,
+            current: 0
+          }
+        };
+      }
+      
+      // Otherwise, update HP normally
+      return {
+        ...prev,
+        hp: {
+          ...prev.hp,
+          current: newHp
+        }
+      };
+    });
+  }, []);
+  
+  // Function to update player Stamina
+  const updatePlayerStamina = useCallback((newStamina: number) => {
+    setCharacterData(prev => {
+      // If stamina is too low, show a warning
+      if (newStamina === 0) {
+        setSystemMessage('Nu mai ai stamină! Odihnește-te pentru a o regenera.');
+        setShowSystemMessage(true);
+        
+        // Auto-hide message after 5 seconds
+        setTimeout(() => {
+          setShowSystemMessage(false);
+        }, 5000);
+      } else if (newStamina <= 10 && prev.stamina.current > 10) {
+        // Show warning when stamina drops below 10
+        setSystemMessage('Stamina scăzută! Ai grijă cum o folosești.');
+        setShowSystemMessage(true);
+        
+        // Auto-hide message after 3 seconds
+        setTimeout(() => {
+          setShowSystemMessage(false);
+        }, 3000);
+      }
+      
+      return {
+        ...prev,
+        stamina: {
+          ...prev.stamina,
+          current: newStamina
+        }
+      };
+    });
+  }, []);
+  
+  // Auto regenerate stamina over time
+  useEffect(() => {
+    const staminaRegenInterval = setInterval(() => {
+      setCharacterData(prev => {
+        // Only regenerate if not at max stamina
+        if (prev.stamina.current < prev.stamina.max) {
+          return {
+            ...prev,
+            stamina: {
+              ...prev.stamina,
+              current: Math.min(prev.stamina.max, prev.stamina.current + 1)
+            }
+          };
+        }
+        return prev;
+      });
+    }, 60000); // Regenerate 1 stamina every 60 seconds
+    
+    return () => {
+      clearInterval(staminaRegenInterval);
+    };
+  }, []);
   
   // Funcție pentru actualizarea poziției caracterului
   const updateCharacterPosition = (newX: number, newY: number) => {
@@ -258,12 +349,6 @@ const [characterData, setCharacterData] = useState<CharacterType>({
     setScale(1.0);
   }, []);
 
-  // Log the character's coordinates and closest mob for debugging
-  useEffect(() => {
-    console.log(`Character position: x=${characterData.x}, y=${characterData.y}`);
-    console.log(`Closest mob: ${closestMob.name} at x=${closestMob.x}, y=${closestMob.y}`);
-  }, [characterData.x, characterData.y]);
-
   // Handler pentru click pe butoane (diferit pentru metin și boss, cu animație)
   const handleItemClick = (item: MobType) => {
     setSelectedMob(item);
@@ -272,7 +357,12 @@ const [characterData, setCharacterData] = useState<CharacterType>({
 
   return (
     <ReportsProvider>
-      <WorksProvider characterPositionUpdater={updateCharacterPosition} characterStats={characterData}>
+      <WorksProvider 
+        characterPositionUpdater={updateCharacterPosition} 
+        characterStats={characterData}
+        updatePlayerHp={updatePlayerHp}
+        updatePlayerStamina={updatePlayerStamina}
+      >
         <div 
           ref={mapContainerRef}
           className="fixed inset-0 overflow-hidden bg-gray-900"
@@ -300,7 +390,12 @@ const [characterData, setCharacterData] = useState<CharacterType>({
           />
 
           {/* Bottom panel with inventory button */}
-          <BottomPanel playerRace={characterData.race} />
+          <BottomPanel 
+            playerRace={characterData.race} 
+            characterData={characterData}
+            updatePlayerHp={updatePlayerHp}
+            updatePlayerStamina={updatePlayerStamina}
+          />
           
           {/* Mob Details Panel with character coordinates */}
           <MobDetailsPanel
@@ -361,6 +456,34 @@ const [characterData, setCharacterData] = useState<CharacterType>({
                   </span>
                 </button>
               ))}
+              
+              {/* Markeri pentru jucătorii hardcodați */}
+              {hardcodedPlayers.map((player, index) => (
+                <div
+                  key={`player-${index}`}
+                  className="absolute rounded-full bg-white border-2 border-blue-500"
+                  style={{
+                    width: '40px',
+                    height: '40px',
+                    left: `${((player.x - 40) / MAP_WIDTH) * 100}%`,
+                    top: `${((player.y + 20) / MAP_HEIGHT) * 100}%`,
+                    transform: 'translate(-50%, -50%)',
+                    pointerEvents: 'none',
+                    zIndex: 22,
+                    overflow: 'hidden',
+                  }}
+                  title={player.name}
+                >
+                  <Image
+                    src={player.image}
+                    alt={`${player.name} marker`}
+                    width={40}
+                    height={40}
+                    className="object-cover"
+                  />
+                </div>
+              ))}
+              
               {/* Marker pentru personaj (imagine bazată pe rasă și gen, în cerc cu fundal alb și bordură neagră) */}
               <div
                 className="absolute rounded-full bg-white border-2 border-black"
@@ -402,12 +525,15 @@ const [characterData, setCharacterData] = useState<CharacterType>({
             </div>
           </div>
           
-          {/* Informații de debug - uncomment când e nevoie */}
-          {/* <div className="absolute top-4 left-4 bg-black/50 text-white p-2 rounded select-none z-10">
-            <div>Poziție caracter: X: {Math.round(characterData.x)}, Y: {Math.round(characterData.y)}</div>
-            <div>Poziție hartă: X: {Math.round(position.x)}, Y: {Math.round(position.y)}</div>
-            <div>Zoom: {Math.round(scale * 100)}%</div>
-          </div> */}
+          {/* System message for low HP or stamina */}
+          {showSystemMessage && (
+            <div className="fixed bottom-32 left-1/2 transform -translate-x-1/2 bg-black/80 text-red-500 border border-red-700 px-4 py-2 rounded-lg shadow-lg z-50 animate-pulse">
+              <div className="flex items-center">
+                <span className="mr-2 text-2xl">⚠️</span>
+                <span className="font-medium">{systemMessage}</span>
+              </div>
+            </div>
+          )}
         </div>
       </WorksProvider>
     </ReportsProvider>

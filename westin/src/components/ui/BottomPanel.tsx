@@ -3,17 +3,44 @@ import Image from 'next/image';
 import { InventoryPanel } from '../../features/inventory';
 import { WorksPanel } from '../../features/works';
 import { ReportsPanel } from '../../features/reports';
+import { DuelsPanel } from '../../features/duels';
 import { useReports } from '../../features/reports';
 
 interface BottomPanelProps {
   playerRace: string;
+  characterData?: {
+    name: string;
+    level: number;
+    race: string;
+    gender: string;
+    hp: {
+      current: number;
+      max: number;
+    };
+    stamina: {
+      current: number;
+      max: number;
+    };
+    x: number;
+    y: number;
+    attack: number;
+    defense: number;
+  };
+  updatePlayerHp?: (newHp: number) => void;
+  updatePlayerStamina?: (newStamina: number) => void;
 }
 
-const BottomPanel: React.FC<BottomPanelProps> = ({ playerRace }) => {
+const BottomPanel: React.FC<BottomPanelProps> = ({ 
+  playerRace, 
+  characterData,
+  updatePlayerHp,
+  updatePlayerStamina
+}) => {
   const [isPanelVisible, setIsPanelVisible] = useState(true);
   const [isInventoryOpen, setIsInventoryOpen] = useState(false);
   const [isWorksOpen, setIsWorksOpen] = useState(false);
   const [isReportsOpen, setIsReportsOpen] = useState(false);
+  const [isDuelsOpen, setIsDuelsOpen] = useState(false);
   
   // Get unread reports count from context
   const { getUnreadCount } = useReports();
@@ -28,6 +55,7 @@ const BottomPanel: React.FC<BottomPanelProps> = ({ playerRace }) => {
     if (!isInventoryOpen) {
       setIsWorksOpen(false);
       setIsReportsOpen(false);
+      setIsDuelsOpen(false);
     }
   };
 
@@ -37,6 +65,7 @@ const BottomPanel: React.FC<BottomPanelProps> = ({ playerRace }) => {
     if (!isWorksOpen) {
       setIsInventoryOpen(false);
       setIsReportsOpen(false);
+      setIsDuelsOpen(false);
     }
   };
 
@@ -46,6 +75,17 @@ const BottomPanel: React.FC<BottomPanelProps> = ({ playerRace }) => {
     if (!isReportsOpen) {
       setIsInventoryOpen(false);
       setIsWorksOpen(false);
+      setIsDuelsOpen(false);
+    }
+  };
+  
+  const toggleDuels = () => {
+    setIsDuelsOpen(!isDuelsOpen);
+    // Închide alte panouri dacă sunt deschise
+    if (!isDuelsOpen) {
+      setIsInventoryOpen(false);
+      setIsWorksOpen(false);
+      setIsReportsOpen(false);
     }
   };
 
@@ -71,6 +111,17 @@ const BottomPanel: React.FC<BottomPanelProps> = ({ playerRace }) => {
         isOpen={isReportsOpen}
         onClose={() => setIsReportsOpen(false)}
       />
+      
+      {/* Duels Panel */}
+      {characterData && updatePlayerHp && updatePlayerStamina && (
+        <DuelsPanel
+          isOpen={isDuelsOpen}
+          onClose={() => setIsDuelsOpen(false)}
+          characterData={characterData}
+          updatePlayerHp={updatePlayerHp}
+          updatePlayerStamina={updatePlayerStamina}
+        />
+      )}
 
       {/* Bottom Panel UI */}
       {isPanelVisible ? (
@@ -103,7 +154,8 @@ const BottomPanel: React.FC<BottomPanelProps> = ({ playerRace }) => {
 
                 {/* Duels Button */}
                 <button
-                  className="w-12 h-12 rounded-md bg-metin-dark border border-metin-gold/40 flex items-center justify-center hover:bg-metin-gold/20 transition-colors text-metin-gold"
+                  onClick={toggleDuels}
+                  className={`w-12 h-12 rounded-md bg-metin-dark border ${isDuelsOpen ? 'border-metin-gold' : 'border-metin-gold/40'} flex items-center justify-center hover:bg-metin-gold/20 transition-colors text-metin-gold ${isDuelsOpen ? 'bg-metin-gold/20' : ''}`}
                   title="Duele"
                 >
                   <Image

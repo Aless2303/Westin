@@ -160,6 +160,33 @@ const ReportsPanel: React.FC<ReportsPanelProps> = ({ isOpen, onClose }) => {
     }
   };
 
+  // Format each line of the combat log with appropriate styling
+  const formatCombatLogLine = (line: string, index: number) => {
+    let className = '';
+    
+    if (line.includes('[CRITIC]')) {
+      className = 'text-red-400 font-bold';
+    } else if (line.includes('-------- Runda')) {
+      className = 'text-metin-gold border-b border-metin-gold/30 pb-1 pt-2 font-medium';
+    } else if (line.includes('Status la finalul rundei')) {
+      className = 'text-cyan-400 border-t border-metin-gold/10 pt-1';
+    } else if (line.includes('Victorie')) {
+      className = 'text-green-400 font-bold';
+    } else if (line.includes('Înfrângere')) {
+      className = 'text-red-400 font-bold';
+    } else if (line.includes('→')) {
+      className = 'text-yellow-300';
+    } else if (line.includes('[Duel început]') || line.includes('[Lupta începe]')) {
+      className = 'text-metin-gold font-medium border-b border-metin-gold/30 pb-1 mb-1';
+    }
+    
+    return (
+      <div key={index} className={`py-0.5 ${className}`}>
+        {line}
+      </div>
+    );
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -167,8 +194,8 @@ const ReportsPanel: React.FC<ReportsPanelProps> = ({ isOpen, onClose }) => {
       ref={panelRef}
       className="fixed z-50 bg-metin-dark/95 border-2 border-metin-gold/40 rounded-lg shadow-lg"
       style={{
-        width: isReportDetailOpen ? '680px' : '680px', // Increased width to accommodate longer subjects
-        height: '450px',
+        width: isReportDetailOpen ? '720px' : '680px', // Increased width for better readability
+        height: '550px', // Increased height to fit more content
         top: `${position.y}px`,
         left: `${position.x}px`,
         cursor: isDragging ? 'grabbing' : 'auto',
@@ -202,138 +229,152 @@ const ReportsPanel: React.FC<ReportsPanelProps> = ({ isOpen, onClose }) => {
         </div>
       </div>
 
-{/* Report Details View */}
-{isReportDetailOpen && selectedReport ? (
-  <div className="p-4 h-[calc(100%-44px)] flex flex-col">
-    <div className="flex justify-between mb-4 pb-2 border-b border-metin-gold/20">
-      <div className="flex items-center">
-        <span className="text-xl mr-2">
-          {getReportIcon(selectedReport.type, selectedReport.result)}
-        </span>
-        <h3 className="text-metin-gold font-medium">{selectedReport.subject}</h3>
-      </div>
-      <div className="text-metin-light/80 text-sm">
-        {formatDate(selectedReport.timestamp)}
-      </div>
-    </div>
-    
-    <div className="flex-grow flex flex-col overflow-y-auto">
-      {/* Secțiunea principală cu conținutul raportului */}
-      <div className="bg-black/30 p-4 rounded-lg mb-4 text-metin-light">
-        {/* Report content based on type */}
-        <div className="mb-4 whitespace-pre-line">
-          {selectedReport.content}
-        </div>
-      </div>
-      
-      {/* Statistici de luptă - Doar pentru rapoartele de atac cu statistici disponibile */}
-      {selectedReport.type === 'attack' && selectedReport.combatStats && (
-        <div className="bg-black/30 p-4 rounded-lg mb-4">
-          <h4 className="text-metin-gold mb-3 border-b border-metin-gold/20 pb-1">Statistici Detaliate:</h4>
-          
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div className="bg-black/40 p-3 rounded border border-metin-gold/20">
-              <div className="text-metin-gold text-sm mb-1">Experiență Câștigată:</div>
-              <div className="text-metin-light/90 font-medium">
-                {selectedReport.combatStats.expGained.toLocaleString()} XP
-              </div>
+      {/* Report Details View */}
+      {isReportDetailOpen && selectedReport ? (
+        <div className="p-4 h-[calc(100%-44px)] flex flex-col">
+          <div className="flex justify-between items-center mb-4 pb-2 border-b border-metin-gold/20">
+            <div className="flex items-center">
+              <span className="text-xl mr-2">
+                {getReportIcon(selectedReport.type, selectedReport.result)}
+              </span>
+              <h3 className="text-metin-gold font-medium">{selectedReport.subject}</h3>
             </div>
-            <div className="bg-black/40 p-3 rounded border border-metin-gold/20">
-              <div className="text-metin-gold text-sm mb-1">Yang Câștigat:</div>
-              <div className="text-metin-light/90 font-medium">
-                {selectedReport.combatStats.yangGained.toLocaleString()} yang
-              </div>
+            <div className="text-metin-light/80 text-sm">
+              {formatDate(selectedReport.timestamp)}
             </div>
           </div>
           
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div className="bg-black/40 p-3 rounded border border-metin-gold/20">
-              <div className="text-metin-gold text-sm mb-1">Damage Provocat:</div>
-              <div className="text-green-400 font-medium">
-                {selectedReport.combatStats.damageDealt.toLocaleString()}
+          <div className="flex-grow overflow-y-auto pr-1">
+            {/* Folosim o abordare structurată pentru afișarea raportului */}
+            <div className="space-y-4">
+              {/* Prima secțiune: Rezultatul și recompensele */}
+              <div className="p-3 bg-black/30 rounded-lg">
+                {selectedReport.content.split('\n\n')[0] && (
+                  <div className="font-medium text-metin-light">
+                    {selectedReport.content.split('\n\n')[0]}
+                  </div>
+                )}
+                
+                {selectedReport.content.split('\n\n')[1] && (
+                  <div className="mt-2 text-metin-light/90">
+                    {selectedReport.content.split('\n\n')[1]}
+                  </div>
+                )}
               </div>
+              
+              {/* A doua secțiune: Statistici */}
+              {selectedReport.content.includes('Statistici duel:') && (
+                <div className="p-3 bg-black/30 rounded-lg">
+                  <h4 className="text-metin-gold font-medium mb-2 pb-1 border-b border-metin-gold/20">Statistici duel</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {selectedReport.content
+                      .split('Statistici duel:\n')[1]
+                      .split('\n\n')[0]
+                      .split('\n')
+                      .map((stat, index) => (
+                        <div key={index} className="p-2 bg-black/40 rounded border border-metin-gold/20">
+                          {stat.replace('- ', '')}
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* A treia secțiune: Desfășurarea luptei */}
+              {selectedReport.content.includes('Desfășurarea luptei:') && (
+                <div className="bg-black/30 p-3 rounded-lg">
+                  <h4 className="text-metin-gold font-medium mb-2 pb-1 border-b border-metin-gold/20">Desfășurarea luptei</h4>
+                  
+                  <div className="bg-black/40 p-3 rounded border border-metin-gold/20 text-sm font-mono overflow-x-auto max-h-[220px] scrollbar-thin scrollbar-thumb-metin-gold/20 scrollbar-track-black/20">
+                    {selectedReport.content
+                      .split('Desfășurarea luptei:\n')[1]
+                      .split('\n\n')[0]
+                      .split('\n')
+                      .map((line, index) => formatCombatLogLine(line, index))}
+                  </div>
+                </div>
+              )}
+              
+              {/* A patra secțiune: Mesaj final */}
+              {selectedReport.content.split('\n\n').length > 3 && (
+                <div className="p-3 bg-black/30 rounded-lg">
+                  <div className="text-center text-metin-light/90 italic">
+                    {selectedReport.content.split('\n\n').slice(-1)[0]}
+                  </div>
+                </div>
+              )}
             </div>
-            <div className="bg-black/40 p-3 rounded border border-metin-gold/20">
-              <div className="text-metin-gold text-sm mb-1">HP Pierdut:</div>
-              <div className="text-red-400 font-medium">
-                {selectedReport.combatStats.playerHpLost.toLocaleString()}
-              </div>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-black/40 p-3 rounded border border-metin-gold/20">
-              <div className="text-metin-gold text-sm mb-1">Runde de Luptă:</div>
-              <div className="text-metin-light/90 font-medium">
-                {selectedReport.combatStats.totalRounds}
-              </div>
-            </div>
-            {selectedReport.result === 'defeat' && (
-              <div className="bg-black/40 p-3 rounded border border-metin-gold/20">
-                <div className="text-metin-gold text-sm mb-1">HP Rămas (Mob):</div>
-                <div className="text-metin-light/90 font-medium">
-                  {selectedReport.combatStats.remainingMobHp.toLocaleString()}
+            
+            {/* Statistici de luptă suplimentare - doar pentru rapoartele cu combatStats */}
+            {selectedReport.combatStats && (
+              <div className="mt-4 p-3 bg-black/30 rounded-lg">
+                <h4 className="text-metin-gold mb-2 pb-1 border-b border-metin-gold/20">Statistici Suplimentare</h4>
+                
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  <div className="p-2 bg-black/40 rounded border border-metin-gold/20">
+                    <div className="text-metin-gold text-sm mb-1">Experiență:</div>
+                    <div className="text-metin-light/90">
+                      {selectedReport.combatStats.expGained.toLocaleString()} XP
+                    </div>
+                  </div>
+                  
+                  <div className="p-2 bg-black/40 rounded border border-metin-gold/20">
+                    <div className="text-metin-gold text-sm mb-1">Yang:</div>
+                    <div className="text-metin-light/90">
+                      {selectedReport.combatStats.yangGained.toLocaleString()}
+                    </div>
+                  </div>
+                  
+                  <div className="p-2 bg-black/40 rounded border border-metin-gold/20">
+                    <div className="text-metin-gold text-sm mb-1">Damage dat:</div>
+                    <div className="text-green-400">
+                      {selectedReport.combatStats.damageDealt.toLocaleString()}
+                    </div>
+                  </div>
+                  
+                  <div className="p-2 bg-black/40 rounded border border-metin-gold/20">
+                    <div className="text-metin-gold text-sm mb-1">HP pierdut:</div>
+                    <div className="text-red-400">
+                      {selectedReport.combatStats.playerHpLost.toLocaleString()}
+                    </div>
+                  </div>
+                  
+                  <div className="p-2 bg-black/40 rounded border border-metin-gold/20">
+                    <div className="text-metin-gold text-sm mb-1">Runde:</div>
+                    <div className="text-metin-light/90">
+                      {selectedReport.combatStats.totalRounds}
+                    </div>
+                  </div>
+                  
+                  {selectedReport.result === 'defeat' && (
+                    <div className="p-2 bg-black/40 rounded border border-metin-gold/20">
+                      <div className="text-metin-gold text-sm mb-1">HP rămas inamic:</div>
+                      <div className="text-metin-light/90">
+                        {selectedReport.combatStats.remainingMobHp.toLocaleString()}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
           </div>
+          
+          <div className="flex justify-end mt-4">
+            <button
+              onClick={() => {
+                deleteReport(selectedReport.id);
+                handleCloseReportDetail();
+              }}
+              className="bg-metin-red/80 hover:bg-metin-red text-white px-4 py-1 rounded flex items-center text-sm transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              Șterge raport
+            </button>
+          </div>
         </div>
-      )}
-      
-      {/* Additional details based on report type */}
-      <div className="mt-2">
-        <h4 className="text-metin-gold mb-2 text-sm">Detalii Generale:</h4>
-        
-        {selectedReport.type === 'duel' ? (
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-black/40 p-3 rounded border border-metin-gold/20">
-              <div className="text-metin-gold text-sm mb-1">Adversar:</div>
-              <div className="text-metin-light/90">{selectedReport.playerName}</div>
-            </div>
-            <div className="bg-black/40 p-3 rounded border border-metin-gold/20">
-              <div className="text-metin-gold text-sm mb-1">Rezultat:</div>
-              <div className={`${selectedReport.result === 'victory' ? 'text-green-400' : 'text-red-400'}`}>
-                {selectedReport.result === 'victory' ? 'Victorie' : 'Înfrângere'}
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-3 gap-4">
-            <div className="bg-black/40 p-3 rounded border border-metin-gold/20">
-              <div className="text-metin-gold text-sm mb-1">Țintă:</div>
-              <div className="text-metin-light/90">{selectedReport.mobName}</div>
-            </div>
-            <div className="bg-black/40 p-3 rounded border border-metin-gold/20">
-              <div className="text-metin-gold text-sm mb-1">Tip:</div>
-              <div className="text-metin-light/90 capitalize">{selectedReport.mobType}</div>
-            </div>
-            <div className="bg-black/40 p-3 rounded border border-metin-gold/20">
-              <div className="text-metin-gold text-sm mb-1">Rezultat:</div>
-              <div className={`${selectedReport.result === 'victory' ? 'text-green-400' : 'text-red-400'} font-medium`}>
-                {selectedReport.result === 'victory' ? 'Victorie' : 'Înfrângere'}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-    
-    <div className="flex justify-end mt-4">
-      <button
-        onClick={() => {
-          deleteReport(selectedReport.id);
-          handleCloseReportDetail();
-        }}
-        className="bg-metin-red/80 hover:bg-metin-red text-white px-4 py-1 rounded flex items-center text-sm transition-colors"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-        </svg>
-        Șterge raport
-      </button>
-    </div>
-  </div>
-) : (
+      ) : (
         /* Reports List View */
         <div className="p-4 h-[calc(100%-44px)] flex flex-col">
           {/* Table Header */}

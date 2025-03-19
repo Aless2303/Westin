@@ -15,29 +15,30 @@ const MobDetailsPanel: React.FC<MobDetailsPanelProps> = ({
   isOpen, 
   onClose, 
   selectedMob,
-  characterX, // We still accept these props
+  characterX,
   characterY
 }) => {
   const [position, setPosition] = useState({ x: 200, y: 100 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   
   // Import useWorks hook to add jobs
-  const { addJob, characterPosition, jobs } = useWorks();
+  const { addJob, characterPosition, jobs, characterStats } = useWorks();
   
   // Keep track of local calculation of travel time - update only when needed
   const [travelTimeText, setTravelTimeText] = useState("00:00");
   const [travelTimeFromLastJobText, setTravelTimeFromLastJobText] = useState("00:00");
   
-  // Format time display (minutes:seconds) - Defined BEFORE it's used
+  // Format time display (minutes:seconds)
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
   
-  // Calculate travel time with speed (141.42 units = 1 minute) - Defined BEFORE it's used
+  // Calculate travel time with speed (141.42 units = 1 minute)
   const calculateTravelTimeSeconds = (charX: number, charY: number, mobX: number, mobY: number): number => {
     const distance = Math.sqrt(Math.pow(mobX - charX, 2) + Math.pow(mobY - charY, 2));
     const tolerance = 1;
@@ -61,6 +62,17 @@ const MobDetailsPanel: React.FC<MobDetailsPanelProps> = ({
     const lastJob = jobs[jobs.length - 1];
     return { x: lastJob.mobX, y: lastJob.mobY };
   };
+  
+  // Auto-hide error message after 3 seconds
+  useEffect(() => {
+    if (errorMessage) {
+      const timer = setTimeout(() => {
+        setErrorMessage(null);
+      }, 3000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [errorMessage]);
   
   // Update travel time when character position, jobs or selected mob changes
   useEffect(() => {
@@ -116,56 +128,66 @@ const MobDetailsPanel: React.FC<MobDetailsPanelProps> = ({
     };
   }, [isDragging]);
 
-  // Actualizăm doar partea din handleAttack pentru a include și tipul mobului
-
-// Actualizăm doar secțiunea handleAttack pentru a transmite și statisticile mobului
-
-const handleAttack = (duration: '15s' | '10m' | '1h') => {
-  if (!selectedMob) return;
-  
-  // Set job remaining time based on the button clicked
-  const durationInSeconds = 
-    duration === '15s' ? 15 : 
-    duration === '10m' ? 600 : 
-    3600; // 1h
-  
-  // Get the expected starting position for this job (current position or end of last job)
-  const startPos = getLastJobPosition();
-  
-  // Calculate travel time in seconds from start position
-  const travelTimeSeconds = calculateTravelTimeSeconds(
-    startPos.x, 
-    startPos.y, 
-    selectedMob.x, 
-    selectedMob.y
-  );
-  
-  // Add the job with mob coordinates for position updating
-  const wasAdded = addJob({
-    type: duration,
-    remainingTime: durationInSeconds,
-    travelTime: travelTimeSeconds,
-    isInProgress: false,
-    mobName: selectedMob.name,
-    mobImage: selectedMob.image,
-    mobX: selectedMob.x,
-    mobY: selectedMob.y,
-    mobType: selectedMob.type, // Adăugăm tipul mobului pentru rapoarte
-    mobLevel: selectedMob.level, // Adăugăm nivelul mobului
-    mobHp: selectedMob.hp, // Adăugăm HP-ul mobului
-    mobAttack: selectedMob.attack, // Adăugăm atacul mobului
-    mobExp: selectedMob.exp, // Adăugăm experiența mobului
-    mobYang: selectedMob.yang // Adăugăm yang-ul mobului
-  });
-  
-  if (!wasAdded) {
-    // Aici puteți afișa un mesaj de eroare către utilizator
-    console.log('Maximum 3 jobs allowed!');
-  } else {
-    // Close the panel after adding a job
-    onClose();
-  }
-};
+  // Handle attack with stamina check
+  const handleAttack = (duration: '15s' | '10m' | '1h') => {
+    if (!selectedMob) return;
+    
+    // Calculate stamina cost based on attack duration
+    const staminaCost = 
+      duration === '15s' ? 1 : 
+      duration === '10m' ? 4 : 
+      12; // 1h
+    
+    // Check if there's enough stamina - handled in the WorksContext now
+    // but we can pre-check here for user feedback
+    if (characterStats.stamina.current < staminaCost) {
+      setErrorMessage(`Nu ai suficientă stamină! Ai nevoie de ${staminaCost} stamină.`);
+      return;
+    }
+    
+    // Set job remaining time based on the button clicked
+    const durationInSeconds = 
+      duration === '15s' ? 15 : 
+      duration === '10m' ? 600 : 
+      3600; // 1h
+    
+    // Get the expected starting position for this job
+    const startPos = getLastJobPosition();
+    
+    // Calculate travel time in seconds from start position
+    const travelTimeSeconds = calculateTravelTimeSeconds(
+      startPos.x, 
+      startPos.y, 
+      selectedMob.x, 
+      selectedMob.y
+    );
+    
+    // Add the job with mob coordinates for position updating
+    const wasAdded = addJob({
+      type: duration,
+      remainingTime: durationInSeconds,
+      travelTime: travelTimeSeconds,
+      isInProgress: false,
+      mobName: selectedMob.name,
+      mobImage: selectedMob.image,
+      mobX: selectedMob.x,
+      mobY: selectedMob.y,
+      mobType: selectedMob.type,
+      mobLevel: selectedMob.level,
+      mobHp: selectedMob.hp,
+      mobAttack: selectedMob.attack,
+      mobExp: selectedMob.exp,
+      mobYang: selectedMob.yang,
+      staminaCost: staminaCost // Pass stamina cost to job
+    });
+    
+    if (!wasAdded) {
+      setErrorMessage('Poți avea maxim 3 munci active!');
+    } else {
+      // Close the panel after adding a job
+      onClose();
+    }
+  };
 
   if (!isOpen || !selectedMob) return null;
 
@@ -203,9 +225,15 @@ const handleAttack = (duration: '15s' | '10m' | '1h') => {
   };
 
   // Rewards for each attack duration (fixed percentages)
-  const reward15s = calculateReward(0.65); // 0.65% (midpoint of 0.6–0.7%)
-  const reward10m = calculateReward(23.5);  // 4.5% (midpoint of 4–5%)
-  const reward1h = calculateReward(100);   // 100%
+  const reward15s = calculateReward(10); 
+  const reward10m = calculateReward(40);
+  const reward1h = calculateReward(100);
+
+  // Get current stamina for button state
+  const currentStamina = characterStats.stamina.current;
+  const hasStaminaFor15s = currentStamina >= 1;
+  const hasStaminaFor10m = currentStamina >= 4;
+  const hasStaminaFor1h = currentStamina >= 12;
 
   return (
     <div 
@@ -213,7 +241,7 @@ const handleAttack = (duration: '15s' | '10m' | '1h') => {
       className={`fixed z-50 bg-metin-dark/95 border-2 ${panelColorClass} rounded-lg shadow-lg`}
       style={{ 
         width: '360px', 
-        height: '500px', // Adjusted height to fit the new layout
+        height: '520px',
         top: `${position.y}px`, 
         left: `${position.x}px`,
         cursor: isDragging ? 'grabbing' : 'auto'
@@ -289,7 +317,7 @@ const handleAttack = (duration: '15s' | '10m' | '1h') => {
           </div>
         </div>
 
-        {/* Travel Time Section - modified to show both travel times */}
+        {/* Travel Time Section */}
         <div className="bg-black/30 p-3 rounded-lg mb-2">
           <h4 className="text-metin-gold text-sm mb-2">Timp de deplasare:</h4>
           <div className="text-metin-light/80 text-sm mb-1">
@@ -300,32 +328,43 @@ const handleAttack = (duration: '15s' | '10m' | '1h') => {
           </div>
         </div>
 
-        {/* Attack Buttons with Rewards (3x3 Grid Layout) */}
+
+        {/* Error message */}
+        {errorMessage && (
+          <div className="bg-red-900/50 border border-red-500/50 p-2 rounded-lg mb-2 text-center animate-pulse">
+            <span className="text-red-400 text-sm">{errorMessage}</span>
+          </div>
+        )}
+
+        {/* Attack Buttons with Rewards and Stamina Cost */}
         <div className="mt-auto grid grid-cols-3 gap-x-4 gap-y-2 text-center">
           {/* Row 1: Buttons */}
           <button 
-            className="w-12 h-12 mx-auto bg-metin-red/30 rounded-full border border-metin-gold/50 flex flex-col items-center justify-center animate-spin-slow overflow-hidden transition-transform hover:scale-110"
-            onClick={() => handleAttack('15s')}
+            className={`w-12 h-12 mx-auto rounded-full border flex flex-col items-center justify-center overflow-hidden transition-transform hover:scale-110 ${hasStaminaFor15s ? 'bg-metin-red/30 border-metin-gold/50 animate-spin-slow' : 'bg-metin-dark/50 border-metin-light/20 opacity-50 cursor-not-allowed'}`}
+            onClick={() => hasStaminaFor15s && handleAttack('15s')}
+            disabled={!hasStaminaFor15s}
           >
-            <span className="text-metin-gold text-lg font-bold">⚔</span>
-            <span className="text-metin-light text-xs">15s</span>
+            <span className={`text-lg font-bold ${hasStaminaFor15s ? 'text-metin-gold' : 'text-metin-light/50'}`}>⚔</span>
+            <span className={`text-xs ${hasStaminaFor15s ? 'text-metin-light' : 'text-metin-light/50'}`}>15s</span>
           </button>
           <button 
-            className="w-12 h-12 mx-auto bg-metin-red/30 rounded-full border border-metin-gold/50 flex flex-col items-center justify-center animate-spin-slow overflow-hidden transition-transform hover:scale-110"
-            onClick={() => handleAttack('10m')}
+            className={`w-12 h-12 mx-auto rounded-full border flex flex-col items-center justify-center overflow-hidden transition-transform hover:scale-110 ${hasStaminaFor10m ? 'bg-metin-red/30 border-metin-gold/50 animate-spin-slow' : 'bg-metin-dark/50 border-metin-light/20 opacity-50 cursor-not-allowed'}`}
+            onClick={() => hasStaminaFor10m && handleAttack('10m')}
+            disabled={!hasStaminaFor10m}
           >
-            <span className="text-metin-gold text-lg font-bold">⚔</span>
-            <span className="text-metin-light text-xs">10m</span>
+            <span className={`text-lg font-bold ${hasStaminaFor10m ? 'text-metin-gold' : 'text-metin-light/50'}`}>⚔</span>
+            <span className={`text-xs ${hasStaminaFor10m ? 'text-metin-light' : 'text-metin-light/50'}`}>10m</span>
           </button>
           <button 
-            className="w-12 h-12 mx-auto bg-metin-red/30 rounded-full border border-metin-gold/50 flex flex-col items-center justify-center animate-spin-slow overflow-hidden transition-transform hover:scale-110"
-            onClick={() => handleAttack('1h')}
+            className={`w-12 h-12 mx-auto rounded-full border flex flex-col items-center justify-center overflow-hidden transition-transform hover:scale-110 ${hasStaminaFor1h ? 'bg-metin-red/30 border-metin-gold/50 animate-spin-slow' : 'bg-metin-dark/50 border-metin-light/20 opacity-50 cursor-not-allowed'}`}
+            onClick={() => hasStaminaFor1h && handleAttack('1h')}
+            disabled={!hasStaminaFor1h}
           >
-            <span className="text-metin-gold text-lg font-bold">⚔</span>
-            <span className="text-metin-light text-xs">1h</span>
+            <span className={`text-lg font-bold ${hasStaminaFor1h ? 'text-metin-gold' : 'text-metin-light/50'}`}>⚔</span>
+            <span className={`text-xs ${hasStaminaFor1h ? 'text-metin-light' : 'text-metin-light/50'}`}>1h</span>
           </button>
 
-          {/* Row 2: Experience */}
+          {/* Row 3: Experience */}
           <div className="text-metin-light/80 text-xs">
             Experiență: <span className="text-metin-gold">{formatNumber(reward15s.exp)}</span>
           </div>
@@ -336,7 +375,7 @@ const handleAttack = (duration: '15s' | '10m' | '1h') => {
             Experiență: <span className="text-metin-gold">{formatNumber(reward1h.exp)}</span>
           </div>
 
-          {/* Row 3: Yang */}
+          {/* Row 4: Yang */}
           <div className="text-metin-light/80 text-xs">
             Yang: <span className="text-metin-gold">{formatNumber(reward15s.yang)}</span>
           </div>
@@ -346,6 +385,18 @@ const handleAttack = (duration: '15s' | '10m' | '1h') => {
           <div className="text-metin-light/80 text-xs">
             Yang: <span className="text-metin-gold">{formatNumber(reward1h.yang)}</span>
           </div>
+
+          {/* Row 2: Stamina Cost */}
+          <div className="text-metin-light/80 text-xs">
+            Stamină: <span className="text-cyan-400">1</span>
+          </div>
+          <div className="text-metin-light/80 text-xs">
+            Stamină: <span className="text-cyan-400">4</span>
+          </div>
+          <div className="text-metin-light/80 text-xs">
+            Stamină: <span className="text-cyan-400">12</span>
+          </div>
+
         </div>
       </div>
     </div>
