@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import { InventoryPanel } from '../../features/inventory';
 import { WorksPanel } from '../../features/works';
+import { ReportsPanel } from '../../features/reports';
+import { useReports } from '../../features/reports';
 
 interface BottomPanelProps {
   playerRace: string;
@@ -11,6 +13,10 @@ const BottomPanel: React.FC<BottomPanelProps> = ({ playerRace }) => {
   const [isPanelVisible, setIsPanelVisible] = useState(true);
   const [isInventoryOpen, setIsInventoryOpen] = useState(false);
   const [isWorksOpen, setIsWorksOpen] = useState(false);
+  const [isReportsOpen, setIsReportsOpen] = useState(false);
+  
+  // Get unread reports count from context
+  const { getUnreadCount } = useReports();
 
   const togglePanel = () => {
     setIsPanelVisible(!isPanelVisible);
@@ -19,16 +25,27 @@ const BottomPanel: React.FC<BottomPanelProps> = ({ playerRace }) => {
   const toggleInventory = () => {
     setIsInventoryOpen(!isInventoryOpen);
     // Închide alte panouri dacă sunt deschise
-    if (!isInventoryOpen && isWorksOpen) {
+    if (!isInventoryOpen) {
       setIsWorksOpen(false);
+      setIsReportsOpen(false);
     }
   };
 
   const toggleWorks = () => {
     setIsWorksOpen(!isWorksOpen);
     // Închide alte panouri dacă sunt deschise
-    if (!isWorksOpen && isInventoryOpen) {
+    if (!isWorksOpen) {
       setIsInventoryOpen(false);
+      setIsReportsOpen(false);
+    }
+  };
+
+  const toggleReports = () => {
+    setIsReportsOpen(!isReportsOpen);
+    // Închide alte panouri dacă sunt deschise
+    if (!isReportsOpen) {
+      setIsInventoryOpen(false);
+      setIsWorksOpen(false);
     }
   };
 
@@ -47,6 +64,12 @@ const BottomPanel: React.FC<BottomPanelProps> = ({ playerRace }) => {
         onClose={() => setIsWorksOpen(false)}
         isBottomPanelVisible={isPanelVisible}
         onToggleBottomPanel={togglePanel}
+      />
+
+      {/* Reports Panel */}
+      <ReportsPanel
+        isOpen={isReportsOpen}
+        onClose={() => setIsReportsOpen(false)}
       />
 
       {/* Bottom Panel UI */}
@@ -94,7 +117,8 @@ const BottomPanel: React.FC<BottomPanelProps> = ({ playerRace }) => {
 
                 {/* Rapoarte Button */}
                 <button
-                  className="w-12 h-12 rounded-md bg-metin-dark border border-metin-gold/40 flex items-center justify-center hover:bg-metin-gold/20 transition-colors text-metin-gold"
+                  onClick={toggleReports}
+                  className={`w-12 h-12 rounded-md bg-metin-dark border ${isReportsOpen ? 'border-metin-gold' : 'border-metin-gold/40'} flex items-center justify-center hover:bg-metin-gold/20 transition-colors text-metin-gold ${isReportsOpen ? 'bg-metin-gold/20' : ''} relative`}
                   title="Rapoarte"
                 >
                   <Image
@@ -104,6 +128,13 @@ const BottomPanel: React.FC<BottomPanelProps> = ({ playerRace }) => {
                     height={24}
                     className="object-contain"
                   />
+                  
+                  {/* Unread reports indicator */}
+                  {getUnreadCount() > 0 && (
+                    <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-metin-red flex items-center justify-center text-white text-xs">
+                      {getUnreadCount() > 9 ? '9+' : getUnreadCount()}
+                    </div>
+                  )}
                 </button>
 
                 {/* Munci Button */}

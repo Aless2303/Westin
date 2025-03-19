@@ -116,47 +116,56 @@ const MobDetailsPanel: React.FC<MobDetailsPanelProps> = ({
     };
   }, [isDragging]);
 
-  // Handle job creation when attack button is clicked
-  const handleAttack = (duration: '15s' | '10m' | '1h') => {
-    if (!selectedMob) return;
-    
-    // Set job remaining time based on the button clicked
-    const durationInSeconds = 
-      duration === '15s' ? 15 : 
-      duration === '10m' ? 600 : 
-      3600; // 1h
-    
-    // Get the expected starting position for this job (current position or end of last job)
-    const startPos = getLastJobPosition();
-    
-    // Calculate travel time in seconds from start position
-    const travelTimeSeconds = calculateTravelTimeSeconds(
-      startPos.x, 
-      startPos.y, 
-      selectedMob.x, 
-      selectedMob.y
-    );
-    
-    // Add the job with mob coordinates for position updating
-    const wasAdded = addJob({
-      type: duration,
-      remainingTime: durationInSeconds,
-      travelTime: travelTimeSeconds,
-      isInProgress: false,
-      mobName: selectedMob.name,
-      mobImage: selectedMob.image,
-      mobX: selectedMob.x,
-      mobY: selectedMob.y
-    });
-    
-    if (!wasAdded) {
-      // Aici puteți afișa un mesaj de eroare către utilizator
-      console.log('Maximum 3 jobs allowed!');
-    } else {
-      // Close the panel after adding a job
-      onClose();
-    }
-  };
+  // Actualizăm doar partea din handleAttack pentru a include și tipul mobului
+
+// Actualizăm doar secțiunea handleAttack pentru a transmite și statisticile mobului
+
+const handleAttack = (duration: '15s' | '10m' | '1h') => {
+  if (!selectedMob) return;
+  
+  // Set job remaining time based on the button clicked
+  const durationInSeconds = 
+    duration === '15s' ? 15 : 
+    duration === '10m' ? 600 : 
+    3600; // 1h
+  
+  // Get the expected starting position for this job (current position or end of last job)
+  const startPos = getLastJobPosition();
+  
+  // Calculate travel time in seconds from start position
+  const travelTimeSeconds = calculateTravelTimeSeconds(
+    startPos.x, 
+    startPos.y, 
+    selectedMob.x, 
+    selectedMob.y
+  );
+  
+  // Add the job with mob coordinates for position updating
+  const wasAdded = addJob({
+    type: duration,
+    remainingTime: durationInSeconds,
+    travelTime: travelTimeSeconds,
+    isInProgress: false,
+    mobName: selectedMob.name,
+    mobImage: selectedMob.image,
+    mobX: selectedMob.x,
+    mobY: selectedMob.y,
+    mobType: selectedMob.type, // Adăugăm tipul mobului pentru rapoarte
+    mobLevel: selectedMob.level, // Adăugăm nivelul mobului
+    mobHp: selectedMob.hp, // Adăugăm HP-ul mobului
+    mobAttack: selectedMob.attack, // Adăugăm atacul mobului
+    mobExp: selectedMob.exp, // Adăugăm experiența mobului
+    mobYang: selectedMob.yang // Adăugăm yang-ul mobului
+  });
+  
+  if (!wasAdded) {
+    // Aici puteți afișa un mesaj de eroare către utilizator
+    console.log('Maximum 3 jobs allowed!');
+  } else {
+    // Close the panel after adding a job
+    onClose();
+  }
+};
 
   if (!isOpen || !selectedMob) return null;
 
@@ -195,7 +204,7 @@ const MobDetailsPanel: React.FC<MobDetailsPanelProps> = ({
 
   // Rewards for each attack duration (fixed percentages)
   const reward15s = calculateReward(0.65); // 0.65% (midpoint of 0.6–0.7%)
-  const reward10m = calculateReward(4.5);  // 4.5% (midpoint of 4–5%)
+  const reward10m = calculateReward(23.5);  // 4.5% (midpoint of 4–5%)
   const reward1h = calculateReward(100);   // 100%
 
   return (
