@@ -1,52 +1,14 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import mapImage from '../assets/images/westinmap.jpg';
-import mobi from '../data/mobi.json';
 import CharacterStatus from '../components/ui/CharacterStatus';
 import BottomPanel from '../components/ui/BottomPanel';
 import { MobDetailsPanel } from '../features/mobs';
 import { WorksProvider } from '../features/works';
 import { ReportsProvider } from '../features/reports';
-import { hardcodedPlayers } from '../features/duels';
-
-// Interface pentru tipul de mob
-interface MobType {
-  name: string;
-  x: number;
-  y: number;
-  type: "boss" | "metin";
-  level: number;
-  hp: number;
-  attack: number;
-  exp: number;
-  yang: number;
-  image: string;
-}
-
-interface CharacterType {
-  name: string;
-  level: number;
-  race: string;
-  gender: string;
-  background: string;
-  hp: {
-    current: number;
-    max: number;
-  };
-  stamina: {
-    current: number;
-    max: number;
-  };
-  experience: {
-    current: number;
-    percentage: number;
-  };
-  x: number;
-  y: number;
-  // Adăugăm attack și defense
-  attack: number;
-  defense: number;
-}
+import mockData from '../data/mock';
+import { MobType } from '../types/mob';
+import { CharacterType } from '../types/character';
 
 const GamePage: React.FC = () => {
   // Dimensiunile reale ale hărții
@@ -68,31 +30,8 @@ const GamePage: React.FC = () => {
   const [showSystemMessage, setShowSystemMessage] = useState(false);
   const [systemMessage, setSystemMessage] = useState('');
   
-  // Datele pentru personaj cu stare actualizabilă (poziție)
-  const [characterData, setCharacterData] = useState<CharacterType>({
-    name: "Ravensword",
-    level: 134,
-    race: "Ninja",
-    gender: "Masculin",
-    background: "/Backgrounds/western2.jpg",
-    hp: {
-      current: 6339,
-      max: 7500,
-    },
-    stamina: {
-      current: 84,
-      max: 100,
-    },
-    experience: {
-      current: 12345,
-      percentage: 63,
-    },
-    x: 350,
-    y: 611,
-    // Adăugăm valori pentru attack și defense
-    attack: 5000,
-    defense: 200
-  });
+  // Datele pentru personaj - folosim datele mock
+  const [characterData, setCharacterData] = useState<CharacterType>(mockData.character);
   
   // Limitele de zoom
   const MIN_SCALE = 1.0;
@@ -213,10 +152,10 @@ const GamePage: React.FC = () => {
   
   // Calculează cel mai apropiat mob de personaj
   const findClosestMob = (characterX: number, characterY: number): MobType => {
-    let closestMob = mobi[0];
+    let closestMob = mockData.mobs[0];
     let minDistance = Infinity;
 
-    mobi.forEach((mob) => {
+    mockData.mobs.forEach((mob) => {
       const distance = Math.sqrt(
         Math.pow(mob.x - characterX, 2) + Math.pow(mob.y - characterY, 2)
       );
@@ -434,7 +373,7 @@ const GamePage: React.FC = () => {
                 }}
               />
               {/* Suprapunere butoane invizibile pentru mobi (Metine și Bosi) */}
-              {mobi.map((item, index) => (
+              {mockData.mobs.map((item, index) => (
                 <button
                   key={index}
                   onClick={() => handleItemClick(item)}
@@ -457,8 +396,8 @@ const GamePage: React.FC = () => {
                 </button>
               ))}
               
-              {/* Markeri pentru jucătorii hardcodați */}
-              {hardcodedPlayers.map((player, index) => (
+              {/* Markeri pentru jucătorii din mockData */}
+              {mockData.players.map((player, index) => (
                 <div
                   key={`player-${index}`}
                   className="absolute rounded-full bg-white border-2 border-blue-500"
