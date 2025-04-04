@@ -14,4 +14,9 @@ export interface PlayerType {
   };
   attack: number;
   defense: number;
+  experience?: {
+    current: number;
+    percentage: number;
+  };
+  rank?: number;
 } 
