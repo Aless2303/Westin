@@ -300,13 +300,13 @@ const GamePage: React.FC = () => {
 
   return (
     <ChatProvider characterId="character" characterName={characterData.name}>
-      <WorksProvider 
-        characterPositionUpdater={updateCharacterPosition} 
-        characterStats={characterData}
-        updatePlayerHp={updatePlayerHp}
-        updatePlayerStamina={updatePlayerStamina}
-      >
-        <ReportsProvider>
+      <ReportsProvider>
+        <WorksProvider 
+          characterPositionUpdater={updateCharacterPosition} 
+          characterStats={characterData}
+          updatePlayerHp={updatePlayerHp}
+          updatePlayerStamina={updatePlayerStamina}
+        >
           <div className="relative w-full h-screen overflow-hidden bg-black">
             <div 
               ref={mapContainerRef}
@@ -499,8 +499,8 @@ const GamePage: React.FC = () => {
               onClose={() => setIsChatOpen(false)}
             />
           </div>
-        </ReportsProvider>
-      </WorksProvider>
+        </WorksProvider>
+      </ReportsProvider>
     </ChatProvider>
   );
 };

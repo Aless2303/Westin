@@ -139,6 +139,8 @@ export const WorksProvider: React.FC<WorksProviderProps> = ({
   const [characterPosition, setCharacterPositionInternal] = useState({ x: 350, y: 611 }); // Default position
   const { addReport } = useReports(); // Folosim hook-ul de rapoarte pentru a adăuga rapoarte
   
+  console.log('addReport disponibil în WorksContext:', !!addReport);
+  
   // Reference for animation frame and position update function
   const animationFrameRef = useRef<number | null>(null);
   const pendingPositionUpdateRef = useRef<{ x: number, y: number } | null>(null);
@@ -544,346 +546,361 @@ export const WorksProvider: React.FC<WorksProviderProps> = ({
           expectedEndPos = { x: lastJob.mobX, y: lastJob.mobY };
         }
         
-        // Calculate real travel time from expected end position to new mob
-        const travelTimeSeconds = calculateRealTravelTime(
-          expectedEndPos.x,
-          expectedEndPos.y,
-          job.mobX,
-          job.mobY
-        );
-        
-        // Set absolute end timestamps for reliable timing
-        const now = Date.now();
-        const travelEndTime = now + (travelTimeSeconds * 1000);
-        const jobDurationSeconds = job.type === '15s' ? 15 : job.type === '10m' ? 600 : 3600;
-        const jobEndTime = travelEndTime + (jobDurationSeconds * 1000);
-        
-        // Add the new job with timestamps and original durations
-        return [...prev, {
-          ...job,
-          travelTime: travelTimeSeconds,
-          isInProgress: false, // Start in travel mode
-          travelEndTime,
-          jobEndTime,
-          originalTravelTime: travelTimeSeconds, // Store original durations for progress calculation
-          originalJobTime: jobDurationSeconds,
-          staminaCost // Make sure the stamina cost is included
-        }];
-      });
-      
-      return true; // Job added successfully
-    } else {
-      console.log('Maximum 3 jobs allowed!');
-      return false; // Job not added
-    }
-  }, [jobs, characterPosition, characterStats.stamina.current, updatePlayerStamina, calculateRealTravelTime]);
-
-  // Remove the completed job and shift the queue
-  const removeJob = useCallback(() => {
-    setJobs((prev) => prev.slice(1));
-  }, []);
-
-  // Remove a specific job by its index and refund stamina
-  const removeJobById = useCallback((index: number) => {
-    // Get the job being removed to refund its stamina
-    const jobToRemove = jobs[index];
-    if (jobToRemove && jobToRemove.staminaCost) {
-      // Refund stamina when manually canceling a job
-      const newStamina = Math.min(
-        characterStats.stamina.max, 
-        characterStats.stamina.current + jobToRemove.staminaCost
+       // Calculate real travel time from expected end position to new mob
+       const travelTimeSeconds = calculateRealTravelTime(
+        expectedEndPos.x,
+        expectedEndPos.y,
+        job.mobX,
+        job.mobY
       );
-      updatePlayerStamina(newStamina);
-    }
+      
+      // Set absolute end timestamps for reliable timing
+      const now = Date.now();
+      const travelEndTime = now + (travelTimeSeconds * 1000);
+      const jobDurationSeconds = job.type === '15s' ? 15 : job.type === '10m' ? 600 : 3600;
+      const jobEndTime = travelEndTime + (jobDurationSeconds * 1000);
+      
+      // Add the new job with timestamps and original durations
+      return [...prev, {
+        ...job,
+        travelTime: travelTimeSeconds,
+        isInProgress: false, // Start in travel mode
+        travelEndTime,
+        jobEndTime,
+        originalTravelTime: travelTimeSeconds, // Store original durations for progress calculation
+        originalJobTime: jobDurationSeconds,
+        staminaCost // Make sure the stamina cost is included
+      }];
+    });
     
-    // If we remove a job in the middle, we need to recalculate travel times for subsequent jobs
-    setJobs((prev) => {
-      if (index >= prev.length) return prev;
+    return true; // Job added successfully
+  } else {
+    console.log('Maximum 3 jobs allowed!');
+    return false; // Job not added
+  }
+}, [jobs, characterPosition, characterStats.stamina.current, updatePlayerStamina, calculateRealTravelTime]);
+
+// Remove the completed job and shift the queue
+const removeJob = useCallback(() => {
+  setJobs((prev) => prev.slice(1));
+}, []);
+
+// Remove a specific job by its index and refund stamina
+const removeJobById = useCallback((index: number) => {
+  // Get the job being removed to refund its stamina
+  const jobToRemove = jobs[index];
+  if (jobToRemove && jobToRemove.staminaCost) {
+    // Refund stamina when manually canceling a job
+    const newStamina = Math.min(
+      characterStats.stamina.max, 
+      characterStats.stamina.current + jobToRemove.staminaCost
+    );
+    updatePlayerStamina(newStamina);
+  }
+  
+  // If we remove a job in the middle, we need to recalculate travel times for subsequent jobs
+  setJobs((prev) => {
+    if (index >= prev.length) return prev;
+    
+    // Create new jobs array without the removed job
+    const newJobs = [...prev];
+    newJobs.splice(index, 1);
+    
+    // If there are remaining jobs after the removed one, recalculate their timing
+    if (index < newJobs.length) {
+      // Determine start position for next job
+      let startPos = index === 0 ? characterPosition : { x: prev[index-1].mobX, y: prev[index-1].mobY };
       
-      // Create new jobs array without the removed job
-      const newJobs = [...prev];
-      newJobs.splice(index, 1);
+      // Current time for new timestamp calculations
+      const now = Date.now();
+      let nextStartTime = now;
       
-      // If there are remaining jobs after the removed one, recalculate their timing
-      if (index < newJobs.length) {
-        // Determine start position for next job
-        let startPos = index === 0 ? characterPosition : { x: prev[index-1].mobX, y: prev[index-1].mobY };
-        
-        // Current time for new timestamp calculations
-        const now = Date.now();
-        let nextStartTime = now;
-        
-        // If there's a job before the removed one, use its end time as the next start time
-        if (index > 0 && prev[index-1].jobEndTime) {
-          nextStartTime = prev[index-1].jobEndTime;
-        }
-        
-       // Recalculate timings for all remaining jobs
-       for (let i = index; i < newJobs.length; i++) {
-        // Calculate new travel time
-        const travelTimeSeconds = calculateRealTravelTime(
-          startPos.x,
-          startPos.y,
-          newJobs[i].mobX,
-          newJobs[i].mobY
-        );
-        
-        // Update timestamps and durations
-        const travelEndTime = nextStartTime + (travelTimeSeconds * 1000);
-        const jobDurationSeconds = newJobs[i].type === '15s' ? 15 : newJobs[i].type === '10m' ? 600 : 3600;
-        const jobEndTime = travelEndTime + (jobDurationSeconds * 1000);
-        
-        newJobs[i] = {
-          ...newJobs[i],
-          travelTime: travelTimeSeconds,
-          originalTravelTime: travelTimeSeconds,
-          travelEndTime,
-          jobEndTime,
-          isInProgress: false // Reset to travel phase
-        };
-        
-        // Update for next job
-        startPos = { x: newJobs[i].mobX, y: newJobs[i].mobY };
-        nextStartTime = jobEndTime;
+      // If there's a job before the removed one, use its end time as the next start time
+      if (index > 0 && prev[index-1].jobEndTime) {
+        nextStartTime = prev[index-1].jobEndTime;
       }
+      
+     // Recalculate timings for all remaining jobs
+     for (let i = index; i < newJobs.length; i++) {
+      // Calculate new travel time
+      const travelTimeSeconds = calculateRealTravelTime(
+        startPos.x,
+        startPos.y,
+        newJobs[i].mobX,
+        newJobs[i].mobY
+      );
+      
+      // Update timestamps and durations
+      const travelEndTime = nextStartTime + (travelTimeSeconds * 1000);
+      const jobDurationSeconds = newJobs[i].type === '15s' ? 15 : newJobs[i].type === '10m' ? 600 : 3600;
+      const jobEndTime = travelEndTime + (jobDurationSeconds * 1000);
+      
+      newJobs[i] = {
+        ...newJobs[i],
+        travelTime: travelTimeSeconds,
+        originalTravelTime: travelTimeSeconds,
+        travelEndTime,
+        jobEndTime,
+        isInProgress: false // Reset to travel phase
+      };
+      
+      // Update for next job
+      startPos = { x: newJobs[i].mobX, y: newJobs[i].mobY };
+      nextStartTime = jobEndTime;
     }
-    
-    return newJobs;
-  });
+  }
+  
+  return newJobs;
+});
 }, [characterPosition, characterStats.stamina.current, characterStats.stamina.max, jobs, updatePlayerStamina, calculateRealTravelTime]);
 
 // Format rewards based on job type
 const formatRewards = (job: Job, expGained: number, yangGained: number): string => {
-  switch (job.type) {
-    case '15s':
-      return `${expGained.toLocaleString()} experiență și ${yangGained.toLocaleString()} yang (10% din total)`;
-    case '10m':
-      return `${expGained.toLocaleString()} experiență și ${yangGained.toLocaleString()} yang (40% din total)`;
-    case '1h':
-      return `${expGained.toLocaleString()} experiență și ${yangGained.toLocaleString()} yang (100% din total)`;
-    default:
-      return `${expGained.toLocaleString()} experiență și ${yangGained.toLocaleString()} yang`;
-  }
+switch (job.type) {
+  case '15s':
+    return `${expGained.toLocaleString()} experiență și ${yangGained.toLocaleString()} yang (10% din total)`;
+  case '10m':
+    return `${expGained.toLocaleString()} experiență și ${yangGained.toLocaleString()} yang (40% din total)`;
+  case '1h':
+    return `${expGained.toLocaleString()} experiență și ${yangGained.toLocaleString()} yang (100% din total)`;
+  default:
+    return `${expGained.toLocaleString()} experiență și ${yangGained.toLocaleString()} yang`;
+}
 };
 
 // Animation frame-based timer logic
 useEffect(() => {
-  // Cancel any existing animation frame
+// Cancel any existing animation frame
+if (animationFrameRef.current !== null) {
+  cancelAnimationFrame(animationFrameRef.current);
+  animationFrameRef.current = null;
+}
+
+// Only start animation if there are jobs
+if (jobs.length === 0) return;
+
+const updateJobTimes = () => {
+  const now = Date.now();
+  
+  setJobs(prev => {
+    if (prev.length === 0) return prev;
+    
+    const updatedJobs = [...prev];
+    const currentJob = { ...updatedJobs[0] };
+    let jobUpdated = false;
+    
+    // Check if job phase transitions or completes based on absolute timestamps
+    if (!currentJob.isInProgress && currentJob.travelEndTime && now >= currentJob.travelEndTime) {
+      // Travel phase complete, switch to job phase
+      currentJob.isInProgress = true;
+      jobUpdated = true;
+      
+      // Update character position to mob coordinates
+      setCharacterPosition(currentJob.mobX, currentJob.mobY);
+      console.log(`Arrived at: ${currentJob.mobName || 'Unknown'}`);
+    } 
+    else if (currentJob.isInProgress && currentJob.jobEndTime && now >= currentJob.jobEndTime) {
+      // Job phase complete, remove this job
+      console.log(`Job completed: ${currentJob.mobName || 'Unknown'}`);
+      
+      // Stocăm job-ul finalizat pentru a crea raportul în următorul ciclu de renderizare
+      completedJobRef.current = { ...currentJob };
+      
+      return updatedJobs.slice(1);
+    }
+    
+    // Update remaining times based on timestamps
+    if (!currentJob.isInProgress && currentJob.travelEndTime) {
+      currentJob.travelTime = Math.max(0, Math.ceil((currentJob.travelEndTime - now) / 1000));
+      jobUpdated = true;
+    } 
+    else if (currentJob.isInProgress && currentJob.jobEndTime) {
+      currentJob.remainingTime = Math.max(0, Math.ceil((currentJob.jobEndTime - now) / 1000));
+      jobUpdated = true;
+    }
+    
+    // Only update the job if something changed
+    if (jobUpdated) {
+      updatedJobs[0] = currentJob;
+      return updatedJobs;
+    }
+    
+    return prev;
+  });
+  
+  // Schedule next update
+  animationFrameRef.current = requestAnimationFrame(updateJobTimes);
+};
+
+// Start the animation loop
+animationFrameRef.current = requestAnimationFrame(updateJobTimes);
+
+// Clean up on unmount or when jobs change
+return () => {
   if (animationFrameRef.current !== null) {
     cancelAnimationFrame(animationFrameRef.current);
     animationFrameRef.current = null;
   }
-  
-  // Only start animation if there are jobs
-  if (jobs.length === 0) return;
-  
-  const updateJobTimes = () => {
-    const now = Date.now();
-    
-    setJobs(prev => {
-      if (prev.length === 0) return prev;
-      
-      const updatedJobs = [...prev];
-      const currentJob = { ...updatedJobs[0] };
-      let jobUpdated = false;
-      
-      // Check if job phase transitions or completes based on absolute timestamps
-      if (!currentJob.isInProgress && currentJob.travelEndTime && now >= currentJob.travelEndTime) {
-        // Travel phase complete, switch to job phase
-        currentJob.isInProgress = true;
-        jobUpdated = true;
-        
-        // Update character position to mob coordinates
-        setCharacterPosition(currentJob.mobX, currentJob.mobY);
-        console.log(`Arrived at: ${currentJob.mobName || 'Unknown'}`);
-      } 
-      else if (currentJob.isInProgress && currentJob.jobEndTime && now >= currentJob.jobEndTime) {
-        // Job phase complete, remove this job
-        console.log(`Job completed: ${currentJob.mobName || 'Unknown'}`);
-        
-        // Stocăm job-ul finalizat pentru a crea raportul în următorul ciclu de renderizare
-        completedJobRef.current = { ...currentJob };
-        
-        return updatedJobs.slice(1);
-      }
-      
-      // Update remaining times based on timestamps
-      if (!currentJob.isInProgress && currentJob.travelEndTime) {
-        currentJob.travelTime = Math.max(0, Math.ceil((currentJob.travelEndTime - now) / 1000));
-        jobUpdated = true;
-      } 
-      else if (currentJob.isInProgress && currentJob.jobEndTime) {
-        currentJob.remainingTime = Math.max(0, Math.ceil((currentJob.jobEndTime - now) / 1000));
-        jobUpdated = true;
-      }
-      
-      // Only update the job if something changed
-      if (jobUpdated) {
-        updatedJobs[0] = currentJob;
-        return updatedJobs;
-      }
-      
-      return prev;
-    });
-    
-    // Schedule next update
-    animationFrameRef.current = requestAnimationFrame(updateJobTimes);
-  };
-  
-  // Start the animation loop
-  animationFrameRef.current = requestAnimationFrame(updateJobTimes);
-  
-  // Clean up on unmount or when jobs change
-  return () => {
-    if (animationFrameRef.current !== null) {
-      cancelAnimationFrame(animationFrameRef.current);
-      animationFrameRef.current = null;
-    }
-  };
+};
 }, [jobs.length, setCharacterPosition]);
 
 // Effect separat pentru a adăuga rapoarte după ce job-urile sunt finalizate
 useEffect(() => {
-  // Verificăm dacă avem un job finalizat în referință
-  if (completedJobRef.current && addReport) {
-    const completedJob = completedJobRef.current;
+// Verificăm dacă avem un job finalizat în referință
+if (completedJobRef.current && addReport) {
+  const completedJob = completedJobRef.current;
+  console.log('Generare raport pentru job finalizat:', completedJob);
+  
+  if (completedJob.mobName) {
+    const mobType = completedJob.mobType || 'metin';
     
-    if (completedJob.mobName) {
-      const mobType = completedJob.mobType || 'metin';
+    // Simulăm lupta pentru a determina rezultatul
+    const combatResult = simulateCombat(completedJob);
+    
+    // Update player HP based on combat results
+    const newHp = Math.max(0, characterStats.hp.current - combatResult.playerHpLost);
+    updatePlayerHp(newHp);
+    
+    // Utilizăm o valoare combinată pentru ID pentru a evita duplicatele
+    const uniqueIdBase = Date.now().toString();
+    const uniqueId = uniqueIdBase + "_" + Math.random().toString(36).substring(2, 7);
+    
+    // Formatează recompensele pentru afișare
+    const rewardsText = formatRewards(completedJob, combatResult.expGained, combatResult.yangGained);
+    
+    // Generăm conținutul raportului
+    let reportContent = '';
+    let reportSubject = '';
+    
+    // Verificăm dacă este un duel sau o luptă normală
+    if (completedJob.mobType === 'duel') {
+      // Raport pentru duel
+      reportSubject = `Duel: ${completedJob.duelOpponent} vs ${characterStats.name}`;
       
-      // Simulăm lupta pentru a determina rezultatul
-      const combatResult = simulateCombat(completedJob);
-      
-      // Update player HP based on combat results
-      const newHp = Math.max(0, characterStats.hp.current - combatResult.playerHpLost);
-      updatePlayerHp(newHp);
-      
-      // Utilizăm o valoare combinată pentru ID pentru a evita duplicatele
-      const uniqueIdBase = Date.now().toString();
-      const uniqueId = uniqueIdBase + "_" + Math.random().toString(36).substring(2, 7);
-      
-      // Formatează recompensele pentru afișare
-      const rewardsText = formatRewards(completedJob, combatResult.expGained, combatResult.yangGained);
-      
-      // Generăm conținutul raportului
-      let reportContent = '';
-      let reportSubject = '';
-      
-      // Verificăm dacă este un duel sau o luptă normală
-      if (completedJob.mobType === 'duel') {
-        // Raport pentru duel
-        reportSubject = `Duel: ${completedJob.duelOpponent} vs ${characterStats.name}`;
-        
-        if (combatResult.result === 'victory') {
-          reportContent = `Ai câștigat duelul împotriva jucătorului ${completedJob.duelOpponent}!\n\n` +
-            `Ai primit ${combatResult.expGained.toLocaleString()} experiență și ${combatResult.yangGained.toLocaleString()} yang ca recompensă.\n\n` +
-            `Statistici duel:\n` +
-            `- Damage total dat: ${combatResult.damageDealt.toLocaleString()}\n` +
-            `- Damage total primit: ${combatResult.playerHpLost.toLocaleString()}\n` +
-            `- Runde de luptă: ${combatResult.totalRounds}\n\n` +
-            `Desfășurarea luptei:\n` +
-            `${combatResult.combatLogs.join('\n')}\n\n` +
-            `Victoria îți aduce reputație și te face mai cunoscut în lumea Westin!`;
-        } else {
-          reportContent = `Ai pierdut duelul împotriva jucătorului ${completedJob.duelOpponent}!\n\n` +
-            `Nu ai primit nicio recompensă.\n\n` +
-            `Statistici duel:\n` +
-            `- Damage total dat: ${combatResult.damageDealt.toLocaleString()}\n` +
-            `- Damage total primit: ${combatResult.playerHpLost.toLocaleString()}\n` +
-            `- Runde de luptă: ${combatResult.totalRounds}\n\n` +
-            `Desfășurarea luptei:\n` +
-            `${combatResult.combatLogs.join('\n')}\n\n` +
-            `Nu-ți pierde speranța! Antrenează-te mai mult și vei reuși data viitoare.`;
-        }
-        
-        // Creează raportul de duel
-        addReport({
-          id: uniqueId,
-          type: 'duel',
-          subject: reportSubject,
-          content: reportContent,
-          read: false,
-          playerName: completedJob.duelOpponent,
-          result: combatResult.result,
-          // Adăugăm statistici suplimentare
-          combatStats: {
-            playerHpLost: combatResult.playerHpLost,
-            damageDealt: combatResult.damageDealt,
-            expGained: combatResult.expGained,
-            yangGained: combatResult.yangGained,
-            totalRounds: combatResult.totalRounds,
-            remainingMobHp: combatResult.remainingMobHp
-          }
-        });
+      if (combatResult.result === 'victory') {
+        reportContent = `Ai câștigat duelul împotriva jucătorului ${completedJob.duelOpponent}!\n\n` +
+          `Ai primit ${combatResult.expGained.toLocaleString()} experiență și ${combatResult.yangGained.toLocaleString()} yang ca recompensă.\n\n` +
+          `Statistici duel:\n` +
+          `- Damage total dat: ${combatResult.damageDealt.toLocaleString()}\n` +
+          `- Damage total primit: ${combatResult.playerHpLost.toLocaleString()}\n` +
+          `- Runde de luptă: ${combatResult.totalRounds}\n\n` +
+          `Desfășurarea luptei:\n` +
+          `${combatResult.combatLogs.join('\n')}\n\n` +
+          `Victoria îți aduce reputație și te face mai cunoscut în lumea Westin!`;
       } else {
-        // Raport pentru atacuri normale (metin/boss)
-        if (combatResult.result === 'victory') {
-          reportContent = `Ai învins cu succes ${completedJob.mobName}ul după o luptă de ${completedJob.type === '15s' ? '15 secunde' : completedJob.type === '10m' ? '10 minute' : '1 oră'}!\n\n` +
-            `Ai primit ${rewardsText} ca recompensă.\n\n` +
-            `Statistici duel:\n` +
-            `- Damage total dat: ${combatResult.damageDealt.toLocaleString()}\n` +
-            `- Damage total primit: ${combatResult.playerHpLost.toLocaleString()}\n` +
-            `- Runde de luptă: ${combatResult.totalRounds}\n\n` +
-            `Desfășurarea luptei:\n` +
-            `${combatResult.combatLogs.join('\n')}\n\n` +
-            `Felicitări pentru victoria împotriva acestui adversar puternic!`;
-        } else {
-          reportContent = `Atacul tău împotriva ${completedJob.mobName}ului a eșuat!\n\n` +
-            `Nu ai primit nicio recompensă.\n\n` +
-            `Statistici duel:\n` +
-            `- Damage total dat: ${combatResult.damageDealt.toLocaleString()}\n` +
-            `- Damage total primit: ${combatResult.playerHpLost.toLocaleString()}\n` +
-            `- Runde de luptă: ${combatResult.totalRounds}\n\n` +
-            `Desfășurarea luptei:\n` +
-            `${combatResult.combatLogs.join('\n')}\n\n` +
-            `Nu dispera! Încearcă cu un alt adversar sau echipează-te mai bine.`;
-        }
-        
-        // Creează raportul de atac
-        addReport({
-          id: uniqueId,
-          type: 'attack',
-          subject: `Raport de atac: ${completedJob.mobName}`,
-          content: reportContent,
-          read: false,
-          mobName: completedJob.mobName,
-          mobType: mobType,
-          result: combatResult.result,
-          // Adăugăm statistici suplimentare
-          combatStats: {
-            playerHpLost: combatResult.playerHpLost,
-            damageDealt: combatResult.damageDealt,
-            expGained: combatResult.expGained,
-            yangGained: combatResult.yangGained,
-            totalRounds: combatResult.totalRounds,
-            remainingMobHp: combatResult.remainingMobHp
-          }
-        });
+        reportContent = `Ai pierdut duelul împotriva jucătorului ${completedJob.duelOpponent}!\n\n` +
+          `Nu ai primit nicio recompensă.\n\n` +
+          `Statistici duel:\n` +
+          `- Damage total dat: ${combatResult.damageDealt.toLocaleString()}\n` +
+          `- Damage total primit: ${combatResult.playerHpLost.toLocaleString()}\n` +
+          `- Runde de luptă: ${combatResult.totalRounds}\n\n` +
+          `Desfășurarea luptei:\n` +
+          `${combatResult.combatLogs.join('\n')}\n\n` +
+          `Nu-ți pierde speranța! Antrenează-te mai mult și vei reuși data viitoare.`;
       }
+      
+      console.log("Adaug raport pentru duel:", {
+        id: uniqueId,
+        type: 'duel',
+        subject: reportSubject
+      });
+      
+      // Creează raportul de duel
+      addReport({
+        id: uniqueId,
+        type: 'duel',
+        subject: reportSubject,
+        content: reportContent,
+        read: false,
+        playerName: completedJob.duelOpponent,
+        result: combatResult.result,
+        // Adăugăm statistici suplimentare
+        combatStats: {
+          playerHpLost: combatResult.playerHpLost,
+          damageDealt: combatResult.damageDealt,
+          expGained: combatResult.expGained,
+          yangGained: combatResult.yangGained,
+          totalRounds: combatResult.totalRounds,
+          remainingMobHp: combatResult.remainingMobHp
+        }
+      });
+    } else {
+      // Raport pentru atacuri normale (metin/boss)
+      reportSubject = `Raport de atac: ${completedJob.mobName}`;
+      
+      if (combatResult.result === 'victory') {
+        reportContent = `Ai învins cu succes ${completedJob.mobName}ul după o luptă de ${completedJob.type === '15s' ? '15 secunde' : completedJob.type === '10m' ? '10 minute' : '1 oră'}!\n\n` +
+          `Ai primit ${rewardsText} ca recompensă.\n\n` +
+          `Statistici duel:\n` +
+          `- Damage total dat: ${combatResult.damageDealt.toLocaleString()}\n` +
+          `- Damage total primit: ${combatResult.playerHpLost.toLocaleString()}\n` +
+          `- Runde de luptă: ${combatResult.totalRounds}\n\n` +
+          `Desfășurarea luptei:\n` +
+          `${combatResult.combatLogs.join('\n')}\n\n` +
+          `Felicitări pentru victoria împotriva acestui adversar puternic!`;
+      } else {
+        reportContent = `Atacul tău împotriva ${completedJob.mobName}ului a eșuat!\n\n` +
+          `Nu ai primit nicio recompensă.\n\n` +
+          `Statistici duel:\n` +
+          `- Damage total dat: ${combatResult.damageDealt.toLocaleString()}\n` +
+          `- Damage total primit: ${combatResult.playerHpLost.toLocaleString()}\n` +
+          `- Runde de luptă: ${combatResult.totalRounds}\n\n` +
+          `Desfășurarea luptei:\n` +
+          `${combatResult.combatLogs.join('\n')}\n\n` +
+          `Nu dispera! Încearcă cu un alt adversar sau echipează-te mai bine.`;
+      }
+      
+      console.log("Adaug raport pentru atac:", {
+        id: uniqueId,
+        type: 'attack',
+        subject: reportSubject
+      });
+      
+      // Creează raportul de atac
+      addReport({
+        id: uniqueId,
+        type: 'attack',
+        subject: reportSubject,
+        content: reportContent,
+        read: false,
+        mobName: completedJob.mobName,
+        mobType: mobType,
+        result: combatResult.result,
+        // Adăugăm statistici suplimentare
+        combatStats: {
+          playerHpLost: combatResult.playerHpLost,
+          damageDealt: combatResult.damageDealt,
+          expGained: combatResult.expGained,
+          yangGained: combatResult.yangGained,
+          totalRounds: combatResult.totalRounds,
+          remainingMobHp: combatResult.remainingMobHp
+        }
+      });
     }
-    
-    // Resetăm referința
-    completedJobRef.current = null;
   }
+  
+  // Resetăm referința
+  completedJobRef.current = null;
+}
 }, [jobs, addReport, characterStats.hp.current, simulateCombat, updatePlayerHp, formatRewards, characterStats.name, characterStats.hp.max]);
 
 // Clean up on unmount
 useEffect(() => {
-  return () => {
-    if (animationFrameRef.current !== null) {
-      cancelAnimationFrame(animationFrameRef.current);
-    }
-  };
+return () => {
+  if (animationFrameRef.current !== null) {
+    cancelAnimationFrame(animationFrameRef.current);
+  }
+};
 }, []);
 
 const value = {
-  jobs,
-  addJob,
-  removeJob,
-  removeJobById,
-  characterPosition,
-  setCharacterPosition,
-  characterStats
+jobs,
+addJob,
+removeJob,
+removeJobById,
+characterPosition,
+setCharacterPosition,
+characterStats
 };
 
 return <WorksContext.Provider value={value}>{children}</WorksContext.Provider>;
