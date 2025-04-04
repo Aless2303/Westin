@@ -8,3 +8,6 @@ export { default as ChatRequests } from './components/ChatRequests';
 // Exportăm context și hooks
 export { ChatProvider, useChatContext } from './context/ChatContext';
 export { useChatState } from './hooks/useChatState'; 
+
+// Exportăm utils
+export { formatTimestamp } from './utils/formatTimestamp';

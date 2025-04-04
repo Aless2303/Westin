@@ -1,34 +1,46 @@
 /**
- * Formatează un timestamp în format ora:minut sau "Acum" dacă este foarte recent
+ * Formatează un timestamp în format ora:minut sau un format relativ dacă este recent
  */
 export function formatTimestamp(timestamp: number): string {
   const now = Date.now();
   const diffInSeconds = Math.floor((now - timestamp) / 1000);
   
+  // Dacă e mai recent de 30 secunde
+  if (diffInSeconds < 30) {
+    return 'Acum';
+  }
+  
   // Dacă e mai recent de 1 minut
   if (diffInSeconds < 60) {
-    return 'Acum';
+    return `${diffInSeconds}s`;
   }
   
   // Dacă e mai recent de 1 oră, arată minutele
   if (diffInSeconds < 3600) {
     const minutes = Math.floor(diffInSeconds / 60);
-    return `${minutes} ${minutes === 1 ? 'minut' : 'minute'}`;
+    return `${minutes}m`;
   }
   
-  // Pentru mesaje din aceeași zi, arăta ora:minute
+  // Dacă e mai recent de 24 ore
+  if (diffInSeconds < 86400) {
+    const hours = Math.floor(diffInSeconds / 3600);
+    return `${hours}h`;
+  }
+  
+  // Pentru mesaje mai vechi de o zi
   const date = new Date(timestamp);
   const hours = date.getHours().toString().padStart(2, '0');
   const minutes = date.getMinutes().toString().padStart(2, '0');
   
-  // Dacă e din aceeași zi
+  // Dacă e din aceeași săptămână
   const today = new Date();
-  if (date.getDate() === today.getDate() &&
-      date.getMonth() === today.getMonth() &&
-      date.getFullYear() === today.getFullYear()) {
-    return `${hours}:${minutes}`;
+  const dayDiff = Math.floor((today.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+  
+  if (dayDiff < 7) {
+    const days = ['Dum', 'Lun', 'Mar', 'Mie', 'Joi', 'Vin', 'Sâm'];
+    return `${days[date.getDay()]} ${hours}:${minutes}`;
   }
   
   // Altfel afișează data scurtă
-  return `${date.getDate()}/${date.getMonth() + 1}, ${hours}:${minutes}`;
-} 
+  return `${date.getDate()}/${date.getMonth() + 1} ${hours}:${minutes}`;
+}
