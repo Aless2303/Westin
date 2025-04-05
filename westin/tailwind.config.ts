@@ -42,7 +42,8 @@ export default {
         }
       },
       boxShadow: {
-        "3xl": "0 25px 50px -12px rgba(0, 0, 0, 0.35)"
+        "3xl": "0 25px 50px -12px rgba(0, 0, 0, 0.35)",
+        "gold": "0 0 10px 1px rgba(200, 164, 88, 0.5)"
       }
     },
   },

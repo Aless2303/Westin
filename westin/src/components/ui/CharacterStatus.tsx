@@ -2,6 +2,9 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { Leaderboard } from '../../features/leaderboard';
+import { ProfileWindow } from '../../features/profile';
+import { generateEquipment } from '../../data/mock/inventory';
+import mockProfileData from '../../data/mock/profile';
 
 interface CharacterStatusProps {
   name: string;
@@ -37,6 +40,8 @@ const CharacterStatus: React.FC<CharacterStatusProps> = ({
   const [isPanelVisible, setIsPanelVisible] = useState(true);
   // State pentru a controla vizibilitatea leaderboard
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
+  // State pentru a controla vizibilitatea profilului
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   // Calculate percentages for progress bars
   const hpPercentage = Math.min(100, Math.max(0, (hp.current / hp.max) * 100));
@@ -55,6 +60,14 @@ const CharacterStatus: React.FC<CharacterStatusProps> = ({
   const toggleLeaderboard = () => {
     setIsLeaderboardOpen(!isLeaderboardOpen);
   };
+
+  // Toggle function pentru afisare/ascundere profil
+  const toggleProfile = () => {
+    setIsProfileOpen(!isProfileOpen);
+  };
+
+  // Generate equipment for profile display
+  const characterEquipment = generateEquipment(race, level);
 
   return (
     <div className="absolute top-3 left-3 z-50">
@@ -90,8 +103,12 @@ const CharacterStatus: React.FC<CharacterStatusProps> = ({
           <div className="bg-metin-dark/95 backdrop-blur-sm border border-metin-gold/40 rounded-lg overflow-hidden shadow-lg">
             {/* Character portrait area */}
             <div className="relative h-20 flex items-center">
-              {/* Character image with circular frame and background */}
-              <div className="ml-3 w-16 h-16 rounded-full border-2 border-metin-gold/60 bg-black/80 overflow-hidden relative">
+              {/* Character image with circular frame and background - Now clickable */}
+              <button 
+                onClick={toggleProfile}
+                className="ml-3 w-16 h-16 rounded-full border-2 border-metin-gold/60 bg-black/80 overflow-hidden relative hover:border-metin-gold hover:shadow-gold transition-all"
+                title="Deschide profilul"
+              >
                 {/* Background image */}
                 <div className="absolute inset-0 z-0">
                   <Image
@@ -102,17 +119,17 @@ const CharacterStatus: React.FC<CharacterStatusProps> = ({
                   />
                 </div>
                 
-                {/* Overlay gradient */}
-                <div className="absolute inset-0 bg-gradient-to-b from-metin-gold/10 to-black/60 z-10"></div>
+                {/* Gold glow on hover */}
+                <div className="absolute inset-0 bg-gradient-to-b from-metin-gold/20 to-transparent opacity-0 hover:opacity-60 transition-opacity z-20"></div>
                 
                 {/* Character image */}
                 <Image
                   src={characterImagePath}
                   alt={`${name} character`}
                   fill
-                  className="object-cover object-top z-20"
+                  className="object-cover object-top z-10"
                 />
-              </div>
+              </button>
               
               {/* Character name and level */}
               <div className="ml-3 text-metin-light">
@@ -188,6 +205,14 @@ const CharacterStatus: React.FC<CharacterStatusProps> = ({
         isOpen={isLeaderboardOpen} 
         onClose={() => setIsLeaderboardOpen(false)} 
         refreshInterval={30000}
+      />
+
+      {/* Profile Component */}
+      <ProfileWindow
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
+        profile={mockProfileData}
+        equipment={characterEquipment}
       />
     </div>
   );
