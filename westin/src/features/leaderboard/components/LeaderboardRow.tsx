@@ -7,15 +7,14 @@ interface LeaderboardRowProps {
   player: PlayerType;
   index: number;
   isCurrentPlayer: boolean;
+  onPlayerSelect: (player: PlayerType) => void; // Callback pentru selectarea jucătorului
 }
 
-/**
- * Componenta pentru un rând din tabelul de leaderboard
- */
 const LeaderboardRow: React.FC<LeaderboardRowProps> = ({ 
   player, 
   index,
-  isCurrentPlayer
+  isCurrentPlayer,
+  onPlayerSelect
 }) => {
   return (
     <tr 
@@ -61,9 +60,13 @@ const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
               />
             </div>
           </div>
-          <span className={`font-medium truncate max-w-[150px] ${isCurrentPlayer ? 'text-metin-gold' : 'text-metin-light'}`} title={player.name}>
+          <button
+            onClick={() => onPlayerSelect(player)}
+            className={`font-medium truncate max-w-[150px] ${isCurrentPlayer ? 'text-metin-gold' : 'text-metin-light hover:text-metin-gold'} transition-colors`}
+            title={`Vezi profilul lui ${player.name}`}
+          >
             {player.name} {isCurrentPlayer && "(Tu)"}
-          </span>
+          </button>
         </div>
       </td>
       <td className="py-3 px-4 text-center">
@@ -96,4 +99,4 @@ const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
   );
 };
 
-export default LeaderboardRow; 
+export default LeaderboardRow;

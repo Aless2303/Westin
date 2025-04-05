@@ -1,4 +1,3 @@
-// Tipul de date pentru jucători (folosit pentru dueluri)
 export interface PlayerType {
   id: string;
   name: string;
@@ -14,9 +13,12 @@ export interface PlayerType {
   };
   attack: number;
   defense: number;
-  experience?: {
+  experience: {
     current: number;
     percentage: number;
   };
   rank?: number;
-} 
+  duelsWon?: number; // Adăugăm câmpurile opționale
+  duelsLost?: number;
+  motto?: string;
+}

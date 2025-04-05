@@ -21,7 +21,10 @@ export const mockPlayers: PlayerType[] = [
       current: 234500,
       percentage: 87
     },
-    rank: 1
+    rank: 1,
+    duelsWon: 32, // Adăugăm câmpuri pentru profil
+    duelsLost: 15,
+    motto: "Un adevărat războinic nu renunță niciodată!"
   },
   {
     id: "player2",
@@ -42,8 +45,11 @@ export const mockPlayers: PlayerType[] = [
       current: 318700,
       percentage: 65
     },
-    rank: 2
+    rank: 2,
+    duelsWon: 58, // Adăugăm câmpuri pentru profil
+    duelsLost: 9,
+    motto: "Magia mea îngheață orice adversar."
   }
 ];
 
-export default mockPlayers; 
+export default mockPlayers;

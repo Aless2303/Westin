@@ -8,13 +8,15 @@ interface ProfileWindowProps {
   onClose: () => void;
   profile: ProfileType;
   equipment: EquipmentSlot[];
+  isEditable?: boolean; // Adăugăm prop-ul isEditable
 }
 
 const ProfileWindow: React.FC<ProfileWindowProps> = ({
   isOpen,
   onClose,
   profile,
-  equipment
+  equipment,
+  isEditable = true // Valoare implicită true
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [motto, setMotto] = useState(profile.motto || "");
@@ -40,21 +42,21 @@ const ProfileWindow: React.FC<ProfileWindowProps> = ({
   };
 
   const handleEditStart = () => {
-    setTempMotto(motto); // Setăm tempMotto la valoarea curentă a motto
+    setTempMotto(motto);
     setIsEditing(true);
   };
 
   const handleCancel = () => {
     setIsEditing(false);
-    setTempMotto(""); // Resetăm tempMotto
+    setTempMotto("");
   };
 
   const handleSaveMotto = () => {
     if (tempMotto.trim()) {
-      setMotto(tempMotto.trim()); // Salvăm motto-ul doar dacă nu este gol
+      setMotto(tempMotto.trim());
     }
     setIsEditing(false);
-    setTempMotto(""); // Resetăm tempMotto după salvare
+    setTempMotto("");
   };
 
   return (
@@ -242,11 +244,11 @@ const ProfileWindow: React.FC<ProfileWindowProps> = ({
                 <div className="space-y-2">
                   <div className="flex justify-between border-b border-metin-gold/20 pb-1">
                     <span className="text-metin-light/70">Dueluri câștigate:</span>
-                    <span className="text-green-500 font-semibold">{profile.duelsWon}</span>
+                    <span className="text-green-500 font-semibold">{profile.duelsWon || 0}</span>
                   </div>
                   <div className="flex justify-between border-b border-metin-gold/20 pb-1">
                     <span className="text-metin-light/70">Dueluri pierdute:</span>
-                    <span className="text-red-500 font-semibold">{profile.duelsLost}</span>
+                    <span className="text-red-500 font-semibold">{profile.duelsLost || 0}</span>
                   </div>
                 </div>
               </div>
@@ -256,7 +258,7 @@ const ProfileWindow: React.FC<ProfileWindowProps> = ({
             <div className="bg-black/30 rounded-lg border border-metin-gold/30 p-4 relative">
               <h3 className="text-metin-gold mb-2 font-western text-lg">Motto Personal</h3>
               
-              {isEditing ? (
+              {isEditing && isEditable ? (
                 <div className="space-y-3">
                   <textarea
                     value={tempMotto}
@@ -264,7 +266,7 @@ const ProfileWindow: React.FC<ProfileWindowProps> = ({
                     className="w-full bg-black/60 border border-metin-gold/30 rounded-md p-3 text-metin-light resize-none focus:outline-none focus:border-metin-gold/60 h-[100px]"
                     maxLength={200}
                     placeholder="Scrie ceva despre tine..."
-                    autoFocus // Adăugăm autofocus pentru a facilita editarea
+                    autoFocus
                   />
                   <div className="flex justify-end space-x-2">
                     <button 
@@ -275,7 +277,7 @@ const ProfileWindow: React.FC<ProfileWindowProps> = ({
                     </button>
                     <button 
                       onClick={handleSaveMotto}
-                      disabled={!tempMotto.trim()} // Dezactivăm butonul dacă textul este gol
+                      disabled={!tempMotto.trim()}
                       className={`px-4 py-2 rounded border border-metin-gold/50 transition-colors ${
                         tempMotto.trim()
                           ? 'bg-metin-gold/20 text-metin-gold hover:bg-metin-gold/30'
@@ -290,15 +292,19 @@ const ProfileWindow: React.FC<ProfileWindowProps> = ({
                 <div className="relative">
                   <p className="text-metin-light italic bg-black/40 p-3 rounded-md min-h-[80px]">
                     {motto ? <>“{motto}”</> : 
-                    <span className="text-metin-light/50">Niciun motto adăugat încă. Apasă pe butonul de editare pentru a adăuga.</span>}
+                    <span className="text-metin-light/50">
+                      {isEditable ? "Niciun motto adăugat încă. Apasă pe butonul de editare pentru a adăuga." : "Acest jucător nu are un motto setat."}
+                    </span>}
                   </p>
-                  <button 
-                    onClick={handleEditStart}
-                    className="absolute top-2 right-2 w-7 h-7 rounded-full bg-metin-dark/80 border border-metin-gold/30 flex items-center justify-center text-metin-gold text-xs hover:bg-metin-gold/20 transition-colors"
-                    title="Editează motto"
-                  >
-                    ✎
-                  </button>
+                  {isEditable && (
+                    <button 
+                      onClick={handleEditStart}
+                      className="absolute top-2 right-2 w-7 h-7 rounded-full bg-metin-dark/80 border border-metin-gold/30 flex items-center justify-center text-metin-gold text-xs hover:bg-metin-gold/20 transition-colors"
+                      title="Editează motto"
+                    >
+                      ✎
+                    </button>
+                  )}
                 </div>
               )}
             </div>

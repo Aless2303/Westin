@@ -5,14 +5,13 @@ import { PlayerType } from '../../../types/player';
 interface LeaderboardTableProps {
   players: PlayerType[];
   isRefreshing: boolean;
+  onPlayerSelect: (player: PlayerType) => void; // Adăugăm prop-ul
 }
 
-/**
- * Componenta pentru tabelul leaderboard
- */
 const LeaderboardTable: React.FC<LeaderboardTableProps> = ({ 
   players, 
-  isRefreshing 
+  isRefreshing,
+  onPlayerSelect
 }) => {
   return (
     <table className="w-full border-collapse">
@@ -32,6 +31,7 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({
             player={player} 
             index={index}
             isCurrentPlayer={player.id === "current-player"}
+            onPlayerSelect={onPlayerSelect} // Transmitem prop-ul
           />
         ))}
       </tbody>
@@ -39,4 +39,4 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({
   );
 };
 
-export default LeaderboardTable; 
+export default LeaderboardTable;
