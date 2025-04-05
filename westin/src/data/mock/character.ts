@@ -26,7 +26,19 @@ export const mockCharacterData: CharacterType = {
   x: 350,
   y: 611,
   attack: 5000,
-  defense: 200
+  defense: 200,
+  // Atribute de status
+  attributes: {
+    vitality: 35,
+    intelligence: 28,
+    strength: 42,
+    dexterity: 65  // Ninja are boost la dexteritate
+  },
+  // Puncte disponibile
+  availablePoints: 2,
+  // Șansa critică și damage-ul critică
+  critChance: 5.8,  // 0.1% per punct de inteligență + bonusuri
+  critDamage: 38    // 1% per punct de inteligență + bonusuri
 };
 
 export default mockCharacterData; 
