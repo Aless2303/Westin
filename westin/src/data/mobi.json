@@ -346,5 +346,17 @@
     "exp": 2350,
     "yang": 2700,
     "image": "/assets/images/metine/Metin Piatra Stone Man.png"
+  },
+  { 
+    "name": "Oras", 
+    "x": 1420, 
+    "y": 1060, 
+    "type": "Oras",
+    "level": 0,
+    "hp": 0,
+    "attack": 0,
+    "exp": 0,
+    "yang": 0,
+    "image": "/assets/images/metine/Metin Sarpe Argos.png"
   }
 ]

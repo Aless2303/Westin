@@ -13,6 +13,8 @@ import mockInventory from './inventory';
 import mockPlayers from './players';
 import mockReports from './reports';
 import mockChat from './chat';
+import mockProfile from './profile';
+import { items, itemsByCategory, allCategories } from './market-items';
 
 // Pentru a le importa pe toate deodată: import mockData from 'src/data/mock'
 const mockData = {
@@ -21,7 +23,13 @@ const mockData = {
   inventory: mockInventory,
   players: mockPlayers,
   reports: mockReports,
-  chat: mockChat
+  chat: mockChat,
+  profile: mockProfile,
+  market: {
+    items,
+    itemsByCategory,
+    allCategories
+  }
 };
 
 export default mockData; 
