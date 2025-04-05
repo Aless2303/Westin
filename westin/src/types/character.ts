@@ -17,6 +17,10 @@ export interface CharacterType {
     current: number;
     percentage: number;
   };
+  money: {
+    cash: number;
+    bank: number;
+  };
   x: number;
   y: number;
   attack: number;

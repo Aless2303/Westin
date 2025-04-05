@@ -3,6 +3,7 @@ import Image from 'next/image';
 import mapImage from '../assets/images/westinmap.jpg';
 import CharacterStatus from '../components/ui/CharacterStatus';
 import BottomPanel from '../components/ui/BottomPanel';
+import MoneyDisplay from '../components/ui/MoneyDisplay';
 import { MobDetailsPanel } from '../features/mobs';
 import { WorksProvider } from '../features/works';
 import { ReportsProvider } from '../features/reports';
@@ -308,6 +309,9 @@ const GamePage: React.FC = () => {
           updatePlayerStamina={updatePlayerStamina}
         >
           <div className="relative w-full h-screen overflow-hidden bg-black">
+            {/* Yang Display - added on top of the screen */}
+            <MoneyDisplay cash={characterData.money.cash} bank={characterData.money.bank} />
+            
             <div 
               ref={mapContainerRef}
               className="fixed inset-0 overflow-hidden bg-gray-900"
@@ -469,18 +473,18 @@ const GamePage: React.FC = () => {
                   )}
                 </div>
               </div>
-              
-              {/* System message for low HP or stamina */}
-              {showSystemMessage && (
-                <div className="fixed bottom-32 left-1/2 transform -translate-x-1/2 bg-black/80 text-red-500 border border-red-700 px-4 py-2 rounded-lg shadow-lg z-50 animate-pulse">
-                  <div className="flex items-center">
-                    <span className="mr-2 text-2xl">⚠️</span>
-                    <span className="font-medium">{systemMessage}</span>
-                  </div>
-                </div>
-              )}
             </div>
-
+            
+            {/* System message for low HP or stamina */}
+            {showSystemMessage && (
+              <div className="fixed bottom-32 left-1/2 transform -translate-x-1/2 bg-black/80 text-red-500 border border-red-700 px-4 py-2 rounded-lg shadow-lg z-50 animate-pulse">
+                <div className="flex items-center">
+                  <span className="mr-2 text-2xl">⚠️</span>
+                  <span className="font-medium">{systemMessage}</span>
+                </div>
+              </div>
+            )}
+            
             {/* Butonul de chat în colțul din stânga jos */}
             <button
               onClick={() => setIsChatOpen(!isChatOpen)}

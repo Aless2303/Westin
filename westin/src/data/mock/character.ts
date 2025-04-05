@@ -19,6 +19,10 @@ export const mockCharacterData: CharacterType = {
     current: 12345,
     percentage: 63,
   },
+  money: {
+    cash: 154250,
+    bank: 867540,
+  },
   x: 350,
   y: 611,
   attack: 5000,
