@@ -17,12 +17,12 @@ const ProfileWindow: React.FC<ProfileWindowProps> = ({
   equipment
 }) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [motto, setMotto] = useState(profile.motto);
+  const [motto, setMotto] = useState(profile.motto || "");
   const [tempMotto, setTempMotto] = useState("");
 
   // Reset the motto when the profile changes
   useEffect(() => {
-    setMotto(profile.motto);
+    setMotto(profile.motto || "");
   }, [profile.motto]);
   
   if (!isOpen) return null;
@@ -40,22 +40,21 @@ const ProfileWindow: React.FC<ProfileWindowProps> = ({
   };
 
   const handleEditStart = () => {
-    setTempMotto("");
+    setTempMotto(motto); // Setăm tempMotto la valoarea curentă a motto
     setIsEditing(true);
   };
 
   const handleCancel = () => {
     setIsEditing(false);
+    setTempMotto(""); // Resetăm tempMotto
   };
 
   const handleSaveMotto = () => {
-    // Here you would typically save the motto to the server
-    // For now, just update the local state
     if (tempMotto.trim()) {
-      setMotto(tempMotto.trim());
+      setMotto(tempMotto.trim()); // Salvăm motto-ul doar dacă nu este gol
     }
     setIsEditing(false);
-    // In a real app, you'd update the backend here
+    setTempMotto(""); // Resetăm tempMotto după salvare
   };
 
   return (
@@ -265,6 +264,7 @@ const ProfileWindow: React.FC<ProfileWindowProps> = ({
                     className="w-full bg-black/60 border border-metin-gold/30 rounded-md p-3 text-metin-light resize-none focus:outline-none focus:border-metin-gold/60 h-[100px]"
                     maxLength={200}
                     placeholder="Scrie ceva despre tine..."
+                    autoFocus // Adăugăm autofocus pentru a facilita editarea
                   />
                   <div className="flex justify-end space-x-2">
                     <button 
@@ -275,7 +275,12 @@ const ProfileWindow: React.FC<ProfileWindowProps> = ({
                     </button>
                     <button 
                       onClick={handleSaveMotto}
-                      className="px-4 py-2 rounded bg-metin-gold/20 text-metin-gold border border-metin-gold/50 hover:bg-metin-gold/30 transition-colors"
+                      disabled={!tempMotto.trim()} // Dezactivăm butonul dacă textul este gol
+                      className={`px-4 py-2 rounded border border-metin-gold/50 transition-colors ${
+                        tempMotto.trim()
+                          ? 'bg-metin-gold/20 text-metin-gold hover:bg-metin-gold/30'
+                          : 'bg-metin-gold/10 text-metin-gold/50 cursor-not-allowed'
+                      }`}
                     >
                       Salvează
                     </button>
@@ -284,7 +289,7 @@ const ProfileWindow: React.FC<ProfileWindowProps> = ({
               ) : (
                 <div className="relative">
                   <p className="text-metin-light italic bg-black/40 p-3 rounded-md min-h-[80px]">
-                    {motto ? <>&ldquo;{motto}&rdquo;</> : 
+                    {motto ? <>“{motto}”</> : 
                     <span className="text-metin-light/50">Niciun motto adăugat încă. Apasă pe butonul de editare pentru a adăuga.</span>}
                   </p>
                   <button 
@@ -304,4 +309,4 @@ const ProfileWindow: React.FC<ProfileWindowProps> = ({
   );
 };
 
-export default ProfileWindow; 
+export default ProfileWindow;

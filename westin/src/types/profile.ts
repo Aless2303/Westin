@@ -24,4 +24,4 @@ export type EquipmentPosition =
   | 'earrings'   // 5 in the matrix
   | 'helmet'     // 6 in the matrix
   | 'armor'      // 7 in the matrix
-  | 'shield';    // 8 in the matrix 
+  | 'shield';    // 8 in the matrix

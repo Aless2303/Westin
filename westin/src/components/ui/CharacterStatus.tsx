@@ -67,7 +67,8 @@ const CharacterStatus: React.FC<CharacterStatusProps> = ({
   };
 
   // Generate equipment for profile display
-  const characterEquipment = generateEquipment(race, level);
+  // MODIFICARE IMPORTANTĂ: Folosim nivelul real (level) în loc de 25 (valoarea implicită)
+  const characterEquipment = generateEquipment(race, level); // Folosim nivelul real al personajului
 
   return (
     <div className="absolute top-3 left-3 z-50">

@@ -15,4 +15,6 @@ export const mockProfileData: ProfileType = {
   experience: mockCharacterData.experience
 };
 
-export default mockProfileData; 
+export default mockProfileData;
+
+
