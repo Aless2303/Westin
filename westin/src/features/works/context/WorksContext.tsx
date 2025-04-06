@@ -746,142 +746,166 @@ return () => {
 
 // Effect separat pentru a adăuga rapoarte după ce job-urile sunt finalizate
 useEffect(() => {
-// Verificăm dacă avem un job finalizat în referință
-if (completedJobRef.current && addReport) {
-  const completedJob = completedJobRef.current;
-  console.log('Generare raport pentru job finalizat:', completedJob);
-  
-  if (completedJob.mobName) {
-    const mobType = completedJob.mobType || 'metin';
+  // Verificăm dacă avem un job finalizat în referință
+  if (completedJobRef.current && addReport) {
+    const completedJob = completedJobRef.current;
+    console.log('Generare raport pentru job finalizat:', completedJob);
     
-    // Simulăm lupta pentru a determina rezultatul
-    const combatResult = simulateCombat(completedJob);
-    
-    // Update player HP based on combat results
-    const newHp = Math.max(0, characterStats.hp.current - combatResult.playerHpLost);
-    updatePlayerHp(newHp);
-    
-    // Utilizăm o valoare combinată pentru ID pentru a evita duplicatele
-    const uniqueIdBase = Date.now().toString();
-    const uniqueId = uniqueIdBase + "_" + Math.random().toString(36).substring(2, 7);
-    
-    // Formatează recompensele pentru afișare
-    const rewardsText = formatRewards(completedJob, combatResult.expGained, combatResult.yangGained);
-    
-    // Generăm conținutul raportului
-    let reportContent = '';
-    let reportSubject = '';
-    
-    // Verificăm dacă este un duel sau o luptă normală
-    if (completedJob.mobType === 'duel') {
-      // Raport pentru duel
-      reportSubject = `Duel: ${completedJob.duelOpponent} vs ${characterStats.name}`;
+    // Verificăm dacă este job-ul de somn pentru a regenera HP și stamina
+    if (completedJob.mobName === 'Patul din Han') {
+      console.log('Sleep job completed - regenerating HP and stamina');
+      // Regenerăm complet HP și stamina
+      updatePlayerHp(characterStats.hp.max);
+      updatePlayerStamina(100); // Setăm stamina la 100 conform cerinței
       
-      if (combatResult.result === 'victory') {
-        reportContent = `Ai câștigat duelul împotriva jucătorului ${completedJob.duelOpponent}!\n\n` +
-          `Ai primit ${combatResult.expGained.toLocaleString()} experiență și ${combatResult.yangGained.toLocaleString()} yang ca recompensă.\n\n` +
-          `Statistici duel:\n` +
-          `- Damage total dat: ${combatResult.damageDealt.toLocaleString()}\n` +
-          `- Damage total primit: ${combatResult.playerHpLost.toLocaleString()}\n` +
-          `- Runde de luptă: ${combatResult.totalRounds}\n\n` +
-          `Desfășurarea luptei:\n` +
-          `${combatResult.combatLogs.join('\n')}\n\n` +
-          `Victoria îți aduce reputație și te face mai cunoscut în lumea Westin!`;
-      } else {
-        reportContent = `Ai pierdut duelul împotriva jucătorului ${completedJob.duelOpponent}!\n\n` +
-          `Nu ai primit nicio recompensă.\n\n` +
-          `Statistici duel:\n` +
-          `- Damage total dat: ${combatResult.damageDealt.toLocaleString()}\n` +
-          `- Damage total primit: ${combatResult.playerHpLost.toLocaleString()}\n` +
-          `- Runde de luptă: ${combatResult.totalRounds}\n\n` +
-          `Desfășurarea luptei:\n` +
-          `${combatResult.combatLogs.join('\n')}\n\n` +
-          `Nu-ți pierde speranța! Antrenează-te mai mult și vei reuși data viitoare.`;
-      }
+      // Generăm un ID unic pentru raport
+      const uniqueId = Date.now().toString() + "_sleep";
       
-      console.log("Adaug raport pentru duel:", {
-        id: uniqueId,
-        type: 'duel',
-        subject: reportSubject
-      });
-      
-      // Creează raportul de duel
+      // Adăugăm un raport pentru somn
       addReport({
         id: uniqueId,
-        type: 'duel',
-        subject: reportSubject,
-        content: reportContent,
-        read: false,
-        playerName: completedJob.duelOpponent,
-        result: combatResult.result,
-        // Adăugăm statistici suplimentare
-        combatStats: {
-          playerHpLost: combatResult.playerHpLost,
-          damageDealt: combatResult.damageDealt,
-          expGained: combatResult.expGained,
-          yangGained: combatResult.yangGained,
-          totalRounds: combatResult.totalRounds,
-          remainingMobHp: combatResult.remainingMobHp
-        }
-      });
-    } else {
-      // Raport pentru atacuri normale (metin/boss)
-      reportSubject = `Raport de atac: ${completedJob.mobName}`;
-      
-      if (combatResult.result === 'victory') {
-        reportContent = `Ai învins cu succes ${completedJob.mobName}ul după o luptă de ${completedJob.type === '15s' ? '15 secunde' : completedJob.type === '10m' ? '10 minute' : '1 oră'}!\n\n` +
-          `Ai primit ${rewardsText} ca recompensă.\n\n` +
-          `Statistici duel:\n` +
-          `- Damage total dat: ${combatResult.damageDealt.toLocaleString()}\n` +
-          `- Damage total primit: ${combatResult.playerHpLost.toLocaleString()}\n` +
-          `- Runde de luptă: ${combatResult.totalRounds}\n\n` +
-          `Desfășurarea luptei:\n` +
-          `${combatResult.combatLogs.join('\n')}\n\n` +
-          `Felicitări pentru victoria împotriva acestui adversar puternic!`;
-      } else {
-        reportContent = `Atacul tău împotriva ${completedJob.mobName}ului a eșuat!\n\n` +
-          `Nu ai primit nicio recompensă.\n\n` +
-          `Statistici duel:\n` +
-          `- Damage total dat: ${combatResult.damageDealt.toLocaleString()}\n` +
-          `- Damage total primit: ${combatResult.playerHpLost.toLocaleString()}\n` +
-          `- Runde de luptă: ${combatResult.totalRounds}\n\n` +
-          `Desfășurarea luptei:\n` +
-          `${combatResult.combatLogs.join('\n')}\n\n` +
-          `Nu dispera! Încearcă cu un alt adversar sau echipează-te mai bine.`;
-      }
-      
-      console.log("Adaug raport pentru atac:", {
-        id: uniqueId,
-        type: 'attack',
-        subject: reportSubject
+        type: 'sleep',
+        subject: 'Somn la Han',
+        content: `Te-ai odihnit pentru 2 ore și ți-ai regenerat complet HP-ul și stamina.`,
+        read: false
       });
       
-      // Creează raportul de atac
-      addReport({
-        id: uniqueId,
-        type: 'attack',
-        subject: reportSubject,
-        content: reportContent,
-        read: false,
-        mobName: completedJob.mobName,
-        mobType: mobType,
-        result: combatResult.result,
-        // Adăugăm statistici suplimentare
-        combatStats: {
-          playerHpLost: combatResult.playerHpLost,
-          damageDealt: combatResult.damageDealt,
-          expGained: combatResult.expGained,
-          yangGained: combatResult.yangGained,
-          totalRounds: combatResult.totalRounds,
-          remainingMobHp: combatResult.remainingMobHp
-        }
-      });
+      // Resetăm referința și ieșim din funcție
+      completedJobRef.current = null;
+      return;
     }
+    
+    if (completedJob.mobName) {
+      const mobType = completedJob.mobType || 'metin';
+      
+      // Simulăm lupta pentru a determina rezultatul
+      const combatResult = simulateCombat(completedJob);
+      
+      // Update player HP based on combat results
+      const newHp = Math.max(0, characterStats.hp.current - combatResult.playerHpLost);
+      updatePlayerHp(newHp);
+      
+      // Utilizăm o valoare combinată pentru ID pentru a evita duplicatele
+      const uniqueIdBase = Date.now().toString();
+      const uniqueId = uniqueIdBase + "_" + Math.random().toString(36).substring(2, 7);
+      
+      // Formatează recompensele pentru afișare
+      const rewardsText = formatRewards(completedJob, combatResult.expGained, combatResult.yangGained);
+      
+      // Generăm conținutul raportului
+      let reportContent = '';
+      let reportSubject = '';
+      
+      // Verificăm dacă este un duel sau o luptă normală
+      if (completedJob.mobType === 'duel') {
+        // Raport pentru duel
+        reportSubject = `Duel: ${completedJob.duelOpponent} vs ${characterStats.name}`;
+        
+        if (combatResult.result === 'victory') {
+          reportContent = `Ai câștigat duelul împotriva jucătorului ${completedJob.duelOpponent}!\n\n` +
+            `Ai primit ${combatResult.expGained.toLocaleString()} experiență și ${combatResult.yangGained.toLocaleString()} yang ca recompensă.\n\n` +
+            `Statistici duel:\n` +
+            `- Damage total dat: ${combatResult.damageDealt.toLocaleString()}\n` +
+            `- Damage total primit: ${combatResult.playerHpLost.toLocaleString()}\n` +
+            `- Runde de luptă: ${combatResult.totalRounds}\n\n` +
+            `Desfășurarea luptei:\n` +
+            `${combatResult.combatLogs.join('\n')}\n\n` +
+            `Victoria îți aduce reputație și te face mai cunoscut în lumea Westin!`;
+        } else {
+          reportContent = `Ai pierdut duelul împotriva jucătorului ${completedJob.duelOpponent}!\n\n` +
+            `Nu ai primit nicio recompensă.\n\n` +
+            `Statistici duel:\n` +
+            `- Damage total dat: ${combatResult.damageDealt.toLocaleString()}\n` +
+            `- Damage total primit: ${combatResult.playerHpLost.toLocaleString()}\n` +
+            `- Runde de luptă: ${combatResult.totalRounds}\n\n` +
+            `Desfășurarea luptei:\n` +
+            `${combatResult.combatLogs.join('\n')}\n\n` +
+            `Nu-ți pierde speranța! Antrenează-te mai mult și vei reuși data viitoare.`;
+        }
+        
+        console.log("Adaug raport pentru duel:", {
+          id: uniqueId,
+          type: 'duel',
+          subject: reportSubject
+        });
+        
+        // Creează raportul de duel
+        addReport({
+          id: uniqueId,
+          type: 'duel',
+          subject: reportSubject,
+          content: reportContent,
+          read: false,
+          playerName: completedJob.duelOpponent,
+          result: combatResult.result,
+          // Adăugăm statistici suplimentare
+          combatStats: {
+            playerHpLost: combatResult.playerHpLost,
+            damageDealt: combatResult.damageDealt,
+            expGained: combatResult.expGained,
+            yangGained: combatResult.yangGained,
+            totalRounds: combatResult.totalRounds,
+            remainingMobHp: combatResult.remainingMobHp
+          }
+        });
+      } else {
+        // Raport pentru atacuri normale (metin/boss)
+        reportSubject = `Raport de atac: ${completedJob.mobName}`;
+        
+        if (combatResult.result === 'victory') {
+          reportContent = `Ai învins cu succes ${completedJob.mobName}ul după o luptă de ${completedJob.type === '15s' ? '15 secunde' : completedJob.type === '10m' ? '10 minute' : '1 oră'}!\n\n` +
+            `Ai primit ${rewardsText} ca recompensă.\n\n` +
+            `Statistici duel:\n` +
+            `- Damage total dat: ${combatResult.damageDealt.toLocaleString()}\n` +
+            `- Damage total primit: ${combatResult.playerHpLost.toLocaleString()}\n` +
+            `- Runde de luptă: ${combatResult.totalRounds}\n\n` +
+            `Desfășurarea luptei:\n` +
+            `${combatResult.combatLogs.join('\n')}\n\n` +
+            `Felicitări pentru victoria împotriva acestui adversar puternic!`;
+        } else {
+          reportContent = `Atacul tău împotriva ${completedJob.mobName}ului a eșuat!\n\n` +
+            `Nu ai primit nicio recompensă.\n\n` +
+            `Statistici duel:\n` +
+            `- Damage total dat: ${combatResult.damageDealt.toLocaleString()}\n` +
+            `- Damage total primit: ${combatResult.playerHpLost.toLocaleString()}\n` +
+            `- Runde de luptă: ${combatResult.totalRounds}\n\n` +
+            `Desfășurarea luptei:\n` +
+            `${combatResult.combatLogs.join('\n')}\n\n` +
+            `Nu dispera! Încearcă cu un alt adversar sau echipează-te mai bine.`;
+        }
+        
+        console.log("Adaug raport pentru atac:", {
+          id: uniqueId,
+          type: 'attack',
+          subject: reportSubject
+        });
+        
+        // Creează raportul de atac
+        addReport({
+          id: uniqueId,
+          type: 'attack',
+          subject: reportSubject,
+          content: reportContent,
+          read: false,
+          mobName: completedJob.mobName,
+          mobType: mobType,
+          result: combatResult.result,
+          // Adăugăm statistici suplimentare
+          combatStats: {
+            playerHpLost: combatResult.playerHpLost,
+            damageDealt: combatResult.damageDealt,
+            expGained: combatResult.expGained,
+            yangGained: combatResult.yangGained,
+            totalRounds: combatResult.totalRounds,
+            remainingMobHp: combatResult.remainingMobHp
+          }
+        });
+      }
+    }
+    
+    // Resetăm referința
+    completedJobRef.current = null;
   }
-  
-  // Resetăm referința
-  completedJobRef.current = null;
-}
 }, [jobs, addReport, characterStats.hp.current, simulateCombat, updatePlayerHp, formatRewards, characterStats.name, characterStats.hp.max]);
 
 // Clean up on unmount

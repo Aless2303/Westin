@@ -1,6 +1,7 @@
 import React from 'react';
 import Image from 'next/image';
 import { useTown } from './TownContext';
+import { useWorks } from '../../works/context/WorksContext';
 import GeneralMarket from '../market/GeneralMarket';
 import Bank from '../bank/Bank';
 
@@ -11,9 +12,10 @@ const TownPanel: React.FC = () => {
     isMarketOpen, 
     setIsMarketOpen, 
     isBankOpen, 
-    setIsBankOpen, 
-    characterData
+    setIsBankOpen
   } = useTown();
+  
+  const { addJob } = useWorks();
 
   const handleOpenMarket = () => {
     setIsMarketOpen(true);
@@ -25,6 +27,41 @@ const TownPanel: React.FC = () => {
 
   const handleClose = () => {
     setIsTownOpen(false);
+  };
+  
+  // Handler pentru somn
+  const handleSleep = () => {
+    if (addJob) {
+      // Poziția patului în oraș - folosim o locație care să necesite deplasare
+      const bedX = 250; // Locație mai departe pentru a asigura un timp de deplasare
+      const bedY = 500;
+      
+      // Creăm un job de somn
+      const sleepJob = {
+        type: '1h' as '15s' | '10m' | '1h',
+        remainingTime: 7200, // 2 ore în secunde
+        travelTime: 30, // Setăm un timp de deplasare inițial semnificativ
+        isInProgress: false, // Obligatoriu începem cu faza de călătorie
+        mobName: 'Patul din Han',
+        mobImage: '/npc/bed.png',
+        mobX: bedX,
+        mobY: bedY,
+        staminaCost: 0, // Nu consumă stamina
+        mobHp: 0,
+        mobLevel: 0,
+        mobAttack: 0,
+        mobExp: 0,
+        mobYang: 0,
+        mobType: 'metin' as 'boss' | 'metin' | 'duel',
+        originalJobTime: 7200, // Explicit setăm timpul original al job-ului
+      };
+      
+      // Adăugăm job-ul și închidem panoul dacă job-ul a fost adăugat cu succes
+      if (addJob(sleepJob)) {
+        console.log("Job de somn adăugat cu succes, început deplasarea spre Han");
+        setIsTownOpen(false);
+      }
+    }
   };
 
   if (!isTownOpen) return null;
@@ -47,7 +84,7 @@ const TownPanel: React.FC = () => {
           <h2 className="text-2xl text-metin-gold font-bold mb-4 text-center">Orașul Westin</h2>
           <p className="text-gray-300 mb-8 text-center">Selectează un NPC cu care dorești să interacționezi</p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* NPC Magazin General */}
             <div 
               className="bg-metin-dark/80 border border-metin-gold/30 rounded-lg p-6 flex flex-col items-center cursor-pointer hover:bg-metin-dark/60 transition-colors h-64"
@@ -87,6 +124,27 @@ const TownPanel: React.FC = () => {
               <h3 className="text-metin-gold font-semibold text-lg">Depozit</h3>
               <p className="text-gray-400 text-sm text-center mt-2">
                 Depozitează sau retrage bani în siguranță
+              </p>
+            </div>
+            
+            {/* NPC Han pentru somn */}
+            <div 
+              className="bg-metin-dark/80 border border-metin-gold/30 rounded-lg p-6 flex flex-col items-center cursor-pointer hover:bg-metin-dark/60 transition-colors h-64"
+              onClick={handleSleep}
+            >
+              <div className="relative w-36 h-36 mb-4 flex items-center justify-center">
+                <Image 
+                  src="/npc/bed.png" 
+                  alt="Han" 
+                  width={100} 
+                  height={100}
+                  className="object-contain max-h-full"
+                  style={{ objectPosition: 'center center' }}
+                />
+              </div>
+              <h3 className="text-metin-gold font-semibold text-lg">Han</h3>
+              <p className="text-gray-400 text-sm text-center mt-2">
+                Odihnește-te pentru a-ți regenera HP și stamina
               </p>
             </div>
           </div>

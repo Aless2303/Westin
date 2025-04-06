@@ -1,5 +1,5 @@
 // Define report types
-export type ReportType = 'duel' | 'attack';
+export type ReportType = 'duel' | 'attack' | 'sleep';
 
 // Interfața pentru statisticile de luptă
 export interface CombatStats {
