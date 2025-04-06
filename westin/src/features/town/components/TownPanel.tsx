@@ -33,14 +33,14 @@ const TownPanel: React.FC = () => {
   const handleSleep = () => {
     if (addJob) {
       // Poziția patului în oraș - folosim o locație care să necesite deplasare
-      const bedX = 250; // Locație mai departe pentru a asigura un timp de deplasare
-      const bedY = 500;
+      const bedX = 1420; // Folosim coordonatele orașului pentru a asigura un timp de deplasare
+      const bedY = 1060;
       
       // Creăm un job de somn
       const sleepJob = {
         type: '1h' as '15s' | '10m' | '1h',
         remainingTime: 7200, // 2 ore în secunde
-        travelTime: 30, // Setăm un timp de deplasare inițial semnificativ
+        travelTime: 30, // Setăm un timp de deplasare inițial care va fi recalculat
         isInProgress: false, // Obligatoriu începem cu faza de călătorie
         mobName: 'Patul din Han',
         mobImage: '/npc/bed.png',
@@ -158,4 +158,4 @@ const TownPanel: React.FC = () => {
   );
 };
 
-export default TownPanel; 
+export default TownPanel;

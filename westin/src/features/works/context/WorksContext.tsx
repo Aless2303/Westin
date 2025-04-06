@@ -522,11 +522,11 @@ export const WorksProvider: React.FC<WorksProviderProps> = ({
   // Add a new job (limit to 3) and deduct stamina
   const addJob = useCallback((job: Job) => {
     // Get stamina cost based on job type
-    const staminaCost = job.staminaCost || 
+    const staminaCost = job.staminaCost !== undefined ? job.staminaCost : 
       (job.type === '15s' ? 1 : job.type === '10m' ? 4 : 12);
     
     // Check if user has enough stamina for the job
-    if (characterStats.stamina.current < staminaCost) {
+    if (staminaCost > 0 && characterStats.stamina.current < staminaCost) {
       console.log(`Not enough stamina! Need ${staminaCost}, have ${characterStats.stamina.current}`);
       return false;
     }
@@ -534,8 +534,10 @@ export const WorksProvider: React.FC<WorksProviderProps> = ({
     // Check if queue has room (max 3 jobs)
     if (jobs.length < 3) {
       // Deduct stamina before adding the job
-      const newStamina = Math.max(0, characterStats.stamina.current - staminaCost);
-      updatePlayerStamina(newStamina);
+      if (staminaCost > 0) {
+        const newStamina = Math.max(0, characterStats.stamina.current - staminaCost);
+        updatePlayerStamina(newStamina);
+      }
       
       setJobs((prev) => {
         // Get the expected end position after all current jobs
@@ -580,168 +582,168 @@ export const WorksProvider: React.FC<WorksProviderProps> = ({
   }
 }, [jobs, characterPosition, characterStats.stamina.current, updatePlayerStamina, calculateRealTravelTime]);
 
-// Remove the completed job and shift the queue
-const removeJob = useCallback(() => {
-  setJobs((prev) => prev.slice(1));
-}, []);
+  // Remove the completed job and shift the queue
+  const removeJob = useCallback(() => {
+    setJobs((prev) => prev.slice(1));
+  }, []);
 
-// Remove a specific job by its index and refund stamina
-const removeJobById = useCallback((index: number) => {
-  // Get the job being removed to refund its stamina
-  const jobToRemove = jobs[index];
-  if (jobToRemove && jobToRemove.staminaCost) {
-    // Refund stamina when manually canceling a job
-    const newStamina = Math.min(
-      characterStats.stamina.max, 
-      characterStats.stamina.current + jobToRemove.staminaCost
-    );
-    updatePlayerStamina(newStamina);
-  }
-  
-  // If we remove a job in the middle, we need to recalculate travel times for subsequent jobs
-  setJobs((prev) => {
-    if (index >= prev.length) return prev;
-    
-    // Create new jobs array without the removed job
-    const newJobs = [...prev];
-    newJobs.splice(index, 1);
-    
-    // If there are remaining jobs after the removed one, recalculate their timing
-    if (index < newJobs.length) {
-      // Determine start position for next job
-      let startPos = index === 0 ? characterPosition : { x: prev[index-1].mobX, y: prev[index-1].mobY };
-      
-      // Current time for new timestamp calculations
-      const now = Date.now();
-      let nextStartTime = now;
-      
-      // If there's a job before the removed one, use its end time as the next start time
-      if (index > 0 && prev[index-1].jobEndTime) {
-        nextStartTime = prev[index-1].jobEndTime;
-      }
-      
-     // Recalculate timings for all remaining jobs
-     for (let i = index; i < newJobs.length; i++) {
-      // Calculate new travel time
-      const travelTimeSeconds = calculateRealTravelTime(
-        startPos.x,
-        startPos.y,
-        newJobs[i].mobX,
-        newJobs[i].mobY
+  // Remove a specific job by its index and refund stamina
+  const removeJobById = useCallback((index: number) => {
+    // Get the job being removed to refund its stamina
+    const jobToRemove = jobs[index];
+    if (jobToRemove && jobToRemove.staminaCost && jobToRemove.staminaCost > 0) {
+      // Refund stamina when manually canceling a job
+      const newStamina = Math.min(
+        characterStats.stamina.max, 
+        characterStats.stamina.current + jobToRemove.staminaCost
       );
-      
-      // Update timestamps and durations
-      const travelEndTime = nextStartTime + (travelTimeSeconds * 1000);
-      const jobDurationSeconds = newJobs[i].type === '15s' ? 15 : newJobs[i].type === '10m' ? 600 : 3600;
-      const jobEndTime = travelEndTime + (jobDurationSeconds * 1000);
-      
-      newJobs[i] = {
-        ...newJobs[i],
-        travelTime: travelTimeSeconds,
-        originalTravelTime: travelTimeSeconds,
-        travelEndTime,
-        jobEndTime,
-        isInProgress: false // Reset to travel phase
-      };
-      
-      // Update for next job
-      startPos = { x: newJobs[i].mobX, y: newJobs[i].mobY };
-      nextStartTime = jobEndTime;
+      updatePlayerStamina(newStamina);
     }
-  }
-  
-  return newJobs;
-});
+    
+    // If we remove a job in the middle, we need to recalculate travel times for subsequent jobs
+    setJobs((prev) => {
+      if (index >= prev.length) return prev;
+      
+      // Create new jobs array without the removed job
+      const newJobs = [...prev];
+      newJobs.splice(index, 1);
+      
+      // If there are remaining jobs after the removed one, recalculate their timing
+      if (index < newJobs.length) {
+        // Determine start position for next job
+        let startPos = index === 0 ? characterPosition : { x: prev[index-1].mobX, y: prev[index-1].mobY };
+        
+        // Current time for new timestamp calculations
+        const now = Date.now();
+        let nextStartTime = now;
+        
+        // If there's a job before the removed one, use its end time as the next start time
+        if (index > 0 && prev[index-1].jobEndTime) {
+          nextStartTime = prev[index-1].jobEndTime;
+        }
+        
+       // Recalculate timings for all remaining jobs
+       for (let i = index; i < newJobs.length; i++) {
+        // Calculate new travel time
+        const travelTimeSeconds = calculateRealTravelTime(
+          startPos.x,
+          startPos.y,
+          newJobs[i].mobX,
+          newJobs[i].mobY
+        );
+        
+        // Update timestamps and durations
+        const travelEndTime = nextStartTime + (travelTimeSeconds * 1000);
+        const jobDurationSeconds = newJobs[i].type === '15s' ? 15 : newJobs[i].type === '10m' ? 600 : 3600;
+        const jobEndTime = travelEndTime + (jobDurationSeconds * 1000);
+        
+        newJobs[i] = {
+          ...newJobs[i],
+          travelTime: travelTimeSeconds,
+          originalTravelTime: travelTimeSeconds,
+          travelEndTime,
+          jobEndTime,
+          isInProgress: false // Reset to travel phase
+        };
+        
+        // Update for next job
+        startPos = { x: newJobs[i].mobX, y: newJobs[i].mobY };
+        nextStartTime = jobEndTime;
+      }
+    }
+    
+    return newJobs;
+  });
 }, [characterPosition, characterStats.stamina.current, characterStats.stamina.max, jobs, updatePlayerStamina, calculateRealTravelTime]);
 
 // Format rewards based on job type
 const formatRewards = (job: Job, expGained: number, yangGained: number): string => {
-switch (job.type) {
-  case '15s':
-    return `${expGained.toLocaleString()} experiență și ${yangGained.toLocaleString()} yang (10% din total)`;
-  case '10m':
-    return `${expGained.toLocaleString()} experiență și ${yangGained.toLocaleString()} yang (40% din total)`;
-  case '1h':
-    return `${expGained.toLocaleString()} experiență și ${yangGained.toLocaleString()} yang (100% din total)`;
-  default:
-    return `${expGained.toLocaleString()} experiență și ${yangGained.toLocaleString()} yang`;
-}
+  switch (job.type) {
+    case '15s':
+      return `${expGained.toLocaleString()} experiență și ${yangGained.toLocaleString()} yang (10% din total)`;
+    case '10m':
+      return `${expGained.toLocaleString()} experiență și ${yangGained.toLocaleString()} yang (40% din total)`;
+    case '1h':
+      return `${expGained.toLocaleString()} experiență și ${yangGained.toLocaleString()} yang (100% din total)`;
+    default:
+      return `${expGained.toLocaleString()} experiență și ${yangGained.toLocaleString()} yang`;
+  }
 };
 
 // Animation frame-based timer logic
 useEffect(() => {
-// Cancel any existing animation frame
-if (animationFrameRef.current !== null) {
-  cancelAnimationFrame(animationFrameRef.current);
-  animationFrameRef.current = null;
-}
-
-// Only start animation if there are jobs
-if (jobs.length === 0) return;
-
-const updateJobTimes = () => {
-  const now = Date.now();
-  
-  setJobs(prev => {
-    if (prev.length === 0) return prev;
-    
-    const updatedJobs = [...prev];
-    const currentJob = { ...updatedJobs[0] };
-    let jobUpdated = false;
-    
-    // Check if job phase transitions or completes based on absolute timestamps
-    if (!currentJob.isInProgress && currentJob.travelEndTime && now >= currentJob.travelEndTime) {
-      // Travel phase complete, switch to job phase
-      currentJob.isInProgress = true;
-      jobUpdated = true;
-      
-      // Update character position to mob coordinates
-      setCharacterPosition(currentJob.mobX, currentJob.mobY);
-      console.log(`Arrived at: ${currentJob.mobName || 'Unknown'}`);
-    } 
-    else if (currentJob.isInProgress && currentJob.jobEndTime && now >= currentJob.jobEndTime) {
-      // Job phase complete, remove this job
-      console.log(`Job completed: ${currentJob.mobName || 'Unknown'}`);
-      
-      // Stocăm job-ul finalizat pentru a crea raportul în următorul ciclu de renderizare
-      completedJobRef.current = { ...currentJob };
-      
-      return updatedJobs.slice(1);
-    }
-    
-    // Update remaining times based on timestamps
-    if (!currentJob.isInProgress && currentJob.travelEndTime) {
-      currentJob.travelTime = Math.max(0, Math.ceil((currentJob.travelEndTime - now) / 1000));
-      jobUpdated = true;
-    } 
-    else if (currentJob.isInProgress && currentJob.jobEndTime) {
-      currentJob.remainingTime = Math.max(0, Math.ceil((currentJob.jobEndTime - now) / 1000));
-      jobUpdated = true;
-    }
-    
-    // Only update the job if something changed
-    if (jobUpdated) {
-      updatedJobs[0] = currentJob;
-      return updatedJobs;
-    }
-    
-    return prev;
-  });
-  
-  // Schedule next update
-  animationFrameRef.current = requestAnimationFrame(updateJobTimes);
-};
-
-// Start the animation loop
-animationFrameRef.current = requestAnimationFrame(updateJobTimes);
-
-// Clean up on unmount or when jobs change
-return () => {
+  // Cancel any existing animation frame
   if (animationFrameRef.current !== null) {
     cancelAnimationFrame(animationFrameRef.current);
     animationFrameRef.current = null;
   }
-};
+
+  // Only start animation if there are jobs
+  if (jobs.length === 0) return;
+
+  const updateJobTimes = () => {
+    const now = Date.now();
+    
+    setJobs(prev => {
+      if (prev.length === 0) return prev;
+      
+      const updatedJobs = [...prev];
+      const currentJob = { ...updatedJobs[0] };
+      let jobUpdated = false;
+      
+      // Check if job phase transitions or completes based on absolute timestamps
+      if (!currentJob.isInProgress && currentJob.travelEndTime && now >= currentJob.travelEndTime) {
+        // Travel phase complete, switch to job phase
+        currentJob.isInProgress = true;
+        jobUpdated = true;
+        
+        // Update character position to mob coordinates
+        setCharacterPosition(currentJob.mobX, currentJob.mobY);
+        console.log(`Arrived at: ${currentJob.mobName || 'Unknown'}`);
+      } 
+      else if (currentJob.isInProgress && currentJob.jobEndTime && now >= currentJob.jobEndTime) {
+        // Job phase complete, remove this job
+        console.log(`Job completed: ${currentJob.mobName || 'Unknown'}`);
+        
+        // Stocăm job-ul finalizat pentru a crea raportul în următorul ciclu de renderizare
+        completedJobRef.current = { ...currentJob };
+        
+        return updatedJobs.slice(1);
+      }
+      
+      // Update remaining times based on timestamps
+      if (!currentJob.isInProgress && currentJob.travelEndTime) {
+        currentJob.travelTime = Math.max(0, Math.ceil((currentJob.travelEndTime - now) / 1000));
+        jobUpdated = true;
+      } 
+      else if (currentJob.isInProgress && currentJob.jobEndTime) {
+        currentJob.remainingTime = Math.max(0, Math.ceil((currentJob.jobEndTime - now) / 1000));
+        jobUpdated = true;
+      }
+      
+      // Only update the job if something changed
+      if (jobUpdated) {
+        updatedJobs[0] = currentJob;
+        return updatedJobs;
+      }
+      
+      return prev;
+    });
+    
+    // Schedule next update
+    animationFrameRef.current = requestAnimationFrame(updateJobTimes);
+  };
+
+  // Start the animation loop
+  animationFrameRef.current = requestAnimationFrame(updateJobTimes);
+
+  // Clean up on unmount or when jobs change
+  return () => {
+    if (animationFrameRef.current !== null) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+  };
 }, [jobs.length, setCharacterPosition]);
 
 // Effect separat pentru a adăuga rapoarte după ce job-urile sunt finalizate
@@ -756,7 +758,7 @@ useEffect(() => {
       console.log('Sleep job completed - regenerating HP and stamina');
       // Regenerăm complet HP și stamina
       updatePlayerHp(characterStats.hp.max);
-      updatePlayerStamina(100); // Setăm stamina la 100 conform cerinței
+      updatePlayerStamina(characterStats.stamina.max); // Setăm stamina la maximum
       
       // Generăm un ID unic pentru raport
       const uniqueId = Date.now().toString() + "_sleep";
@@ -906,25 +908,25 @@ useEffect(() => {
     // Resetăm referința
     completedJobRef.current = null;
   }
-}, [jobs, addReport, characterStats.hp.current, simulateCombat, updatePlayerHp, formatRewards, characterStats.name, characterStats.hp.max]);
+}, [jobs, addReport, characterStats.hp.current, simulateCombat, updatePlayerHp, formatRewards, characterStats.name, characterStats.hp.max, characterStats.stamina.max, updatePlayerStamina]);
 
 // Clean up on unmount
 useEffect(() => {
-return () => {
-  if (animationFrameRef.current !== null) {
-    cancelAnimationFrame(animationFrameRef.current);
-  }
-};
+  return () => {
+    if (animationFrameRef.current !== null) {
+      cancelAnimationFrame(animationFrameRef.current);
+    }
+  };
 }, []);
 
 const value = {
-jobs,
-addJob,
-removeJob,
-removeJobById,
-characterPosition,
-setCharacterPosition,
-characterStats
+  jobs,
+  addJob,
+  removeJob,
+  removeJobById,
+  characterPosition,
+  setCharacterPosition,
+  characterStats
 };
 
 return <WorksContext.Provider value={value}>{children}</WorksContext.Provider>;
