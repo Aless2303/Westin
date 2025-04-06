@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useTown } from './TownContext';
 import { useWorks } from '../../works/context/WorksContext';
@@ -15,7 +15,38 @@ const TownPanel: React.FC = () => {
     setIsBankOpen
   } = useTown();
   
-  const { addJob } = useWorks();
+  const { addJob, characterPosition } = useWorks();
+  const [travelTime, setTravelTime] = useState<number>(0);
+
+  // Coordonatele orașului
+  const townX = 1420;
+  const townY = 1060;
+
+  // Calculăm timpul de deplasare estimat când se deschide panoul
+  useEffect(() => {
+    if (isTownOpen && characterPosition) {
+      const distance = Math.sqrt(
+        Math.pow(townX - characterPosition.x, 2) + Math.pow(townY - characterPosition.y, 2)
+      );
+      
+      // Convertim la secunde (speed ratio: 141.42 units = 1 minute)
+      const seconds = Math.round((distance / 141.42) * 60);
+      setTravelTime(Math.max(1, seconds));
+    }
+  }, [isTownOpen, characterPosition]);
+
+  // Formatează timpul de deplasare într-un format ușor de citit
+  const formatTravelTime = (seconds: number): string => {
+    if (seconds < 60) {
+      return `${seconds} secunde`;
+    } else {
+      const minutes = Math.floor(seconds / 60);
+      const remainingSeconds = seconds % 60;
+      return remainingSeconds > 0 
+        ? `${minutes} minute și ${remainingSeconds} secunde` 
+        : `${minutes} minute`;
+    }
+  };
 
   const handleOpenMarket = () => {
     setIsMarketOpen(true);
@@ -32,10 +63,6 @@ const TownPanel: React.FC = () => {
   // Handler pentru somn
   const handleSleep = () => {
     if (addJob) {
-      // Poziția patului în oraș - folosim o locație care să necesite deplasare
-      const bedX = 1420; // Folosim coordonatele orașului pentru a asigura un timp de deplasare
-      const bedY = 1060;
-      
       // Creăm un job de somn
       const sleepJob = {
         type: '1h' as '15s' | '10m' | '1h',
@@ -44,8 +71,8 @@ const TownPanel: React.FC = () => {
         isInProgress: false, // Obligatoriu începem cu faza de călătorie
         mobName: 'Patul din Han',
         mobImage: '/npc/bed.png',
-        mobX: bedX,
-        mobY: bedY,
+        mobX: townX,
+        mobY: townY,
         staminaCost: 0, // Nu consumă stamina
         mobHp: 0,
         mobLevel: 0,
@@ -59,6 +86,37 @@ const TownPanel: React.FC = () => {
       // Adăugăm job-ul și închidem panoul dacă job-ul a fost adăugat cu succes
       if (addJob(sleepJob)) {
         console.log("Job de somn adăugat cu succes, început deplasarea spre Han");
+        setIsTownOpen(false);
+      }
+    }
+  };
+  
+  // Handler pentru deplasare în oraș
+  const handleTravelToTown = () => {
+    if (addJob) {
+      // Creăm un job doar pentru deplasare
+      const travelJob = {
+        type: '15s' as '15s' | '10m' | '1h', // Folosim 15s dar va fi doar pentru deplasare
+        remainingTime: 1, // Timp minim pentru job, va fi ignorat practic
+        travelTime: 30, // Setăm un timp de deplasare inițial care va fi recalculat
+        isInProgress: false, // Obligatoriu începem cu faza de călătorie
+        mobName: 'Orașul Westin',
+        mobImage: '/npc/town_icon.png', // Poți înlocui cu o imagine relevantă
+        mobX: townX,
+        mobY: townY,
+        staminaCost: 0, // Nu consumă stamina
+        mobHp: 0,
+        mobLevel: 0,
+        mobAttack: 0,
+        mobExp: 0,
+        mobYang: 0,
+        mobType: 'metin' as 'boss' | 'metin' | 'duel',
+        originalJobTime: 1, // Timp minim pentru faza de "job"
+      };
+      
+      // Adăugăm job-ul și închidem panoul dacă job-ul a fost adăugat cu succes
+      if (addJob(travelJob)) {
+        console.log("Job de deplasare adăugat cu succes, început deplasarea spre Oraș");
         setIsTownOpen(false);
       }
     }
@@ -87,66 +145,94 @@ const TownPanel: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* NPC Magazin General */}
             <div 
-              className="bg-metin-dark/80 border border-metin-gold/30 rounded-lg p-6 flex flex-col items-center cursor-pointer hover:bg-metin-dark/60 transition-colors h-64"
+              className="bg-metin-dark/80 border border-metin-gold/30 rounded-lg overflow-hidden cursor-pointer hover:bg-metin-dark/60 transition-colors flex flex-col"
               onClick={handleOpenMarket}
             >
-              <div className="relative w-36 h-36 mb-4 flex items-center justify-center">
+              {/* Container pentru imagine */}
+              <div className="flex-1 flex items-center justify-center p-4 min-h-[240px]">
                 <Image 
                   src="/npc/GeneralMarket.png" 
                   alt="Magazin General" 
-                  width={100} 
-                  height={100}
+                  width={120}
+                  height={120}
                   className="object-contain max-h-full"
-                  style={{ objectPosition: 'center center' }}
                 />
               </div>
-              <h3 className="text-metin-gold font-semibold text-lg">Magazin General</h3>
-              <p className="text-gray-400 text-sm text-center mt-2">
-                Cumpără echipamente și obiecte pentru aventura ta
-              </p>
+              
+              {/* Container pentru text */}
+              <div className="w-full bg-black/40 border-t border-metin-gold/30 p-4">
+                <h3 className="text-metin-gold font-semibold text-lg text-center">Magazin General</h3>
+                <p className="text-gray-400 text-sm text-center mt-2">
+                  Cumpără echipamente și obiecte pentru aventura ta
+                </p>
+              </div>
             </div>
 
             {/* NPC Depozit */}
             <div 
-              className="bg-metin-dark/80 border border-metin-gold/30 rounded-lg p-6 flex flex-col items-center cursor-pointer hover:bg-metin-dark/60 transition-colors h-64"
+              className="bg-metin-dark/80 border border-metin-gold/30 rounded-lg overflow-hidden cursor-pointer hover:bg-metin-dark/60 transition-colors flex flex-col"
               onClick={handleOpenBank}
             >
-              <div className="relative w-36 h-36 mb-4 flex items-center justify-center">
+              {/* Container pentru imagine */}
+              <div className="flex-1 flex items-center justify-center p-4 min-h-[240px]">
                 <Image 
                   src="/npc/Depozit.png" 
                   alt="Depozit" 
-                  width={100} 
-                  height={100}
+                  width={120}
+                  height={120}
                   className="object-contain max-h-full"
-                  style={{ objectPosition: 'center center' }}
                 />
               </div>
-              <h3 className="text-metin-gold font-semibold text-lg">Depozit</h3>
-              <p className="text-gray-400 text-sm text-center mt-2">
-                Depozitează sau retrage bani în siguranță
-              </p>
+              
+              {/* Container pentru text */}
+              <div className="w-full bg-black/40 border-t border-metin-gold/30 p-4">
+                <h3 className="text-metin-gold font-semibold text-lg text-center">Depozit</h3>
+                <p className="text-gray-400 text-sm text-center mt-2">
+                  Depozitează sau retrage bani în siguranță
+                </p>
+              </div>
             </div>
             
             {/* NPC Han pentru somn */}
             <div 
-              className="bg-metin-dark/80 border border-metin-gold/30 rounded-lg p-6 flex flex-col items-center cursor-pointer hover:bg-metin-dark/60 transition-colors h-64"
+              className="bg-metin-dark/80 border border-metin-gold/30 rounded-lg overflow-hidden cursor-pointer hover:bg-metin-dark/60 transition-colors flex flex-col"
               onClick={handleSleep}
             >
-              <div className="relative w-36 h-36 mb-4 flex items-center justify-center">
+              {/* Container pentru imagine */}
+              <div className="flex-1 flex items-center justify-center p-4 min-h-[240px]">
                 <Image 
                   src="/npc/bed.png" 
                   alt="Han" 
-                  width={100} 
-                  height={100}
+                  width={120}
+                  height={120}
                   className="object-contain max-h-full"
-                  style={{ objectPosition: 'center center' }}
                 />
               </div>
-              <h3 className="text-metin-gold font-semibold text-lg">Han</h3>
-              <p className="text-gray-400 text-sm text-center mt-2">
-                Odihnește-te pentru a-ți regenera HP și stamina
-              </p>
+              
+              {/* Container pentru text */}
+              <div className="w-full bg-black/40 border-t border-metin-gold/30 p-4">
+                <h3 className="text-metin-gold font-semibold text-lg text-center">Han</h3>
+                <p className="text-gray-400 text-sm text-center mt-2">
+                  Odihnește-te pentru a-ți regenera HP și stamina
+                </p>
+              </div>
             </div>
+          </div>
+          
+          {/* Buton pentru deplasare în oraș */}
+          <div className="mt-8 flex justify-center">
+            <button
+              onClick={handleTravelToTown}
+              className="bg-metin-dark border-2 border-metin-gold/50 hover:bg-metin-gold/20 text-metin-gold px-6 py-3 rounded-lg shadow-lg transition-all hover:shadow-metin-gold/20 flex items-center"
+            >
+              <span className="mr-2">🏙️</span>
+              <span>Deplasează-te în oraș</span>
+              {travelTime > 0 && (
+                <span className="ml-3 text-xs bg-black/40 py-1 px-2 rounded-md">
+                  {formatTravelTime(travelTime)}
+                </span>
+              )}
+            </button>
           </div>
         </div>
       </div>
