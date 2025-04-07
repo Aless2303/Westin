@@ -20,7 +20,7 @@ export interface Job {
   originalJobTime?: number; // Original job time in seconds
   
   // Pentru a ști tipul mobului pentru rapoarte
-  mobType?: 'boss' | 'metin' | 'duel';
+  mobType?: 'boss' | 'metin' | 'duel' | 'town' | 'sleep'; // Adăugăm 'town' și 'sleep'
   
   // Statistici mob
   mobLevel?: number;
@@ -192,6 +192,22 @@ export const WorksProvider: React.FC<WorksProviderProps> = ({
   
   // Simulează lupta dintre jucător și mob/adversar
   const simulateCombat = (job: Job): CombatResult => {
+    // Dacă este job de tip town sau sleep, returnăm rezultat de victorie fără combat
+    if (job.mobType === 'town' || job.mobType === 'sleep') {
+      return {
+        result: 'victory',
+        playerHpLost: 0,
+        damageDealt: 0,
+        remainingMobHp: 0,
+        expGained: job.mobType === 'sleep' ? 0 : 50, // 50 XP simbolic pentru deplasarea în oraș
+        yangGained: 0,
+        combatLogs: job.mobType === 'town' 
+          ? ['Te-ai deplasat cu succes în Orașul Westin.'] 
+          : ['Te-ai odihnit și ți-ai recuperat puterile.'],
+        totalRounds: 0
+      };
+    }
+    
     const playerLevel = characterStats.level;
     const playerHp = characterStats.hp.current;
     const playerAttack = characterStats.attack || 5000; // Valoare default dacă nu este furnizată
@@ -519,6 +535,20 @@ export const WorksProvider: React.FC<WorksProviderProps> = ({
     };
   };
 
+  // Format rewards based on job type
+  const formatRewards = (job: Job, expGained: number, yangGained: number): string => {
+    switch (job.type) {
+      case '15s':
+        return `${expGained.toLocaleString()} experiență și ${yangGained.toLocaleString()} yang (10% din total)`;
+      case '10m':
+        return `${expGained.toLocaleString()} experiență și ${yangGained.toLocaleString()} yang (40% din total)`;
+      case '1h':
+        return `${expGained.toLocaleString()} experiență și ${yangGained.toLocaleString()} yang (100% din total)`;
+      default:
+        return `${expGained.toLocaleString()} experiență și ${yangGained.toLocaleString()} yang`;
+    }
+  };
+
   // Add a new job (limit to 3) and deduct stamina
   const addJob = useCallback((job: Job) => {
     // Get stamina cost based on job type
@@ -656,96 +686,6 @@ export const WorksProvider: React.FC<WorksProviderProps> = ({
   });
 }, [characterPosition, characterStats.stamina.current, characterStats.stamina.max, jobs, updatePlayerStamina, calculateRealTravelTime]);
 
-// Format rewards based on job type
-const formatRewards = (job: Job, expGained: number, yangGained: number): string => {
-  switch (job.type) {
-    case '15s':
-      return `${expGained.toLocaleString()} experiență și ${yangGained.toLocaleString()} yang (10% din total)`;
-    case '10m':
-      return `${expGained.toLocaleString()} experiență și ${yangGained.toLocaleString()} yang (40% din total)`;
-    case '1h':
-      return `${expGained.toLocaleString()} experiență și ${yangGained.toLocaleString()} yang (100% din total)`;
-    default:
-      return `${expGained.toLocaleString()} experiență și ${yangGained.toLocaleString()} yang`;
-  }
-};
-
-// Animation frame-based timer logic
-useEffect(() => {
-  // Cancel any existing animation frame
-  if (animationFrameRef.current !== null) {
-    cancelAnimationFrame(animationFrameRef.current);
-    animationFrameRef.current = null;
-  }
-
-  // Only start animation if there are jobs
-  if (jobs.length === 0) return;
-
-  const updateJobTimes = () => {
-    const now = Date.now();
-    
-    setJobs(prev => {
-      if (prev.length === 0) return prev;
-      
-      const updatedJobs = [...prev];
-      const currentJob = { ...updatedJobs[0] };
-      let jobUpdated = false;
-      
-      // Check if job phase transitions or completes based on absolute timestamps
-      if (!currentJob.isInProgress && currentJob.travelEndTime && now >= currentJob.travelEndTime) {
-        // Travel phase complete, switch to job phase
-        currentJob.isInProgress = true;
-        jobUpdated = true;
-        
-        // Update character position to mob coordinates
-        setCharacterPosition(currentJob.mobX, currentJob.mobY);
-        console.log(`Arrived at: ${currentJob.mobName || 'Unknown'}`);
-      } 
-      else if (currentJob.isInProgress && currentJob.jobEndTime && now >= currentJob.jobEndTime) {
-        // Job phase complete, remove this job
-        console.log(`Job completed: ${currentJob.mobName || 'Unknown'}`);
-        
-        // Stocăm job-ul finalizat pentru a crea raportul în următorul ciclu de renderizare
-        completedJobRef.current = { ...currentJob };
-        
-        return updatedJobs.slice(1);
-      }
-      
-      // Update remaining times based on timestamps
-      if (!currentJob.isInProgress && currentJob.travelEndTime) {
-        currentJob.travelTime = Math.max(0, Math.ceil((currentJob.travelEndTime - now) / 1000));
-        jobUpdated = true;
-      } 
-      else if (currentJob.isInProgress && currentJob.jobEndTime) {
-        currentJob.remainingTime = Math.max(0, Math.ceil((currentJob.jobEndTime - now) / 1000));
-        jobUpdated = true;
-      }
-      
-      // Only update the job if something changed
-      if (jobUpdated) {
-        updatedJobs[0] = currentJob;
-        return updatedJobs;
-      }
-      
-      return prev;
-    });
-    
-    // Schedule next update
-    animationFrameRef.current = requestAnimationFrame(updateJobTimes);
-  };
-
-  // Start the animation loop
-  animationFrameRef.current = requestAnimationFrame(updateJobTimes);
-
-  // Clean up on unmount or when jobs change
-  return () => {
-    if (animationFrameRef.current !== null) {
-      cancelAnimationFrame(animationFrameRef.current);
-      animationFrameRef.current = null;
-    }
-  };
-}, [jobs.length, setCharacterPosition]);
-
 // Effect separat pentru a adăuga rapoarte după ce job-urile sunt finalizate
 useEffect(() => {
   // Verificăm dacă avem un job finalizat în referință
@@ -753,8 +693,40 @@ useEffect(() => {
     const completedJob = completedJobRef.current;
     console.log('Generare raport pentru job finalizat:', completedJob);
     
+    // Verificăm special pentru job de tip 'town'
+    if (completedJob.mobType === 'town') {
+      console.log('Town travel job completed - character arrived at town');
+      
+      // Generăm un ID unic pentru raport
+      const uniqueId = Date.now().toString() + "_town";
+      
+      // Adăugăm un raport simplu pentru deplasarea în oraș
+      addReport({
+        id: uniqueId,
+        type: 'attack', // Folosim attack ca tip general, dar conținutul va fi diferit
+        subject: 'Deplasare către Orașul Westin',
+        content: `Te-ai deplasat cu succes către Orașul Westin. Ai primit 50 puncte de experiență pentru călătorie.`,
+        read: false,
+        mobName: 'Orașul Westin',
+        mobType: 'town',
+        result: 'victory',
+        combatStats: {
+          playerHpLost: 0,
+          damageDealt: 0,
+          expGained: 50,
+          yangGained: 0,
+          totalRounds: 0,
+          remainingMobHp: 0
+        }
+      });
+      
+      // Resetăm referința și ieșim din funcție
+      completedJobRef.current = null;
+      return;
+    }
+    
     // Verificăm dacă este job-ul de somn pentru a regenera HP și stamina
-    if (completedJob.mobName === 'Patul din Han') {
+    if (completedJob.mobType === 'sleep') {
       console.log('Sleep job completed - regenerating HP and stamina');
       // Regenerăm complet HP și stamina
       updatePlayerHp(characterStats.hp.max);
@@ -769,7 +741,16 @@ useEffect(() => {
         type: 'sleep',
         subject: 'Somn la Han',
         content: `Te-ai odihnit pentru 2 ore și ți-ai regenerat complet HP-ul și stamina.`,
-        read: false
+        read: false,
+        result: 'victory',
+        combatStats: {
+          playerHpLost: 0,
+          damageDealt: 0,
+          expGained: 0,
+          yangGained: 0,
+          totalRounds: 0,
+          remainingMobHp: 0
+        }
       });
       
       // Resetăm referința și ieșim din funcție
@@ -908,7 +889,98 @@ useEffect(() => {
     // Resetăm referința
     completedJobRef.current = null;
   }
-}, [jobs, addReport, characterStats.hp.current, simulateCombat, updatePlayerHp, formatRewards, characterStats.name, characterStats.hp.max, characterStats.stamina.max, updatePlayerStamina]);
+}, [addReport, characterStats.hp.current, simulateCombat, updatePlayerHp, formatRewards, characterStats.name, characterStats.hp.max, characterStats.stamina.max, updatePlayerStamina]);
+
+// Animation frame-based timer logic
+useEffect(() => {
+  // Cancel any existing animation frame
+  if (animationFrameRef.current !== null) {
+    cancelAnimationFrame(animationFrameRef.current);
+    animationFrameRef.current = null;
+  }
+
+  // Only start animation if there are jobs
+  if (jobs.length === 0) return;
+
+  const updateJobTimes = () => {
+    const now = Date.now();
+    
+    setJobs(prev => {
+      if (prev.length === 0) return prev;
+      
+      const updatedJobs = [...prev];
+      const currentJob = { ...updatedJobs[0] };
+      let jobUpdated = false;
+      
+      // Check if job phase transitions or completes based on absolute timestamps
+      if (!currentJob.isInProgress && currentJob.travelEndTime && now >= currentJob.travelEndTime) {
+        // Travel phase complete
+        
+        // Doar pentru job-ul de tip 'town', finalizăm imediat job-ul
+        if (currentJob.mobType === 'town') {
+          // Update character position to mob coordinates
+          setCharacterPosition(currentJob.mobX, currentJob.mobY);
+          console.log(`Arrived at: ${currentJob.mobName || 'Unknown'} and completing immediately`);
+          
+          // Stocăm job-ul finalizat pentru a crea raportul în următorul ciclu de renderizare
+          completedJobRef.current = { ...currentJob };
+          
+          // Returnăm array-ul fără primul job
+          return updatedJobs.slice(1);
+        }
+        
+        // Pentru toate celelalte tipuri (inclusiv 'sleep'), continuăm cu comportamentul normal
+        currentJob.isInProgress = true;
+        jobUpdated = true;
+        
+        // Update character position to mob coordinates
+        setCharacterPosition(currentJob.mobX, currentJob.mobY);
+        console.log(`Arrived at: ${currentJob.mobName || 'Unknown'}`);
+      } 
+      else if (currentJob.isInProgress && currentJob.jobEndTime && now >= currentJob.jobEndTime) {
+        // Job phase complete, remove this job
+        console.log(`Job completed: ${currentJob.mobName || 'Unknown'}`);
+        
+        // Stocăm job-ul finalizat pentru a crea raportul în următorul ciclu de renderizare
+        completedJobRef.current = { ...currentJob };
+        
+        return updatedJobs.slice(1);
+      }
+      
+      // Update remaining times based on timestamps
+      if (!currentJob.isInProgress && currentJob.travelEndTime) {
+        currentJob.travelTime = Math.max(0, Math.ceil((currentJob.travelEndTime - now) / 1000));
+        jobUpdated = true;
+      } 
+      else if (currentJob.isInProgress && currentJob.jobEndTime) {
+        currentJob.remainingTime = Math.max(0, Math.ceil((currentJob.jobEndTime - now) / 1000));
+        jobUpdated = true;
+      }
+      
+      // Only update the job if something changed
+      if (jobUpdated) {
+        updatedJobs[0] = currentJob;
+        return updatedJobs;
+      }
+      
+      return prev;
+    });
+    
+    // Schedule next update
+    animationFrameRef.current = requestAnimationFrame(updateJobTimes);
+  };
+
+  // Start the animation loop
+  animationFrameRef.current = requestAnimationFrame(updateJobTimes);
+
+  // Clean up on unmount or when jobs change
+  return () => {
+    if (animationFrameRef.current !== null) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+  };
+}, [jobs.length, setCharacterPosition]);
 
 // Clean up on unmount
 useEffect(() => {

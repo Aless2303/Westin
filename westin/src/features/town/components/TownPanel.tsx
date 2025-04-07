@@ -67,7 +67,7 @@ const TownPanel: React.FC = () => {
       const sleepJob = {
         type: '1h' as '15s' | '10m' | '1h',
         remainingTime: 7200, // 2 ore în secunde
-        travelTime: 30, // Setăm un timp de deplasare inițial care va fi recalculat
+        travelTime: travelTime, // Folosim timpul de deplasare calculat
         isInProgress: false, // Obligatoriu începem cu faza de călătorie
         mobName: 'Patul din Han',
         mobImage: '/npc/bed.png',
@@ -79,7 +79,7 @@ const TownPanel: React.FC = () => {
         mobAttack: 0,
         mobExp: 0,
         mobYang: 0,
-        mobType: 'metin' as 'boss' | 'metin' | 'duel',
+        mobType: 'sleep', // Folosim noul tip 'sleep' în loc de 'metin'
         originalJobTime: 7200, // Explicit setăm timpul original al job-ului
       };
       
@@ -98,7 +98,7 @@ const TownPanel: React.FC = () => {
       const travelJob = {
         type: '15s' as '15s' | '10m' | '1h', // Folosim 15s dar va fi doar pentru deplasare
         remainingTime: 1, // Timp minim pentru job, va fi ignorat practic
-        travelTime: 30, // Setăm un timp de deplasare inițial care va fi recalculat
+        travelTime: travelTime, // Folosim timpul de deplasare calculat
         isInProgress: false, // Obligatoriu începem cu faza de călătorie
         mobName: 'Orașul Westin',
         mobImage: '/npc/town_icon.png', // Poți înlocui cu o imagine relevantă
@@ -108,9 +108,9 @@ const TownPanel: React.FC = () => {
         mobHp: 0,
         mobLevel: 0,
         mobAttack: 0,
-        mobExp: 0,
+        mobExp: 50, // 50 XP simbolic pentru deplasare
         mobYang: 0,
-        mobType: 'metin' as 'boss' | 'metin' | 'duel',
+        mobType: 'town', // Folosim noul tip 'town' în loc de 'metin'
         originalJobTime: 1, // Timp minim pentru faza de "job"
       };
       
