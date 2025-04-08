@@ -44,7 +44,16 @@ export default {
       boxShadow: {
         "3xl": "0 25px 50px -12px rgba(0, 0, 0, 0.35)",
         "gold": "0 0 10px 1px rgba(200, 164, 88, 0.5)"
-      }
+      },
+      screens: {
+        '2xl': '1536px',
+        'xl': '1280px',
+        'lg': '1024px',
+        'md': '768px',
+        'sm': '640px',
+        'xs': '480px',  // Added extra small breakpoint
+        'tiny': '360px' // Added tiny breakpoint for very small mobile devices
+      },
     },
   },
   plugins: [],

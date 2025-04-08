@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Leaderboard } from '../../features/leaderboard';
 import { ProfileWindow } from '../../features/profile';
@@ -45,6 +45,20 @@ const CharacterStatus: React.FC<CharacterStatusProps> = ({
 
   const characterImagePath = `/Races/${gender.toLowerCase()}/${race.toLowerCase()}.png`;
 
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 640) {
+        setIsPanelVisible(false);
+      } else {
+        setIsPanelVisible(true);
+      }
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const togglePanel = () => {
     setIsPanelVisible(!isPanelVisible);
   };
@@ -62,12 +76,12 @@ const CharacterStatus: React.FC<CharacterStatusProps> = ({
   return (
     <div className="absolute top-3 left-3 z-50">
       {isPanelVisible ? (
-        <div className="w-56 relative">
-          <div className="absolute -top-2 right-9 w-9 h-9 rounded-full bg-metin-gold/20 animate-pulse-slow"></div>
+        <div className="w-56 sm:w-56 md:w-56 lg:w-56 xl:w-56 relative max-w-[90vw] sm:max-w-none mx-auto sm:mx-0">
+          <div className="absolute -top-2 right-9 w-9 h-9 rounded-full bg-metin-gold/20 animate-pulse-slow z-10"></div>
           
           <button 
             onClick={togglePanel}
-            className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-metin-dark border border-metin-gold/50 flex items-center justify-center text-metin-gold text-xs hover:bg-metin-gold/20 transition-colors z-20"
+            className="absolute -top-2 -right-2 w-6 h-6 sm:w-6 sm:h-6 md:w-8 md:h-8 rounded-full bg-metin-dark border border-metin-gold/50 flex items-center justify-center text-metin-gold text-xs hover:bg-metin-gold/20 transition-colors z-30"
             title="Ascunde panoul"
           >
             ×
@@ -85,10 +99,10 @@ const CharacterStatus: React.FC<CharacterStatusProps> = ({
           </button>
 
           <div className="bg-metin-dark/95 backdrop-blur-sm border border-metin-gold/40 rounded-lg overflow-hidden shadow-lg">
-            <div className="relative h-20 flex items-center">
+            <div className="relative h-20 sm:h-20 flex items-center">
               <button 
                 onClick={toggleProfile}
-                className="ml-3 w-16 h-16 rounded-full border-2 border-metin-gold/60 bg-black/80 overflow-hidden relative hover:border-metin-gold hover:shadow-gold transition-all"
+                className="ml-3 w-16 h-16 sm:w-16 sm:h-16 rounded-full border-2 border-metin-gold/60 bg-black/80 overflow-hidden relative hover:border-metin-gold hover:shadow-gold transition-all"
                 title="Deschide profilul"
               >
                 <div className="absolute inset-0 z-0">
@@ -108,8 +122,8 @@ const CharacterStatus: React.FC<CharacterStatusProps> = ({
                 />
               </button>
               
-              <div className="ml-3 text-metin-light">
-                <div className="font-semibold text-metin-gold truncate max-w-[120px]">{name}</div>
+              <div className="ml-3 text-metin-light flex-1">
+                <div className="font-semibold text-metin-gold truncate max-w-[120px] sm:max-w-[120px]">{name}</div>
                 <div className="flex items-center mt-1">
                   <div className="w-6 h-6 flex items-center justify-center bg-metin-gold/20 rounded-full border border-metin-gold/50 text-metin-gold text-xs font-bold">
                     {level}
@@ -119,7 +133,7 @@ const CharacterStatus: React.FC<CharacterStatusProps> = ({
               </div>
             </div>
 
-            <div className="p-3 pt-1">
+            <div className="p-3 pt-1 sm:p-3 sm:pt-1">
               <div className="mb-2">
                 <div className="flex justify-between text-xs text-metin-light/80 mb-1">
                   <span>HP</span>
@@ -182,7 +196,7 @@ const CharacterStatus: React.FC<CharacterStatusProps> = ({
         onClose={() => setIsProfileOpen(false)}
         profile={mockProfileData}
         equipment={characterEquipment}
-        isEditable={true} // Permitem editarea pentru propriul caracter
+        isEditable={true}
       />
     </div>
   );

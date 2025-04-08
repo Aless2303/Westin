@@ -27,7 +27,13 @@ const Backpack: React.FC<BackpackProps> = ({ backpackItems, onEquip }) => {
 
   const handleMouseEnter = (item: InventoryItem, e: React.MouseEvent) => {
     setTooltipItem(item);
-    setTooltipPosition({ x: e.clientX, y: e.clientY });
+    const x = e.clientX + 10;
+    const y = e.clientY + 10;
+    const tooltipWidth = window.innerWidth < 640 ? 192 : 192; // w-48 = 192px
+    const tooltipHeight = 150; // Aproximare
+    const adjustedX = x + tooltipWidth > window.innerWidth ? x - tooltipWidth - 20 : x;
+    const adjustedY = y + tooltipHeight > window.innerHeight ? y - tooltipHeight - 20 : y;
+    setTooltipPosition({ x: adjustedX, y: adjustedY });
   };
 
   const handleMouseLeave = () => {
@@ -36,14 +42,22 @@ const Backpack: React.FC<BackpackProps> = ({ backpackItems, onEquip }) => {
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (tooltipItem) {
-      setTooltipPosition({ x: e.clientX, y: e.clientY });
+      const x = e.clientX + 10;
+      const y = e.clientY + 10;
+      const tooltipWidth = window.innerWidth < 640 ? 192 : 192;
+      const tooltipHeight = 150;
+      const adjustedX = x + tooltipWidth > window.innerWidth ? x - tooltipWidth - 20 : x;
+      const adjustedY = y + tooltipHeight > window.innerHeight ? y - tooltipHeight - 20 : y;
+      setTooltipPosition({ x: adjustedX, y: adjustedY });
     }
   };
 
+  const slotsToShow = window.innerWidth < 640 ? 10 : 20;
+
   return (
     <div className="h-full p-1">
-      <div className="grid grid-cols-5 gap-1 p-1 bg-black/40 rounded-lg h-[274px]">
-        {Array(20)
+      <div className="grid grid-cols-5 gap-1 p-1 bg-black/40 rounded-lg h-[120px] sm:h-[274px] overflow-y-auto">
+        {Array(slotsToShow)
           .fill(null)
           .map((_, index) => {
             const item = index < backpackItems.length ? backpackItems[index] : null;
@@ -51,16 +65,18 @@ const Backpack: React.FC<BackpackProps> = ({ backpackItems, onEquip }) => {
             return (
               <div
                 key={index}
-                className="w-full h-[50px] bg-black/60 border border-metin-gold/30 rounded flex items-center justify-center relative hover:border-metin-gold/70 transition-colors cursor-pointer"
+                className="w-full h-[50px] sm:h-[50px] bg-black/60 border border-metin-gold/30 rounded flex items-center justify-center relative hover:border-metin-gold/70 transition-colors cursor-pointer"
                 onMouseEnter={item ? (e) => handleMouseEnter(item, e) : undefined}
                 onMouseLeave={handleMouseLeave}
                 onMouseMove={handleMouseMove}
                 onDoubleClick={() => item && onEquip(item, index)}
+                onTouchStart={item ? (e) => handleMouseEnter(item, e) : undefined}
+                onTouchEnd={handleMouseLeave}
               >
                 {item ? (
                   <>
-                    <div className="w-12 h-12 flex items-center justify-center relative">
-                      <div className="relative w-11 h-11 bg-metin-brown/40 rounded flex items-center justify-center">
+                    <div className="w-10 sm:w-12 h-10 sm:h-12 flex items-center justify-center relative">
+                      <div className="relative w-9 sm:w-11 h-9 sm:h-11 bg-metin-brown/40 rounded flex items-center justify-center">
                         <Image
                           src={item.imagePath}
                           alt={item.name}
@@ -73,14 +89,14 @@ const Backpack: React.FC<BackpackProps> = ({ backpackItems, onEquip }) => {
                       </div>
                     </div>
                     {item.stackable && item.quantity && item.quantity > 1 && (
-                      <div className="absolute top-0 right-0 bg-metin-dark/80 px-1 rounded-bl text-xs text-metin-light">
+                      <div className="absolute top-0 right-0 bg-metin-dark/80 text-metin-light text-xs px-1 rounded-bl">
                         {item.quantity}
                       </div>
                     )}
                   </>
                 ) : (
                   <div className="text-metin-light/20 text-xs flex items-center justify-center h-full w-full">
-                    {/* Slot gol - arată transparent */}
+                    {/* Slot gol */}
                   </div>
                 )}
               </div>
@@ -92,8 +108,8 @@ const Backpack: React.FC<BackpackProps> = ({ backpackItems, onEquip }) => {
         <div
           className="fixed z-50 bg-metin-dark/95 border border-metin-gold/40 rounded p-2 shadow-lg w-48"
           style={{
-            top: `${tooltipPosition.y + 10}px`,
-            left: `${tooltipPosition.x + 10}px`,
+            top: `${tooltipPosition.y}px`,
+            left: `${tooltipPosition.x}px`,
           }}
         >
           <h4 className="text-metin-gold text-sm font-medium">{tooltipItem.name}</h4>
@@ -116,8 +132,6 @@ const Backpack: React.FC<BackpackProps> = ({ backpackItems, onEquip }) => {
               {getTypeTranslation(tooltipItem.type)}
             </div>
           </div>
-          
-          {/* Adăugăm instrucțiunea pentru dublu click */}
           {['weapon', 'helmet', 'armor', 'shield', 'earrings', 'bracelet', 'necklace', 'boots'].includes(tooltipItem.type) && (
             <div className="mt-1 text-xs text-metin-gold/80 italic">
               Dublu click pentru a echipa

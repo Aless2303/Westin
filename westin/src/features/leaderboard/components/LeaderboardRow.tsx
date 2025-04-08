@@ -7,7 +7,7 @@ interface LeaderboardRowProps {
   player: PlayerType;
   index: number;
   isCurrentPlayer: boolean;
-  onPlayerSelect: (player: PlayerType) => void; // Callback pentru selectarea jucătorului
+  onPlayerSelect: (player: PlayerType) => void;
 }
 
 const LeaderboardRow: React.FC<LeaderboardRowProps> = ({ 
@@ -25,7 +25,6 @@ const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
     >
       <td className="py-3 px-4">
         <div className="flex items-center">
-          {/* Medal pentru top 3 */}
           {index === 0 && (
             <div className="w-7 h-7 mr-2 rounded-full bg-yellow-500 flex items-center justify-center text-xs font-bold text-metin-dark shadow-lg border border-yellow-300">
               1
@@ -42,7 +41,7 @@ const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
             </div>
           )}
           {index > 2 && (
-            <span className="text-metin-light/70 ml-2 w-7 text-center">{index + 1}</span>
+            <span className="text-metin-light/70 ml-2 w-7 text-center text-base">{index + 1}</span>
           )}
         </div>
       </td>
@@ -62,7 +61,7 @@ const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
           </div>
           <button
             onClick={() => onPlayerSelect(player)}
-            className={`font-medium truncate max-w-[150px] ${isCurrentPlayer ? 'text-metin-gold' : 'text-metin-light hover:text-metin-gold'} transition-colors`}
+            className={`font-medium truncate max-w-[150px] text-base ${isCurrentPlayer ? 'text-metin-gold' : 'text-metin-light hover:text-metin-gold'} transition-colors`}
             title={`Vezi profilul lui ${player.name}`}
           >
             {player.name} {isCurrentPlayer && "(Tu)"}
@@ -75,7 +74,7 @@ const LeaderboardRow: React.FC<LeaderboardRowProps> = ({
         </span>
       </td>
       <td className="py-3 px-4 text-right text-metin-light">
-        <div className="font-medium">{formatNumber(player.experience?.current || 0)}</div>
+        <div className="font-medium text-base">{formatNumber(player.experience?.current || 0)}</div>
         <div className="w-full h-2 mt-1 bg-metin-dark rounded-full overflow-hidden border border-metin-gold/20">
           <div 
             className="h-full bg-gradient-to-r from-metin-gold/50 to-metin-gold/80" 

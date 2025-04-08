@@ -36,7 +36,7 @@ const BottomPanel: React.FC<BottomPanelProps> = ({
   updatePlayerHp,
   updatePlayerStamina
 }) => {
-  const [isPanelVisible, setIsPanelVisible] = useState(true);
+  const [isPanelVisible, setIsPanelVisible] = useState(false);
   const [isInventoryOpen, setIsInventoryOpen] = useState(false);
   const [isWorksOpen, setIsWorksOpen] = useState(false);
   const [isReportsOpen, setIsReportsOpen] = useState(false);

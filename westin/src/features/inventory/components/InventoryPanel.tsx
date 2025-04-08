@@ -187,8 +187,8 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose, player
     ];
   });
 
-  // State for backpack with fixed 20 slots per page
-  const SLOTS_PER_PAGE = 20; // Fixed slots per page
+  // State for backpack with fixed slots per page
+  const SLOTS_PER_PAGE = window.innerWidth < 640 ? 10 : 20; // 10 slots pe telefon, 20 pe laptop
   const [backpackItems, setBackpackItems] = useState<(InventoryItem | null)[]>([
     {
       id: 'weapon-ninja-1',
@@ -301,16 +301,6 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose, player
       requiredLevel: 1,
     },
     {
-      id: 'helmet-sura-1',
-      name: 'Sura Coif Otel',
-      imagePath: '/items/Coif/Sura/Sura Coif Otel - LvL 11.png',
-      type: 'helmet',
-      stackable: false,
-      stats: { defense: 25, hp: 40 },
-      description: 'Coif din oțel pentru luptătorii Sura.',
-      requiredLevel: 11,
-    },
-    {
       id: 'helmet-sura-2',
       name: 'Sura Coif Otel 2',
       imagePath: '/items/Coif/Sura/Sura Coif Otel - LvL 11.png',
@@ -400,106 +390,6 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose, player
       description: 'Coif din oțel pentru luptătorii Sura.',
       requiredLevel: 11,
     },
-    {
-      id: 'helmet-sura-11',
-      name: 'Sura Coif Otel 11',
-      imagePath: '/items/Coif/Sura/Sura Coif Otel - LvL 11.png',
-      type: 'helmet',
-      stackable: false,
-      stats: { defense: 25, hp: 40 },
-      description: 'Coif din oțel pentru luptătorii Sura.',
-      requiredLevel: 11,
-    },
-    {
-      id: 'helmet-sura-12',
-      name: 'Sura Coif Otel 12',
-      imagePath: '/items/Coif/Sura/Sura Coif Otel - LvL 11.png',
-      type: 'helmet',
-      stackable: false,
-      stats: { defense: 25, hp: 40 },
-      description: 'Coif din oțel pentru luptătorii Sura.',
-      requiredLevel: 11,
-    },
-    {
-      id: 'helmet-sura-13',
-      name: 'Sura Coif Otel 13',
-      imagePath: '/items/Coif/Sura/Sura Coif Otel - LvL 11.png',
-      type: 'helmet',
-      stackable: false,
-      stats: { defense: 25, hp: 40 },
-      description: 'Coif din oțel pentru luptătorii Sura.',
-      requiredLevel: 11,
-    },
-    {
-      id: 'helmet-sura-14',
-      name: 'Sura Coif Otel 14',
-      imagePath: '/items/Coif/Sura/Sura Coif Otel - LvL 11.png',
-      type: 'helmet',
-      stackable: false,
-      stats: { defense: 25, hp: 40 },
-      description: 'Coif din oțel pentru luptătorii Sura.',
-      requiredLevel: 11,
-    },
-    {
-      id: 'helmet-sura-15',
-      name: 'Sura Coif Otel 15',
-      imagePath: '/items/Coif/Sura/Sura Coif Otel - LvL 11.png',
-      type: 'helmet',
-      stackable: false,
-      stats: { defense: 25, hp: 40 },
-      description: 'Coif din oțel pentru luptătorii Sura.',
-      requiredLevel: 11,
-    },
-    {
-      id: 'helmet-sura-16',
-      name: 'Sura Coif Otel 16',
-      imagePath: '/items/Coif/Sura/Sura Coif Otel - LvL 11.png',
-      type: 'helmet',
-      stackable: false,
-      stats: { defense: 25, hp: 40 },
-      description: 'Coif din oțel pentru luptătorii Sura.',
-      requiredLevel: 11,
-    },
-    {
-      id: 'helmet-sura-17',
-      name: 'Sura Coif Otel 17',
-      imagePath: '/items/Coif/Sura/Sura Coif Otel - LvL 11.png',
-      type: 'helmet',
-      stackable: false,
-      stats: { defense: 25, hp: 40 },
-      description: 'Coif din oțel pentru luptătorii Sura.',
-      requiredLevel: 11,
-    },
-    {
-      id: 'helmet-sura-18',
-      name: 'Sura Coif Otel 18',
-      imagePath: '/items/Coif/Sura/Sura Coif Otel - LvL 11.png',
-      type: 'helmet',
-      stackable: false,
-      stats: { defense: 25, hp: 40 },
-      description: 'Coif din oțel pentru luptătorii Sura.',
-      requiredLevel: 11,
-    },
-    {
-      id: 'helmet-sura-19',
-      name: 'Sura Coif Otel 19',
-      imagePath: '/items/Coif/Sura/Sura Coif Otel - LvL 11.png',
-      type: 'helmet',
-      stackable: false,
-      stats: { defense: 25, hp: 40 },
-      description: 'Coif din oțel pentru luptătorii Sura.',
-      requiredLevel: 11,
-    },
-    {
-      id: 'helmet-sura-20',
-      name: 'Sura Coif Otel 20',
-      imagePath: '/items/Coif/Sura/Sura Coif Otel - LvL 11.png',
-      type: 'helmet',
-      stackable: false,
-      stats: { defense: 25, hp: 40 },
-      description: 'Coif din oțel pentru luptătorii Sura.',
-      requiredLevel: 11,
-    }
   ]);
 
   // Toggle pentru filtru - apăsând pe același buton de filtru se anulează (null)
@@ -509,7 +399,6 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose, player
     } else {
       setEquipmentFilter(type);
     }
-    // Reset de asemenea pagina la 1 când se schimbă filtrul
     setCurrentPage(1);
   };
 
@@ -528,10 +417,8 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose, player
 
     const item = slot.item;
 
-    // Append the item to the end of the backpackItems array
     setBackpackItems((prevItems) => [...prevItems, item]);
 
-    // Update equipment
     setEquipmentSlots((prevSlots) =>
       prevSlots.map((s) => (s.id === slotId ? { ...s, item: null } : s))
     );
@@ -547,40 +434,27 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose, player
 
     const equippedItem = slot.item;
 
-    // Update equipment
     setEquipmentSlots((prevSlots) =>
       prevSlots.map((s) => (s.id === item.type ? { ...s, item } : s))
     );
 
-    // Găsim indexul real al itemului în array-ul original (ținând cont de filtrare)
     let actualItemIndex;
-    
     if (equipmentFilter) {
-      // Dacă avem un filtru, trebuie să gasim indexul corect în lista filtrată
       const filteredItems = backpackItems.filter(item => item && item.type === equipmentFilter);
       const filteredItemId = filteredItems[index]?.id;
       actualItemIndex = backpackItems.findIndex(item => item && item.id === filteredItemId);
     } else {
-      // Dacă nu avem un filtru, indexul este direct
       const startIdx = (currentPage - 1) * SLOTS_PER_PAGE;
       actualItemIndex = startIdx + index;
     }
 
-    // Update backpack
     setBackpackItems((prevItems) => {
       const newItems = [...prevItems];
-      
-      // Remove the equipped item
       newItems[actualItemIndex] = null;
-      
-      // Filter out null values to compact items
       const compactedItems = newItems.filter(item => item !== null) as InventoryItem[];
-      
-      // If there was an equipped item, append it to the end
       if (equippedItem) {
         compactedItems.push(equippedItem);
       }
-      
       return compactedItems;
     });
   }, [equipmentSlots, backpackItems, currentPage, equipmentFilter]);
@@ -588,7 +462,7 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose, player
   // Dragging handlers
   const handleMouseDown = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (e.target === panelRef.current?.querySelector('.header')) {
+    if (panelRef.current?.querySelector('.header')?.contains(e.target as Node)) {
       setIsDragging(true);
       setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
     }
@@ -622,7 +496,6 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose, player
     e.stopPropagation();
   };
 
-  // Calculate items for the current page
   const startIndex = (currentPage - 1) * SLOTS_PER_PAGE;
   const currentPageItems = filteredBackpackItems.slice(startIndex, startIndex + SLOTS_PER_PAGE);
 
@@ -631,117 +504,125 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose, player
   };
 
   return (
-    <div
-      ref={panelRef}
-      className="fixed z-50 bg-metin-dark/95 border-2 border-metin-gold/40 rounded-lg shadow-lg"
-      style={{
-        width: '750px',
-        height: '500px',
-        top: `${position.y}px`,
-        left: `${position.x}px`,
-        cursor: isDragging ? 'grabbing' : 'auto',
-      }}
+    <div 
+      className="fixed inset-0 sm:inset-auto flex items-center justify-center sm:justify-start bg-black/50 sm:bg-transparent z-50"
       onClick={stopPropagation}
-      onMouseDown={stopPropagation}
     >
       <div
-        className="header bg-gradient-to-r from-metin-brown to-metin-dark border-b border-metin-gold/40 px-4 py-2 flex justify-between items-center cursor-grab"
-        onMouseDown={handleMouseDown}
+        ref={panelRef}
+        className="bg-metin-dark/95 border-2 border-metin-gold/40 rounded-lg shadow-lg w-[95%] sm:w-[750px] max-h-[90vh] sm:max-h-none overflow-y-auto sm:overflow-y-hidden"
+        style={{
+          ...(window.innerWidth >= 640 ? {
+            position: 'absolute',
+            top: `${position.y}px`,
+            left: `${position.x}px`,
+            height: '500px',
+            cursor: isDragging ? 'grabbing' : 'auto',
+          } : {
+            position: 'relative',
+            height: 'auto',
+          })
+        }}
+        onClick={stopPropagation}
+        onMouseDown={stopPropagation}
       >
-        <h2 className="text-metin-gold font-bold text-lg">Inventar</h2>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onClose();
-          }}
-          className="text-metin-light/70 hover:text-metin-gold text-xl transition-colors"
+        <div 
+          className="header bg-gradient-to-r from-metin-brown to-metin-dark border-b border-metin-gold/40 px-3 sm:px-4 py-2 flex justify-between items-center sm:cursor-grab cursor-default sticky top-0 z-10"
+          onMouseDown={handleMouseDown}
         >
-          ×
-        </button>
-      </div>
-
-      <div className="p-4 flex h-[calc(100%-44px)]">
-        <div className="w-1/2 pr-2">
-          <h3 className="text-metin-gold border-b border-metin-gold/30 pb-1 mb-3">
-            Echipament
-          </h3>
-          <CharacterEquipment
-            playerRace={playerRace}
-            equipmentSlots={equipmentSlots}
-            onUnequip={handleUnequip}
-          />
+          <h2 className="text-metin-gold font-bold text-base sm:text-lg">Inventar</h2>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
+            className="text-metin-light/70 hover:text-metin-gold text-xl sm:text-2xl transition-colors"
+          >
+            ×
+          </button>
         </div>
 
-        <div className="w-1/2 pl-2 border-l border-metin-gold/30 flex flex-col">
-          <h3 className="text-metin-gold border-b border-metin-gold/30 pb-1 mb-3">
-            Ghiozdan
-          </h3>
-          
-          {/* Butoane de filtrare cu iconițe pe două rânduri */}
-          <div className="mb-2 grid grid-cols-4 gap-1">
-            {filterButtons.map(button => (
-              <button
-                key={button.type}
-                onClick={() => toggleFilter(button.type)}
-                className={`h-8 flex flex-col items-center justify-center rounded border transition-colors ${
-                  equipmentFilter === button.type
-                    ? 'bg-metin-gold/20 border-metin-gold text-metin-gold'
-                    : 'border-metin-gold/30 text-metin-light/70 hover:border-metin-gold/50 hover:text-metin-light bg-black/40'
-                }`}
-                title={button.name}
-              >
-                <span className="text-lg">{button.icon}</span>
-              </button>
-            ))}
-          </div>
-          
-          <div className="flex-grow">
-            <Backpack
-              backpackItems={currentPageItems}
-              onEquip={handleEquip}
+        <div className="p-3 sm:p-4 flex flex-col sm:flex-row h-auto sm:h-[calc(100%-48px)]">
+          <div className="w-full sm:w-1/2 sm:pr-3 mb-3 sm:mb-0">
+            <h3 className="text-metin-gold border-b border-metin-gold/30 pb-1 mb-2 sm:mb-3 text-base sm:text-lg">
+              Echipament
+            </h3>
+            <CharacterEquipment
+              playerRace={playerRace}
+              equipmentSlots={equipmentSlots}
+              onUnequip={handleUnequip}
             />
           </div>
-          
-          {/* Butoane de navigare */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-1 mt-2 mb-1 text-sm">
-              <button
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-                className={`px-1 rounded transition-colors ${
-                  currentPage === 1
-                    ? 'text-gray-500 cursor-not-allowed'
-                    : 'text-metin-gold hover:text-metin-light'
-                }`}
-              >
-                &lt;
-              </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+
+          <div className="w-full sm:w-1/2 sm:pl-3 sm:border-l border-t sm:border-t-0 border-metin-gold/30 pt-3 sm:pt-0 flex flex-col">
+            <h3 className="text-metin-gold border-b border-metin-gold/30 pb-1 mb-2 sm:mb-3 text-base sm:text-lg">
+              Ghiozdan
+            </h3>
+            
+            <div className="mb-2 grid grid-cols-4 gap-1">
+              {filterButtons.map(button => (
                 <button
-                  key={page}
-                  onClick={() => handlePageChange(page)}
-                  className={`px-1 rounded transition-colors ${
-                    currentPage === page
-                      ? 'bg-metin-gold text-metin-dark'
-                      : 'text-metin-light hover:bg-metin-brown hover:text-metin-gold'
+                  key={button.type}
+                  onClick={() => toggleFilter(button.type)}
+                  className={`h-8 flex flex-col items-center justify-center rounded border transition-colors ${
+                    equipmentFilter === button.type
+                      ? 'bg-metin-gold/20 border-metin-gold text-metin-gold'
+                      : 'border-metin-gold/30 text-metin-light/70 hover:border-metin-gold/50 hover:text-metin-light bg-black/40'
                   }`}
+                  title={button.name}
                 >
-                  {page}
+                  <span className="text-lg">{button.icon}</span>
                 </button>
               ))}
-              <button
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className={`px-1 rounded transition-colors ${
-                  currentPage === totalPages
-                    ? 'text-gray-500 cursor-not-allowed'
-                    : 'text-metin-gold hover:text-metin-light'
-                }`}
-              >
-                &gt;
-              </button>
             </div>
-          )}
+            
+            <div className="flex-grow">
+              <Backpack
+                backpackItems={currentPageItems}
+                onEquip={handleEquip}
+              />
+            </div>
+            
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-1 mt-2 mb-1 text-sm">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className={`px-1 rounded transition-colors ${
+                    currentPage === 1
+                      ? 'text-gray-500 cursor-not-allowed'
+                      : 'text-metin-gold hover:text-metin-light'
+                  }`}
+                >
+                  &lt;
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <button
+                    key={page}
+                    onClick={() => handlePageChange(page)}
+                    className={`px-1 rounded transition-colors ${
+                      currentPage === page
+                        ? 'bg-metin-gold text-metin-dark'
+                        : 'text-metin-light hover:bg-metin-brown hover:text-metin-gold'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className={`px-1 rounded transition-colors ${
+                    currentPage === totalPages
+                      ? 'text-gray-500 cursor-not-allowed'
+                      : 'text-metin-gold hover:text-metin-light'
+                  }`}
+                >
+                  &gt;
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

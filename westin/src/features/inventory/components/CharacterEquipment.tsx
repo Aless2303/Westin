@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 
-// Interface for inventory items (same as in InventoryPanel.tsx)
+// Interface for inventory items
 interface InventoryItem {
   id: string;
   name: string;
@@ -48,7 +48,13 @@ const CharacterEquipment: React.FC<CharacterEquipmentProps> = ({
 
   const handleMouseEnter = (item: InventoryItem, e: React.MouseEvent) => {
     setTooltipItem(item);
-    setTooltipPosition({ x: e.clientX, y: e.clientY });
+    const x = e.clientX + 10;
+    const y = e.clientY + 10;
+    const tooltipWidth = window.innerWidth < 640 ? 192 : 192; // w-48 = 192px
+    const tooltipHeight = 150; // Aproximare
+    const adjustedX = x + tooltipWidth > window.innerWidth ? x - tooltipWidth - 20 : x;
+    const adjustedY = y + tooltipHeight > window.innerHeight ? y - tooltipHeight - 20 : y;
+    setTooltipPosition({ x: adjustedX, y: adjustedY });
   };
 
   const handleMouseLeave = () => {
@@ -57,14 +63,20 @@ const CharacterEquipment: React.FC<CharacterEquipmentProps> = ({
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (tooltipItem) {
-      setTooltipPosition({ x: e.clientX, y: e.clientY });
+      const x = e.clientX + 10;
+      const y = e.clientY + 10;
+      const tooltipWidth = window.innerWidth < 640 ? 192 : 192;
+      const tooltipHeight = 150;
+      const adjustedX = x + tooltipWidth > window.innerWidth ? x - tooltipWidth - 20 : x;
+      const adjustedY = y + tooltipHeight > window.innerHeight ? y - tooltipHeight - 20 : y;
+      setTooltipPosition({ x: adjustedX, y: adjustedY });
     }
   };
 
   return (
     <div className="h-full p-1">
       <div
-        className="grid grid-cols-4 grid-rows-4 gap-1 h-[350px] bg-black/40 rounded-lg p-1"
+        className="grid grid-cols-4 grid-rows-4 gap-1 h-[300px] sm:h-[350px] bg-black/40 rounded-lg p-1"
         style={{ gridTemplateAreas }}
       >
         {equipmentSlots.map((slot) => (
@@ -75,7 +87,9 @@ const CharacterEquipment: React.FC<CharacterEquipmentProps> = ({
             onMouseEnter={slot.item ? (e) => handleMouseEnter(slot.item!, e) : undefined}
             onMouseLeave={handleMouseLeave}
             onMouseMove={handleMouseMove}
-            onDoubleClick={() => slot.item && onUnequip(slot.id)} // Add double-click handler
+            onDoubleClick={() => slot.item && onUnequip(slot.id)}
+            onTouchStart={slot.item ? (e) => handleMouseEnter(slot.item!, e) : undefined}
+            onTouchEnd={handleMouseLeave}
           >
             {slot.item ? (
               <div className="w-full h-full p-2 relative">
@@ -117,8 +131,8 @@ const CharacterEquipment: React.FC<CharacterEquipmentProps> = ({
         <div
           className="fixed z-50 bg-metin-dark/95 border border-metin-gold/40 rounded p-2 shadow-lg w-48"
           style={{
-            top: `${tooltipPosition.y + 10}px`,
-            left: `${tooltipPosition.x + 10}px`,
+            top: `${tooltipPosition.y}px`,
+            left: `${tooltipPosition.x}px`,
           }}
         >
           <h4 className="text-metin-gold text-sm font-medium">{tooltipItem.name}</h4>
