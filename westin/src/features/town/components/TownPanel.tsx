@@ -105,7 +105,7 @@ const TownPanel: React.FC = () => {
 
   return (
     <>
-      <div className="fixed inset-0 bg-black bg-opacity-70 z-40 flex items-start justify-center p-2 sm:p-4 overflow-y-auto">
+      <div className="fixed inset-0 bg-black bg-opacity-70 z-40 flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
         <div className="relative w-full max-w-[360px] sm:max-w-2xl md:max-w-4xl bg-metin-dark border-2 border-metin-gold/60 rounded-lg shadow-xl p-3 sm:p-6">
           <div className="absolute top-2 right-2">
             <button onClick={handleClose} className="text-gray-400 hover:text-white focus:outline-none">

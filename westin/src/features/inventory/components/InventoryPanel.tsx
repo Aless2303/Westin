@@ -188,7 +188,24 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose, player
   });
 
   // State for backpack with fixed slots per page
-  const SLOTS_PER_PAGE = window.innerWidth < 640 ? 10 : 20; // 10 slots pe telefon, 20 pe laptop
+  const [slotsPerPage, setSlotsPerPage] = useState(20); // Valoare implicită: 20 slots
+  
+  // Verifică dimensiunea ecranului doar pe partea de client
+  useEffect(() => {
+    // Verifică dacă suntem în browser
+    if (typeof window !== 'undefined') {
+      setSlotsPerPage(window.innerWidth < 640 ? 10 : 20); // 10 slots pe telefon, 20 pe laptop
+      
+      // Adaugă un listener pentru redimensionarea ferestrei
+      const handleResize = () => {
+        setSlotsPerPage(window.innerWidth < 640 ? 10 : 20);
+      };
+      
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }
+  }, []);
+  
   const [backpackItems, setBackpackItems] = useState<(InventoryItem | null)[]>([
     {
       id: 'weapon-ninja-1',
@@ -408,7 +425,7 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose, player
     : backpackItems;
 
   const [currentPage, setCurrentPage] = useState(1);
-  const totalPages = Math.ceil(filteredBackpackItems.filter((item) => item !== null).length / SLOTS_PER_PAGE);
+  const totalPages = Math.ceil(filteredBackpackItems.filter((item) => item !== null).length / slotsPerPage);
 
   // Handler to unequip an item (move from equipment to backpack)
   const handleUnequip = useCallback((slotId: string) => {
@@ -444,7 +461,7 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose, player
       const filteredItemId = filteredItems[index]?.id;
       actualItemIndex = backpackItems.findIndex(item => item && item.id === filteredItemId);
     } else {
-      const startIdx = (currentPage - 1) * SLOTS_PER_PAGE;
+      const startIdx = (currentPage - 1) * slotsPerPage;
       actualItemIndex = startIdx + index;
     }
 
@@ -496,8 +513,8 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose, player
     e.stopPropagation();
   };
 
-  const startIndex = (currentPage - 1) * SLOTS_PER_PAGE;
-  const currentPageItems = filteredBackpackItems.slice(startIndex, startIndex + SLOTS_PER_PAGE);
+  const startIndex = (currentPage - 1) * slotsPerPage;
+  const currentPageItems = filteredBackpackItems.slice(startIndex, startIndex + slotsPerPage);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -512,7 +529,7 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose, player
         ref={panelRef}
         className="bg-metin-dark/95 border-2 border-metin-gold/40 rounded-lg shadow-lg w-[95%] sm:w-[750px] max-h-[90vh] sm:max-h-none overflow-y-auto sm:overflow-y-hidden"
         style={{
-          ...(window.innerWidth >= 640 ? {
+          ...(typeof window !== 'undefined' && window.innerWidth >= 640 ? {
             position: 'absolute',
             top: `${position.y}px`,
             left: `${position.x}px`,

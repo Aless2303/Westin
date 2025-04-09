@@ -23,11 +23,30 @@ const MobDetailsPanel: React.FC<MobDetailsPanelProps> = ({
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const [isMobile, setIsMobile] = useState(false);
   
   const { addJob, characterPosition, jobs, characterStats } = useWorks();
   
   const [travelTimeText, setTravelTimeText] = useState("00:00");
   const [travelTimeFromLastJobText, setTravelTimeFromLastJobText] = useState("00:00");
+  
+  // Check if we're on mobile/small screen
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    
+    // Initial check
+    checkMobile();
+    
+    // Add resize listener
+    window.addEventListener('resize', checkMobile);
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('resize', checkMobile);
+    };
+  }, []);
   
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
@@ -88,15 +107,22 @@ const MobDetailsPanel: React.FC<MobDetailsPanelProps> = ({
   }, [characterPosition, jobs, selectedMob]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
-    if (e.target === panelRef.current?.querySelector('.header')) {
-      setIsDragging(true);
-      setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
+    
+    // Only allow dragging if we're not on mobile and if we're clicking the header
+    if (!isMobile) {
+      // Check if the clicked element is the header or a descendant of the header
+      if (e.currentTarget.classList.contains('header')) {
+        setIsDragging(true);
+        setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
+      }
     }
   };
 
   const handleMouseMove = (e: MouseEvent) => {
     if (!isDragging) return;
+    
     const newX = e.clientX - dragStart.x;
     const newY = e.clientY - dragStart.y;
     setPosition({ x: newX, y: newY });
@@ -218,28 +244,30 @@ const MobDetailsPanel: React.FC<MobDetailsPanelProps> = ({
     >
       <div 
         ref={panelRef}
-        className={`bg-metin-dark/95 border-2 ${panelColorClass} rounded-lg shadow-lg sm:cursor-auto cursor-default w-[90%] sm:w-auto max-w-[90%] sm:max-w-none`}
+        className={`bg-metin-dark/95 border-2 ${panelColorClass} rounded-lg shadow-lg w-[90%] sm:w-auto max-w-[90%] sm:max-w-none`}
         style={{ 
-          width: '100%',
-          maxWidth: '100%',
-          height: 'auto',
-          top: 'auto',
-          left: 'auto',
-          // Pe laptop păstrăm dimensiunile și poziția exact ca înainte
-          ...(window.innerWidth >= 640 ? { 
-            width: '360px', 
-            height: '520px',
-            top: `${position.y}px`, 
-            left: `${position.x}px`,
-            cursor: isDragging ? 'grabbing' : 'auto'
-          } : {})
+          ...(isMobile 
+            ? {
+                width: '100%',
+                maxWidth: '100%',
+                height: 'auto',
+              } 
+            : { 
+                width: '360px', 
+                height: '520px',
+                position: 'fixed',
+                top: `${position.y}px`, 
+                left: `${position.x}px`,
+                cursor: isDragging ? 'grabbing' : 'auto'
+              }
+          )
         }}
         onClick={stopPropagation}
         onMouseDown={stopPropagation}
       >
         <div 
-          className={`header bg-gradient-to-r ${headerColorClass} border-b ${panelColorClass} px-2 sm:px-4 py-1 sm:py-2 flex justify-between items-center sm:cursor-grab cursor-default`}
-          onMouseDown={(e) => window.innerWidth >= 640 && handleMouseDown(e)}
+          className={`header bg-gradient-to-r ${headerColorClass} border-b ${panelColorClass} px-2 sm:px-4 py-1 sm:py-2 flex justify-between items-center ${isMobile ? 'cursor-default' : 'cursor-grab'}`}
+          onMouseDown={handleMouseDown}
         >
           <h2 className="text-metin-gold font-bold text-sm sm:text-lg">{panelTitle}: {selectedMob.name}</h2>
           <button 

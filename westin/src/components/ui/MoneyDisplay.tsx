@@ -25,7 +25,7 @@ const MoneyDisplay: React.FC<MoneyDisplayProps> = ({ cash, bank }) => {
 
   if (!isVisible) {
     return (
-      <div className="absolute top-3 left-1/2 -translate-x-1/2 z-50">
+      <div className="absolute top-3 right-3 -translate-x-1/2 z-30">
         <button
           onClick={() => setIsVisible(true)}
           className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-metin-dark/95 border border-metin-gold/40 flex items-center justify-center text-metin-gold text-sm sm:text-base hover:bg-metin-gold/20 transition-colors shadow-lg"
@@ -38,7 +38,7 @@ const MoneyDisplay: React.FC<MoneyDisplayProps> = ({ cash, bank }) => {
   }
 
   return (
-    <div className="absolute top-3 left-1/2 -translate-x-1/2 z-50">
+    <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30">
       <div 
         className="relative bg-metin-dark/95 backdrop-blur-sm border border-metin-gold/40 rounded-lg px-2 py-1 sm:px-4 sm:py-2 flex items-center"
       >
