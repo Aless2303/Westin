@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { geistSans, geistMono } from "../src/lib/nextFonts";
 import "../src/assets/styles/globals.css";  // Check this path
+import { AuthProvider } from "../src/context/AuthContext";
 
 export const metadata: Metadata = {
   title: "Westin - Unde Vestul întâlnește Orientul",
@@ -15,7 +16,9 @@ export default function RootLayout({
   return (
     <html lang="ro">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        {children}
+        <AuthProvider>
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );

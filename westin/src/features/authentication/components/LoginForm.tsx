@@ -1,6 +1,7 @@
 // src/features/authentication/components/LoginForm.tsx
-import React from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '../../../context/AuthContext';
 
 interface LoginFormProps {
   username: string;
@@ -8,7 +9,6 @@ interface LoginFormProps {
   password: string;
   setPassword: (value: string) => void;
   isFormValid: boolean;
-  handleLogin: (e: React.FormEvent) => void;
   switchToRegister: () => void;
   switchToReset: () => void;
   setIsFormValid: (value: boolean) => void;
@@ -20,28 +20,45 @@ const LoginForm: React.FC<LoginFormProps> = ({
   password,
   setPassword,
   isFormValid,
-  handleLogin,
   switchToRegister,
   switchToReset,
   setIsFormValid
 }) => {
-  // Aici trebuie pus useRouter() - în interiorul componentei
   const router = useRouter();
+  const { login } = useAuth();
+  const [loginError, setLoginError] = useState<string | null>(null);
 
   // Handle username change
   const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setUsername(e.target.value);
     setIsFormValid(e.target.value.trim().length > 0 && password.trim().length > 0);
+    setLoginError(null);
   };
 
   // Handle password change
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPassword(e.target.value);
     setIsFormValid(username.trim().length > 0 && e.target.value.trim().length > 0);
+    setLoginError(null);
+  };
+
+  // Handle the login form submission
+  const handleLoginSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (isFormValid) {
+      const success = login(username, password);
+      
+      if (success) {
+        router.push('/game');
+      } else {
+        setLoginError('Utilizator sau parolă incorecte');
+      }
+    }
   };
 
   return (
-    <form onSubmit={handleLogin} className="space-y-5">
+    <form onSubmit={handleLoginSubmit} className="space-y-5">
       <div className="space-y-2">
         <label className="block text-lg font-medium text-metin-light/90 tracking-wide">
           Nume jucător
@@ -71,6 +88,12 @@ const LoginForm: React.FC<LoginFormProps> = ({
           />
         </div>
       </div>
+
+      {loginError && (
+        <div className="bg-red-500/20 border border-red-600 text-red-100 px-4 py-2 rounded-lg">
+          {loginError}
+        </div>
+      )}
 
       <div className="space-y-3 pt-2">
         <button
@@ -103,16 +126,33 @@ const LoginForm: React.FC<LoginFormProps> = ({
         </button>
       </div>
 
-      {/* Adăugăm butonul pentru pagina jocului */}
-      <div className="mt-4">
+      {/* Demo login buttons */}
+      <div className="mt-4 grid grid-cols-2 gap-2">
         <button
           type="button"
-          onClick={() => router.push('/game')}
-          className="w-full py-3 px-4 bg-gradient-to-b from-blue-500 to-blue-600 text-metin-light font-bold rounded-lg shadow-md transition-all duration-300 hover:from-blue-600 hover:to-blue-700"
+          onClick={() => {
+            setUsername('user');
+            setPassword('user123');
+            setIsFormValid(true);
+          }}
+          className="py-3 px-4 bg-gradient-to-b from-blue-500 to-blue-600 text-metin-light font-bold rounded-lg shadow-md transition-all duration-300 hover:from-blue-600 hover:to-blue-700"
         >
-          Acces pagină joc
+          Demo User
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setUsername('admin');
+            setPassword('admin123');
+            setIsFormValid(true);
+          }}
+          className="py-3 px-4 bg-gradient-to-b from-purple-500 to-purple-600 text-metin-light font-bold rounded-lg shadow-md transition-all duration-300 hover:from-purple-600 hover:to-purple-700"
+        >
+          Demo Admin
         </button>
       </div>
+
+
     </form>
   );
 };

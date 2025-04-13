@@ -5,6 +5,7 @@ export { default as mockInventory } from './inventory';
 export { default as mockPlayers } from './players';
 export { default as mockReports } from './reports';
 export { default as mockChat } from './chat';
+export { users, authenticateUser, isAdminUser } from './users';
 
 // Exportăm totul ca un singur obiect pentru a fi mai ușor de importat
 import mockCharacter from './character';
@@ -15,6 +16,7 @@ import mockReports from './reports';
 import mockChat from './chat';
 import mockProfile from './profile';
 import { items, itemsByCategory, allCategories } from './market-items';
+import { users, authenticateUser, isAdminUser } from './users';
 
 // Pentru a le importa pe toate deodată: import mockData from 'src/data/mock'
 const mockData = {
@@ -25,6 +27,11 @@ const mockData = {
   reports: mockReports,
   chat: mockChat,
   profile: mockProfile,
+  users,
+  auth: {
+    authenticateUser,
+    isAdminUser
+  },
   market: {
     items,
     itemsByCategory,
