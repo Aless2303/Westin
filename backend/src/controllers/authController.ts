@@ -90,7 +90,7 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
         email: user[0].email,
         isAdmin: user[0].isAdmin,
         characterId: character[0]._id,
-        token: generateToken(user[0]._id.toString()),
+        token: generateToken((user[0]._id as mongoose.Types.ObjectId).toString()),
       });
     } catch (error) {
       // Abort transaction on error
@@ -150,7 +150,7 @@ export const authUser = async (req: Request, res: Response): Promise<void> => {
         race: character.race,
         gender: character.gender,
       },
-      token: generateToken(user._id.toString()),
+      token: generateToken((user._id as mongoose.Types.ObjectId).toString()),
     });
   } catch (error) {
     if (error instanceof ApiError) {
