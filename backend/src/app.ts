@@ -16,6 +16,8 @@ import inventoryRoutes from './routes/inventoryRoutes';
 import reportRoutes from './routes/reportRoutes';
 import itemRoutes from './routes/itemRoutes';
 import passwordResetRoutes from './routes/passwordResetRoutes';
+import mapImageRoutes from './routes/mapImageRoutes';
+
 
 // Load environment variables
 dotenv.config();
@@ -49,6 +51,7 @@ app.use('/api/inventory', inventoryRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/items', itemRoutes);
 app.use('/api/password', passwordResetRoutes);
+app.use('/api/map-images', mapImageRoutes);
 
 // Default route
 app.get('/', (req, res) => {
