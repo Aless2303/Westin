@@ -128,13 +128,9 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
       res.status(404).json({ message: 'Nu s-a găsit niciun utilizator asociat acestui token' });
       return;
     }
-
-    // Hash noua parolă
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(newPassword, salt);
-    
+        
     // Actualizează parola utilizatorului
-    user.password = hashedPassword;
+    user.password = newPassword;
     await user.save();
     
     // Șterge token-ul de resetare
