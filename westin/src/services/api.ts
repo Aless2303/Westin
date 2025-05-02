@@ -15,19 +15,24 @@ const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
     ...options.headers,
   };
   
-  // Execută cererea
-  const response = await fetch(`${API_URL}${url}`, {
-    ...options,
-    headers,
-  });
-  
-  // Verifică dacă cererea a reușit
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'A apărut o eroare la server.' }));
-    throw new Error(error.message || 'A apărut o eroare la server.');
+  try {
+    // Execută cererea
+    const response = await fetch(`${API_URL}${url}`, {
+      ...options,
+      headers,
+    });
+    
+    // Verifică dacă cererea a reușit
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'A apărut o eroare la server.' }));
+      throw new Error(errorData.message || 'A apărut o eroare la server.');
+    }
+    
+    return response.json();
+  } catch (error) {
+    console.error('API Error:', error);
+    throw error;
   }
-  
-  return response.json();
 };
 
 // Servicii pentru autentificare
@@ -62,34 +67,76 @@ export const authService = {
 };
 
 export const passwordService = {
-    // Solicită resetarea parolei
-    requestReset: async (username: string, email: string) => {
-      return fetchWithAuth('/password/request-reset', {
-        method: 'POST',
-        body: JSON.stringify({ username, email }),
-      });
-    },
-    
-    // Validează token-ul de resetare
-    validateToken: async (token: string) => {
-      return fetchWithAuth(`/password/validate-token/${token}`);
-    },
-    
-    // Resetează parola
-    resetPassword: async (token: string, newPassword: string) => {
-      return fetchWithAuth('/password/reset-password', {
-        method: 'POST',
-        body: JSON.stringify({ token, newPassword }),
-      });
-    },
-  };
+  // Solicită resetarea parolei
+  requestReset: async (username: string, email: string) => {
+    return fetchWithAuth('/password/request-reset', {
+      method: 'POST',
+      body: JSON.stringify({ username, email }),
+    });
+  },
+  
+  // Validează token-ul de resetare
+  validateToken: async (token: string) => {
+    return fetchWithAuth(`/password/validate-token/${token}`);
+  },
+  
+  // Resetează parola
+  resetPassword: async (token: string, newPassword: string) => {
+    return fetchWithAuth('/password/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, newPassword }),
+    });
+  },
+};
 
-
-
+export const characterService = {
+  // Actualizează detaliile personajului și marchează crearea ca finalizată
+  updateCharacterCreation: async (characterId: string, characterData: any) => {
+    return fetchWithAuth(`/characters/${characterId}/creation-complete`, {
+      method: 'PUT',
+      body: JSON.stringify(characterData),
+    });
+  },
+  
+  // Obține informații despre personaj
+  getCharacter: async (characterId: string) => {
+    return fetchWithAuth(`/characters/${characterId}`);
+  },
+  
+  // Actualizează poziția personajului pe hartă
+  updatePosition: async (characterId: string, x: number, y: number) => {
+    return fetchWithAuth(`/characters/${characterId}/position`, {
+      method: 'PUT',
+      body: JSON.stringify({ x, y }),
+    });
+  },
+  
+  // Actualizează statisticile personajului (HP, stamina)
+  updateStats: async (characterId: string, stats: { hp?: number, stamina?: number }) => {
+    return fetchWithAuth(`/characters/${characterId}/stats`, {
+      method: 'PUT',
+      body: JSON.stringify(stats),
+    });
+  },
+  
+  // Actualizează banii personajului
+  updateMoney: async (characterId: string, money: { cash?: number, bank?: number }) => {
+    return fetchWithAuth(`/characters/${characterId}/money`, {
+      method: 'PUT',
+      body: JSON.stringify(money),
+    });
+  },
+  
+  // Obține clasamentul tuturor personajelor
+  getLeaderboard: async () => {
+    return fetchWithAuth('/characters/leaderboard');
+  },
+};
 
 // Exportă serviciile pentru a fi utilizate în aplicație
 export default {
   auth: authService,
   password: passwordService,
+  character: characterService,
   // Aici poți adăuga alte servicii pentru alte funcționalități
 };

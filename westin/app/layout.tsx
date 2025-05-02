@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { geistSans, geistMono } from "../src/lib/nextFonts";
 import "../src/assets/styles/globals.css";  // Check this path
 import { AuthProvider } from "../src/context/AuthContext";
+import AuthCheck from "../src/components/AuthCheck"
 
 export const metadata: Metadata = {
   title: "Westin - Unde Vestul întâlnește Orientul",

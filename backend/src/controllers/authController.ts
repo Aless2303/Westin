@@ -8,7 +8,7 @@ import mongoose from 'mongoose';
 
 // @desc    Register a new user
 // @route   POST /api/auth/register
-// @access  Public// backend/src/controllers/authController.ts - modifică funcția registerUser
+// @access  Public
 export const registerUser = async (req: Request, res: Response): Promise<void> => {
   try {
     const { username, email, password, characterName, race, gender } = req.body;
@@ -29,6 +29,7 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
       email,
       password,
       isAdmin: false,
+      hasCreatedCharacter: false
     });
 
     // Then create character with userId
@@ -66,6 +67,7 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
       email: user.email,
       isAdmin: user.isAdmin,
       characterId: character._id,
+      hasCreatedCharacter: user.hasCreatedCharacter,
       token: generateToken((user._id as mongoose.Types.ObjectId).toString()),
     });
   } catch (error) {
@@ -81,7 +83,6 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
 // @desc    Auth user & get token
 // @route   POST /api/auth/login
 // @access  Public
-// backend/src/controllers/authController.ts - modifică funcția authUser
 export const authUser = async (req: Request, res: Response): Promise<void> => {
   try {
     const { username, password } = req.body;
@@ -121,6 +122,7 @@ export const authUser = async (req: Request, res: Response): Promise<void> => {
       email: user.email,
       isAdmin: user.isAdmin,
       characterId: user.characterId,
+      hasCreatedCharacter: user.hasCreatedCharacter,
       character: {
         _id: character._id,
         name: character.name,
@@ -164,6 +166,7 @@ export const getUserProfile = async (req: Request & { user?: any }, res: Respons
       email: user.email,
       isAdmin: user.isAdmin,
       characterId: user.characterId,
+      hasCreatedCharacter: user.hasCreatedCharacter,
       character: {
         _id: character._id,
         name: character.name,

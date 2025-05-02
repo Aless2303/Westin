@@ -2,8 +2,12 @@
 import React, { useState } from "react";
 import { useRouter } from 'next/navigation';
 import { CharacterForm, CharacterPreview } from "../features/character";
+import { useAuth } from '../context/AuthContext';
 
 const FirstLoginPage: React.FC = () => {
+  const { currentUser, markCharacterCreated } = useAuth();
+  const router = useRouter();
+  
   // State for character selection, character name, background, and validity
   const [characterName, setCharacterName] = useState("");
   const [selectedRace, setSelectedRace] = useState<string | null>(null);
@@ -11,7 +15,8 @@ const FirstLoginPage: React.FC = () => {
   const [selectedBackground, setSelectedBackground] = useState<string | null>(null); // Background from Backgrounds
   const [isFormValid, setIsFormValid] = useState(false);
   const [backgroundIndex, setBackgroundIndex] = useState(0);
-  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Available backgrounds
   const backgrounds = [
@@ -27,13 +32,36 @@ const FirstLoginPage: React.FC = () => {
   };
 
   // Handle submit (navigation to GamePage.tsx)
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isFormValid) {
-      console.log("Character created:", { characterName, selectedRace, selectedGender, selectedBackground });
-      // Here you will add the actual logic (for example, save in context/backend)
-      // After saving, you can navigate to GamePage.tsx (using Next.js useRouter)
-      router.push('/game');
+    if (isFormValid && currentUser) {
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        // Creează obiectul cu datele personajului
+        const characterData = {
+          name: characterName,
+          race: selectedRace,
+          gender: selectedGender,
+          background: selectedBackground
+        };
+        
+        // Trimite datele la server
+        const success = await markCharacterCreated(currentUser.characterId, characterData);
+        
+        if (success) {
+          console.log("Character created:", characterData);
+          // Navigare către GamePage.tsx
+          router.push('/game');
+        } else {
+          setError("Nu s-a putut salva personajul. Încearcă din nou.");
+        }
+      } catch (error: any) {
+        setError(error.message || "A apărut o eroare la crearea personajului.");
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -77,6 +105,13 @@ const FirstLoginPage: React.FC = () => {
           </h1>
         </div>
 
+        {/* Display error message if any */}
+        {error && (
+          <div className="absolute top-16 left-0 right-0 mx-auto w-max p-3 bg-red-500/20 border border-red-600 rounded-lg text-metin-light text-center z-20">
+            {error}
+          </div>
+        )}
+
         {/* Main layout - two columns */}
         <div className="flex w-full h-full pt-20">
           {/* Left column - Form */}
@@ -96,6 +131,7 @@ const FirstLoginPage: React.FC = () => {
               backgroundIndex={backgroundIndex}
               setBackgroundIndex={setBackgroundIndex}
               backgrounds={backgrounds}
+              isLoading={isLoading}
             />
           </div>
 

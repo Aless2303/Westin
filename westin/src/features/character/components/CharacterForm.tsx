@@ -20,6 +20,7 @@ interface CharacterFormProps {
   backgroundIndex: number;
   setBackgroundIndex: (index: number) => void;
   backgrounds: string[];
+  isLoading?: boolean;
 }
 
 const CharacterForm: React.FC<CharacterFormProps> = ({
@@ -36,7 +37,8 @@ const CharacterForm: React.FC<CharacterFormProps> = ({
   handleSubmit,
   backgroundIndex,
   setBackgroundIndex,
-  backgrounds
+  backgrounds,
+  isLoading = false
 }) => {
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
@@ -75,14 +77,14 @@ const CharacterForm: React.FC<CharacterFormProps> = ({
       <div className="space-y-3 pt-4">
         <Button
           type="submit"
-          disabled={!isFormValid}
+          disabled={!isFormValid || isLoading}
           className={`w-full py-3 px-4 bg-gradient-to-b from-metin-gold to-metin-gold/80 text-metin-dark font-bold rounded-lg shadow-md transition-all duration-300 ${
-            !isFormValid
+            !isFormValid || isLoading
               ? "opacity-60 cursor-not-allowed"
               : "hover:from-metin-gold/90 hover:to-metin-gold/70 hover:shadow-lg active:transform active:scale-98"
           }`}
         >
-          CREARE PERSONAJ
+          {isLoading ? 'SE PROCESEAZĂ...' : 'CREARE PERSONAJ'}
         </Button>
       </div>
     </form>

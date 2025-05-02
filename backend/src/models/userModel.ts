@@ -7,6 +7,7 @@ export interface IUser extends Document {
   password: string;
   isAdmin: boolean;
   characterId: mongoose.Types.ObjectId;
+  hasCreatedCharacter: boolean;
   createdAt: Date;
   updatedAt: Date;
   matchPassword(enteredPassword: string): Promise<boolean>;
@@ -37,6 +38,10 @@ const userSchema = new Schema<IUser>(
       type: Schema.Types.ObjectId,
       ref: 'Character',
     },
+    hasCreatedCharacter: {
+      type: Boolean,
+      default: false,
+    }
   },
   {
     timestamps: true,
@@ -53,7 +58,6 @@ userSchema.pre('save', async function (next) {
   this.password = await bcrypt.hash(this.password, salt);
 });
 
-// backend/src/models/userModel.ts - verifică metoda matchPassword
 userSchema.methods.matchPassword = async function (enteredPassword: string): Promise<boolean> {
   console.log('Matching password:', enteredPassword); // Pentru debugging
   // Folosește try-catch pentru a gestiona erorile de comparare

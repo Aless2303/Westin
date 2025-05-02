@@ -26,10 +26,13 @@ const app: Express = express();
 // Connect to MongoDB
 connectDB();
 
+
 // Middleware
 app.use(cors({
   origin: 'http://localhost:3000', // Adresa frontend-ului
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(helmet());
 app.use(morgan('dev'));

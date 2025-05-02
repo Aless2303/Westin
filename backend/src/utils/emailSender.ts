@@ -42,7 +42,7 @@ export const sendPasswordResetEmail = async (
   resetToken: string,
   expiryTime: number = 60 // Default 60 minute
 ): Promise<void> => {
-  const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password/${resetToken}`;
+  const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/?token=${resetToken}`;
   
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ccc; border-radius: 5px;">

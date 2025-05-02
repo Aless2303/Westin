@@ -1,6 +1,7 @@
+// src/hooks/useFormState.ts
 import { useState } from 'react';
 
-type FormMode = 'login' | 'register' | 'reset';
+type FormMode = 'login' | 'register' | 'reset' | 'reset-confirm';
 
 export const useFormState = () => {
   // Form fields state
@@ -39,6 +40,11 @@ export const useFormState = () => {
     setFormMode('reset');
   };
 
+  const switchToResetConfirm = (token: string) => {
+    resetForm();
+    setFormMode('reset-confirm');
+  };
+
   return {
     // Form fields
     username,
@@ -62,6 +68,7 @@ export const useFormState = () => {
     resetForm,
     switchToLogin,
     switchToRegister,
-    switchToReset
+    switchToReset,
+    switchToResetConfirm
   };
 };

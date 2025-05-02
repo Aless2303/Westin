@@ -6,7 +6,8 @@ import {
   updateCharacterStats, 
   getLeaderboard,
   updateCharacterPosition,
-  updateCharacterMoney
+  updateCharacterMoney,
+  markCharacterCreationComplete
 } from '../controllers/characterController';
 import { protect } from '../middleware/authMiddleware';
 
@@ -41,5 +42,10 @@ router.put('/:id/position', protect, updateCharacterPosition);
 // @desc    Update character money
 // @access  Private
 router.put('/:id/money', protect, updateCharacterMoney);
+
+// @route   PUT /api/characters/:id/creation-complete
+// @desc    Mark character creation complete and update character details
+// @access  Private
+router.put('/:id/creation-complete', protect, markCharacterCreationComplete);
 
 export default router;

@@ -1,14 +1,13 @@
 // src/features/authentication/components/ResetPasswordConfirmForm.tsx
 import React, { useState } from 'react';
-import { useRouter } from 'next/router';
 import { passwordService } from '../../../services/api';
 
 interface ResetPasswordConfirmFormProps {
   token: string;
+  onSuccess?: () => void;
 }
 
-const ResetPasswordConfirmForm: React.FC<ResetPasswordConfirmFormProps> = ({ token }) => {
-  const router = useRouter();
+const ResetPasswordConfirmForm: React.FC<ResetPasswordConfirmFormProps> = ({ token, onSuccess }) => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isFormValid, setIsFormValid] = useState(false);
@@ -36,10 +35,9 @@ const ResetPasswordConfirmForm: React.FC<ResetPasswordConfirmFormProps> = ({ tok
       await passwordService.resetPassword(token, newPassword);
       setSuccess('Parola a fost schimbată cu succes');
       
-      // Redirecționare către pagina de login după 3 secunde
-      setTimeout(() => {
-        router.push('/');
-      }, 3000);
+      if (onSuccess) {
+        onSuccess();
+      }
     } catch (error: any) {
       setError(error.message || 'A apărut o eroare la resetarea parolei');
     } finally {
@@ -121,13 +119,6 @@ const ResetPasswordConfirmForm: React.FC<ResetPasswordConfirmFormProps> = ({ tok
           disabled={!isFormValid || isLoading}
         >
           {isLoading ? 'Se procesează...' : 'Resetează parola'}
-        </button>
-        <button
-          type="button"
-          onClick={() => router.push('/')}
-          className="w-full py-3 px-4 bg-gradient-to-b from-metin-red to-metin-red/80 text-metin-light font-bold rounded-lg shadow-md transition-all duration-300 hover:from-metin-red/90 hover:to-metin-red/70 hover:shadow-lg active:transform active:scale-98"
-        >
-          Înapoi la login
         </button>
       </div>
     </form>
