@@ -6,70 +6,74 @@ import User from '../models/userModel';
 
 // @desc    Get character by ID
 // @route   GET /api/characters/:id
-// @access  Private
 export const getCharacterById = async (req: Request, res: Response): Promise<void> => {
   try {
     const character = await Character.findById(req.params.id);
 
     if (!character) {
-      throw new ApiError('Character not found', 404);
+      res.status(404).json({ message: 'Character not found' });
+      return;
     }
 
     res.status(200).json(character);
   } catch (error) {
-    if (error instanceof ApiError) {
-      res.status(error.statusCode).json({ message: error.message });
-    } else if (error instanceof Error) {
-      res.status(500).json({ message: error.message });
-    } else {
-      res.status(500).json({ message: 'An unknown error occurred' });
-    }
+    console.error('Error fetching character:', error);
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
-// @desc    Update character profile (motto, stats, etc.)
+
+// @desc    Update character profile
 // @route   PUT /api/characters/:id
 // @access  Private
 export const updateCharacterProfile = async (req: Request & { user?: any }, res: Response): Promise<void> => {
   try {
-    const character = await Character.findById(req.params.id);
-
+    const { id } = req.params;
+    
+    // Verifică dacă ID-ul este valid
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      res.status(400).json({ message: 'Invalid character ID' });
+      return;
+    }
+    
+    // Găsește caracterul
+    const character = await Character.findById(id);
+    
     if (!character) {
-      throw new ApiError('Character not found', 404);
+      res.status(404).json({ message: 'Character not found' });
+      return;
     }
-
-    // Check if user is the owner of this character
-    if (req.user && req.user._id.toString() !== character.userId.toString() && !req.user.isAdmin) {
-      throw new ApiError('Not authorized to update this character', 401);
+    
+    // Verifică dacă utilizatorul este autorizat să modifice acest caracter
+    if (req.user && character.userId.toString() !== req.user._id.toString() && !req.user.isAdmin) {
+      res.status(401).json({ message: 'Not authorized to update this character' });
+      return;
     }
-
-    // Allow updating only specific fields
-    const allowedFields = ['motto', 'x', 'y'];
-    const updateData: any = {};
-
-    allowedFields.forEach(field => {
-      if (req.body[field] !== undefined) {
-        updateData[field] = req.body[field];
+    
+    // Verifică câmpurile permise pentru actualizare
+    const allowedUpdates = ['motto', 'background'];
+    const updates: any = {};
+    
+    Object.keys(req.body).forEach(key => {
+      if (allowedUpdates.includes(key)) {
+        updates[key] = req.body[key];
       }
     });
-
+    
+    // Actualizează caracterul
     const updatedCharacter = await Character.findByIdAndUpdate(
-      req.params.id,
-      { $set: updateData },
+      id,
+      { $set: updates },
       { new: true }
     );
-
+    
     res.status(200).json(updatedCharacter);
   } catch (error) {
-    if (error instanceof ApiError) {
-      res.status(error.statusCode).json({ message: error.message });
-    } else if (error instanceof Error) {
-      res.status(500).json({ message: error.message });
-    } else {
-      res.status(500).json({ message: 'An unknown error occurred' });
-    }
+    console.error('Error updating character:', error);
+    res.status(500).json({ message: 'Server error' });
   }
 };
+
 
 // @desc    Update character HP and stamina
 // @route   PUT /api/characters/:id/stats

@@ -1,13 +1,15 @@
+// src/features/profile/components/ProfileWindow.tsx
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { ProfileType } from '../../../types/profile';
 import { EquipmentSlot } from '../../../types/inventory';
+import { useAuth } from '../../../context/AuthContext';
 
 interface ProfileWindowProps {
   isOpen: boolean;
   onClose: () => void;
   profile: ProfileType;
-  equipment: EquipmentSlot[];
+  equipment?: EquipmentSlot[];
   isEditable?: boolean;
 }
 
@@ -15,29 +17,23 @@ const ProfileWindow: React.FC<ProfileWindowProps> = ({
   isOpen,
   onClose,
   profile,
-  equipment,
+  equipment = [],
   isEditable = true
 }) => {
+  const { currentUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
-  const [motto, setMotto] = useState(profile.motto || "");
+  const [motto, setMotto] = useState(profile?.motto || "");
   const [tempMotto, setTempMotto] = useState("");
+  const [savingMotto, setSavingMotto] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setMotto(profile.motto || "");
-  }, [profile.motto]);
+    if (profile?.motto !== undefined) {
+      setMotto(profile.motto);
+    }
+  }, [profile?.motto]);
   
-  if (!isOpen) return null;
-
-  const equipmentItems = {
-    weapon: equipment.find(item => item.id === 'weapon')?.item,
-    armor: equipment.find(item => item.id === 'armor')?.item,
-    shield: equipment.find(item => item.id === 'shield')?.item,
-    helmet: equipment.find(item => item.id === 'helmet')?.item,
-    boots: equipment.find(item => item.id === 'boots')?.item,
-    necklace: equipment.find(item => item.id === 'necklace')?.item, 
-    bracelet: equipment.find(item => item.id === 'bracelet')?.item,
-    earrings: equipment.find(item => item.id === 'earrings')?.item
-  };
+  if (!isOpen || !profile) return null;
 
   const handleEditStart = () => {
     setTempMotto(motto);
@@ -47,15 +43,48 @@ const ProfileWindow: React.FC<ProfileWindowProps> = ({
   const handleCancel = () => {
     setIsEditing(false);
     setTempMotto("");
+    setError(null);
   };
 
-  const handleSaveMotto = () => {
-    if (tempMotto.trim()) {
-      setMotto(tempMotto.trim());
+  const handleSaveMotto = async () => {
+    if (!tempMotto.trim() || !currentUser?.characterId) {
+      setIsEditing(false);
+      return;
     }
-    setIsEditing(false);
-    setTempMotto("");
+
+    try {
+      setSavingMotto(true);
+      setError(null);
+      
+      // Trimite cererea pentru a actualiza motto-ul în backend
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/characters/${currentUser.characterId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ motto: tempMotto.trim() })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${await response.text()}`);
+      }
+
+      // Motto actualizat cu succes
+      setMotto(tempMotto.trim());
+      setIsEditing(false);
+      setTempMotto("");
+    } catch (err) {
+      console.error("Error updating motto:", err);
+      setError("Nu s-a putut actualiza motto-ul. Încearcă din nou.");
+    } finally {
+      setSavingMotto(false);
+    }
   };
+
+  // Creează imaginea caracterului
+  const characterImagePath = profile ? `/Races/${profile.gender.toLowerCase()}/${profile.race.toLowerCase()}.png` : "";
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50">
@@ -84,20 +113,7 @@ const ProfileWindow: React.FC<ProfileWindowProps> = ({
           <div className="flex flex-col items-center w-full sm:w-[350px]">
             {/* Equipment grid */}
             <div className="grid grid-cols-5 grid-rows-4 gap-1 w-[70vw] sm:w-[300px] h-[200px] sm:h-[320px] mb-4 relative">
-              {/* Weapon position (1) - Left column */}
-              {equipmentItems.weapon && (
-                <div className="col-start-1 col-end-2 row-start-1 row-end-4 border border-metin-gold/30 bg-black/30 rounded-md overflow-hidden relative">
-                  <Image 
-                    src={equipmentItems.weapon.imagePath} 
-                    alt={equipmentItems.weapon.name}
-                    width={40} // Redus pe telefon
-                    height={120} // Redus pe telefon
-                    className="object-contain absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 sm:w-[60px] sm:h-[180px]"
-                  />
-                </div>
-              )}
-              
-              {/* Character image in the center (p) */}
+              {/* Centrarea imaginii caracterului */}
               <div className="col-start-2 col-end-5 row-start-1 row-end-4 relative flex items-center justify-center">
                 <div className="relative w-[120px] h-[140px] sm:w-[180px] sm:h-[220px] overflow-hidden border-2 border-metin-gold/40 rounded-md bg-black/40">
                   {/* Background image */}
@@ -111,101 +127,43 @@ const ProfileWindow: React.FC<ProfileWindowProps> = ({
                   </div>
                   
                   {/* Character image */}
-                  <Image
-                    src={profile.image}
-                    alt={`${profile.name} character`}
-                    fill
-                    className="object-contain z-10"
-                  />
+                  {characterImagePath && (
+                    <Image
+                      src={characterImagePath}
+                      alt={`${profile.name} character`}
+                      fill
+                      className="object-contain z-10"
+                    />
+                  )}
                 </div>
               </div>
               
-              {/* Armor position (7) - Right column */}
-              {equipmentItems.armor && (
-                <div className="col-start-5 col-end-6 row-start-1 row-end-3 border border-metin-gold/30 bg-black/30 rounded-md overflow-hidden relative">
-                  <Image 
-                    src={equipmentItems.armor.imagePath} 
-                    alt={equipmentItems.armor.name}
-                    width={40} // Redus pe telefon
-                    height={80} // Redus pe telefon
-                    className="object-contain absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 sm:w-[60px] sm:h-[120px]"
-                  />
+              {/* Renderează echipamentul numai dacă există */}
+              {equipment && equipment.length > 0 && equipment.map((slot) => (
+                <div 
+                  key={slot.id}
+                  className={`${
+                    slot.id === 'weapon' ? 'col-start-1 col-end-2 row-start-1 row-end-4' :
+                    slot.id === 'armor' ? 'col-start-5 col-end-6 row-start-1 row-end-3' :
+                    slot.id === 'shield' ? 'col-start-5 col-end-6 row-start-3 row-end-4' :
+                    slot.id === 'boots' ? 'col-start-1 col-end-2 row-start-4 row-end-5' :
+                    slot.id === 'necklace' ? 'col-start-2 col-end-3 row-start-4 row-end-5' :
+                    slot.id === 'bracelet' ? 'col-start-3 col-end-4 row-start-4 row-end-5' :
+                    slot.id === 'earrings' ? 'col-start-4 col-end-5 row-start-4 row-end-5' :
+                    slot.id === 'helmet' ? 'col-start-5 col-end-6 row-start-4 row-end-5' : ''
+                  } border border-metin-gold/30 bg-black/30 rounded-md overflow-hidden relative`}
+                >
+                  {slot.item && (
+                    <Image 
+                      src={slot.item.imagePath} 
+                      alt={slot.item.name}
+                      width={slot.size === 'large' ? 60 : slot.size === 'medium' ? 40 : 30}
+                      height={slot.size === 'large' ? 120 : slot.size === 'medium' ? 60 : 30}
+                      className="object-contain absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
+                    />
+                  )}
                 </div>
-              )}
-              
-              {/* Shield position (8) - Bottom right beside armor */}
-              {equipmentItems.shield && (
-                <div className="col-start-5 col-end-6 row-start-3 row-end-4 border border-metin-gold/30 bg-black/30 rounded-md overflow-hidden relative">
-                  <Image 
-                    src={equipmentItems.shield.imagePath} 
-                    alt={equipmentItems.shield.name}
-                    width={40} // Redus pe telefon
-                    height={40} // Redus pe telefon
-                    className="object-contain absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 sm:w-[60px] sm:h-[60px]"
-                  />
-                </div>
-              )}
-              
-              {/* Bottom row items (2-6) */}
-              {equipmentItems.boots && (
-                <div className="col-start-1 col-end-2 row-start-4 row-end-5 border border-metin-gold/30 bg-black/30 rounded-md overflow-hidden relative">
-                  <Image 
-                    src={equipmentItems.boots.imagePath} 
-                    alt={equipmentItems.boots.name}
-                    width={40} // Redus pe telefon
-                    height={40} // Redus pe telefon
-                    className="object-contain absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 sm:w-[60px] sm:h-[60px]"
-                  />
-                </div>
-              )}
-              
-              {equipmentItems.necklace && (
-                <div className="col-start-2 col-end-3 row-start-4 row-end-5 border border-metin-gold/30 bg-black/30 rounded-md overflow-hidden relative">
-                  <Image 
-                    src={equipmentItems.necklace.imagePath} 
-                    alt={equipmentItems.necklace.name}
-                    width={40} // Redus pe telefon
-                    height={40} // Redus pe telefon
-                    className="object-contain absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 sm:w-[60px] sm:h-[60px]"
-                  />
-                </div>
-              )}
-              
-              {equipmentItems.bracelet && (
-                <div className="col-start-3 col-end-4 row-start-4 row-end-5 border border-metin-gold/30 bg-black/30 rounded-md overflow-hidden relative">
-                  <Image 
-                    src={equipmentItems.bracelet.imagePath} 
-                    alt={equipmentItems.bracelet.name}
-                    width={40} // Redus pe telefon
-                    height={40} // Redus pe telefon
-                    className="object-contain absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 sm:w-[60px] sm:h-[60px]"
-                  />
-                </div>
-              )}
-              
-              {equipmentItems.earrings && (
-                <div className="col-start-4 col-end-5 row-start-4 row-end-5 border border-metin-gold/30 bg-black/30 rounded-md overflow-hidden relative">
-                  <Image 
-                    src={equipmentItems.earrings.imagePath} 
-                    alt={equipmentItems.earrings.name}
-                    width={40} // Redus pe telefon
-                    height={40} // Redus pe telefon
-                    className="object-contain absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 sm:w-[60px] sm:h-[60px]"
-                  />
-                </div>
-              )}
-              
-              {equipmentItems.helmet && (
-                <div className="col-start-5 col-end-6 row-start-4 row-end-5 border border-metin-gold/30 bg-black/30 rounded-md overflow-hidden relative">
-                  <Image 
-                    src={equipmentItems.helmet.imagePath} 
-                    alt={equipmentItems.helmet.name}
-                    width={40} // Redus pe telefon
-                    height={40} // Redus pe telefon
-                    className="object-contain absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 sm:w-[60px] sm:h-[60px]"
-                  />
-                </div>
-              )}
+              ))}
             </div>
             
             {/* Character class display */}
@@ -251,6 +209,13 @@ const ProfileWindow: React.FC<ProfileWindowProps> = ({
             <div className="bg-black/30 rounded-lg border border-metin-gold/30 p-4 relative">
               <h3 className="text-metin-gold mb-2 font-western text-base sm:text-lg">Motto Personal</h3>
               
+              {/* Afișează mesajul de eroare */}
+              {error && (
+                <div className="bg-red-500/20 text-red-400 p-2 rounded mb-2 text-sm">
+                  {error}
+                </div>
+              )}
+              
               {isEditing && isEditable ? (
                 <div className="space-y-3">
                   <textarea
@@ -265,26 +230,27 @@ const ProfileWindow: React.FC<ProfileWindowProps> = ({
                     <button 
                       onClick={handleCancel}
                       className="px-3 py-1 sm:px-4 sm:py-2 rounded bg-black/50 text-metin-light border border-metin-gold/30 hover:bg-black/70 transition-colors text-sm sm:text-base"
+                      disabled={savingMotto}
                     >
                       Anulează
                     </button>
                     <button 
                       onClick={handleSaveMotto}
-                      disabled={!tempMotto.trim()}
+                      disabled={!tempMotto.trim() || savingMotto}
                       className={`px-3 py-1 sm:px-4 sm:py-2 rounded border border-metin-gold/50 transition-colors text-sm sm:text-base ${
-                        tempMotto.trim()
+                        tempMotto.trim() && !savingMotto
                           ? 'bg-metin-gold/20 text-metin-gold hover:bg-metin-gold/30'
                           : 'bg-metin-gold/10 text-metin-gold/50 cursor-not-allowed'
                       }`}
                     >
-                      Salvează
+                      {savingMotto ? 'Se salvează...' : 'Salvează'}
                     </button>
                   </div>
                 </div>
               ) : (
                 <div className="relative">
                   <p className="text-metin-light italic bg-black/40 p-2 sm:p-3 rounded-md min-h-[60px] sm:min-h-[80px] text-sm sm:text-base">
-                    {motto ? <>“{motto}”</> : 
+                    {motto ? <>"{motto}"</> : 
                     <span className="text-metin-light/50">
                       {isEditable ? "Niciun motto adăugat încă. Apasă pe butonul de editare pentru a adăuga." : "Acest jucător nu are un motto setat."}
                     </span>}

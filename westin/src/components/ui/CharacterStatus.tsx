@@ -1,49 +1,60 @@
+// src/components/ui/CharacterStatus.tsx
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Leaderboard } from '../../features/leaderboard';
 import { ProfileWindow } from '../../features/profile';
 import { generateEquipment } from '../../data/mock/inventory';
 import mockProfileData from '../../data/mock/profile';
+import { useAuth } from '../../context/AuthContext';
 
-interface CharacterStatusProps {
-  name: string;
-  level: number;
-  race: string;
-  gender: string;
-  background?: string;
-  hp: {
-    current: number;
-    max: number;
-  };
-  stamina: {
-    current: number;
-    max: number;
-  };
-  experience?: {
-    current: number;
-    percentage: number;
-  };
-}
-
-const CharacterStatus: React.FC<CharacterStatusProps> = ({
-  name,
-  level,
-  race,
-  gender,
-  background = "/Backgrounds/western1.jpg",
-  hp,
-  stamina,
-  experience = { current: 1250, percentage: 63 }
-}) => {
+const CharacterStatus: React.FC = () => {
+  const { currentUser } = useAuth();
   const [isPanelVisible, setIsPanelVisible] = useState(true);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [characterData, setCharacterData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const hpPercentage = Math.min(100, Math.max(0, (hp.current / hp.max) * 100));
-  const staminaPercentage = Math.min(100, Math.max(0, (stamina.current / stamina.max) * 100));
-  const expPercentage = Math.min(100, Math.max(0, experience.percentage));
+  useEffect(() => {
+    const fetchCharacterData = async () => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        // Obține token-ul salvat în localStorage
+        const token = localStorage.getItem('token');
+        
+        if (!currentUser?.characterId || !token) {
+          setError("Nu s-a găsit ID-ul caracterului");
+          setLoading(false);
+          return;
+        }
+        
+        // Fă cererea către backend cu token-ul de autentificare
+        const response = await fetch(`http://localhost:5000/api/characters/${currentUser.characterId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Error ${response.status}: ${await response.text()}`);
+        }
+        
+        const data = await response.json();
+        setCharacterData(data);
+        setLoading(false);
+      } catch (err) {
+        console.error("Error fetching character data:", err);
+        setError("Nu s-a putut încărca personajul");
+        setLoading(false);
+      }
+    };
 
-  const characterImagePath = `/Races/${gender.toLowerCase()}/${race.toLowerCase()}.png`;
+    fetchCharacterData();
+  }, [currentUser]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -71,7 +82,44 @@ const CharacterStatus: React.FC<CharacterStatusProps> = ({
     setIsProfileOpen(!isProfileOpen);
   };
 
-  const characterEquipment = generateEquipment(race, level);
+  // Folosim mock data pentru echipament până când implementăm inventarul real
+  const characterEquipment = characterData ? generateEquipment(characterData.race, characterData.level) : [];
+
+  // Afișare stare de încărcare
+  if (loading) {
+    return (
+      <div className="absolute top-3 left-3 z-50">
+        <div className="w-56 bg-metin-dark/95 border border-metin-gold/40 rounded-lg p-4 flex items-center justify-center">
+          <div className="text-metin-gold">Se încarcă personajul...</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Afișare eroare
+  if (error || !characterData) {
+    return (
+      <div className="absolute top-3 left-3 z-50">
+        <div className="w-56 bg-metin-dark/95 border border-red-500/40 rounded-lg p-4">
+          <div className="text-red-500">{error || "Eroare la încărcarea personajului"}</div>
+          <button 
+            onClick={() => window.location.reload()}
+            className="mt-2 text-metin-gold text-sm underline"
+          >
+            Încearcă din nou
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Calculăm procentajele pentru barele de progres
+  const hpPercentage = Math.min(100, Math.max(0, (characterData.hp.current / characterData.hp.max) * 100));
+  const staminaPercentage = Math.min(100, Math.max(0, (characterData.stamina.current / characterData.stamina.max) * 100));
+  const expPercentage = Math.min(100, Math.max(0, characterData.experience.percentage));
+
+  // Construim calea către imaginea caracterului
+  const characterImagePath = `/Races/${characterData.gender.toLowerCase()}/${characterData.race.toLowerCase()}.png`;
 
   return (
     <div className="absolute top-3 left-3 z-50">
@@ -107,7 +155,7 @@ const CharacterStatus: React.FC<CharacterStatusProps> = ({
               >
                 <div className="absolute inset-0 z-0">
                   <Image
-                    src={background}
+                    src={characterData.background}
                     alt="Character background"
                     fill
                     className="object-cover opacity-40"
@@ -116,19 +164,19 @@ const CharacterStatus: React.FC<CharacterStatusProps> = ({
                 <div className="absolute inset-0 bg-gradient-to-b from-metin-gold/20 to-transparent opacity-0 hover:opacity-60 transition-opacity z-20"></div>
                 <Image
                   src={characterImagePath}
-                  alt={`${name} character`}
+                  alt={`${characterData.name} character`}
                   fill
                   className="object-cover object-top z-10"
                 />
               </button>
               
               <div className="ml-3 text-metin-light flex-1">
-                <div className="font-semibold text-metin-gold truncate max-w-[120px] sm:max-w-[120px]">{name}</div>
+                <div className="font-semibold text-metin-gold truncate max-w-[120px] sm:max-w-[120px]">{characterData.name}</div>
                 <div className="flex items-center mt-1">
                   <div className="w-6 h-6 flex items-center justify-center bg-metin-gold/20 rounded-full border border-metin-gold/50 text-metin-gold text-xs font-bold">
-                    {level}
+                    {characterData.level}
                   </div>
-                  <div className="ml-2 text-xs text-metin-light/70">{race}</div>
+                  <div className="ml-2 text-xs text-metin-light/70">{characterData.race}</div>
                 </div>
               </div>
             </div>
@@ -137,7 +185,7 @@ const CharacterStatus: React.FC<CharacterStatusProps> = ({
               <div className="mb-2">
                 <div className="flex justify-between text-xs text-metin-light/80 mb-1">
                   <span>HP</span>
-                  <span>{hp.current} / {hp.max}</span>
+                  <span>{characterData.hp.current} / {characterData.hp.max}</span>
                 </div>
                 <div className="w-full h-3 bg-black/60 rounded-full overflow-hidden border border-metin-gold/30">
                   <div 
@@ -150,7 +198,7 @@ const CharacterStatus: React.FC<CharacterStatusProps> = ({
               <div className="mb-2">
                 <div className="flex justify-between text-xs text-metin-light/80 mb-1">
                   <span>Stamina</span>
-                  <span>{stamina.current} / {stamina.max}</span>
+                  <span>{characterData.stamina.current} / {characterData.stamina.max}</span>
                 </div>
                 <div className="w-full h-3 bg-black/60 rounded-full overflow-hidden border border-metin-gold/30">
                   <div 
@@ -163,7 +211,7 @@ const CharacterStatus: React.FC<CharacterStatusProps> = ({
               <div>
                 <div className="flex justify-between text-xs text-metin-light/80 mb-1">
                   <span>Experience</span>
-                  <span>{experience.percentage}%</span>
+                  <span>{characterData.experience.percentage}%</span>
                 </div>
                 <div className="w-full h-3 bg-black/60 rounded-full overflow-hidden border border-metin-gold/30">
                   <div 
@@ -194,7 +242,7 @@ const CharacterStatus: React.FC<CharacterStatusProps> = ({
       <ProfileWindow
         isOpen={isProfileOpen}
         onClose={() => setIsProfileOpen(false)}
-        profile={mockProfileData}
+        profile={characterData}
         equipment={characterEquipment}
         isEditable={true}
       />
