@@ -17,7 +17,8 @@ import reportRoutes from './routes/reportRoutes';
 import itemRoutes from './routes/itemRoutes';
 import passwordResetRoutes from './routes/passwordResetRoutes';
 import mapImageRoutes from './routes/mapImageRoutes';
-
+import backgroundRoutes from "./routes/backgroundRoutes";
+import raceRoutes from "./routes/raceRoutes";
 
 // Load environment variables
 dotenv.config();
@@ -52,6 +53,9 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/items', itemRoutes);
 app.use('/api/password', passwordResetRoutes);
 app.use('/api/map-images', mapImageRoutes);
+app.use("/api/backgrounds", backgroundRoutes);
+app.use("/api/races", raceRoutes);
+
 
 // Default route
 app.get('/', (req, res) => {

@@ -1,6 +1,7 @@
-import React from 'react';
-import Image from 'next/image';
-import BackgroundSelector from './BackgroundSelector';
+"use client";
+
+import React, { useState, useEffect } from "react";
+import BackgroundSelector from "./BackgroundSelector";
 
 interface CharacterPreviewProps {
   selectedRace: string | null;
@@ -9,9 +10,10 @@ interface CharacterPreviewProps {
   selectedBackground: string | null;
   backgroundIndex: number;
   backgrounds: string[];
-  navigateBackground: (direction: 'next' | 'prev') => void;
+  navigateBackground: (direction: "next" | "prev") => void;
   setSelectedBackground: (background: string) => void;
   checkFormValidity: (name: string, race: string | null, gender: string | null, background: string) => void;
+  backgroundImages: string[];
 }
 
 const CharacterPreview: React.FC<CharacterPreviewProps> = ({
@@ -23,41 +25,65 @@ const CharacterPreview: React.FC<CharacterPreviewProps> = ({
   backgrounds,
   navigateBackground,
   setSelectedBackground,
-  checkFormValidity
+  checkFormValidity,
+  backgroundImages,
 }) => {
-  // Paths to images for races and genders
-  const getRaceImage = (race: string, gender: string) => {
-    return `/Races/${gender.toLowerCase()}/${race.toLowerCase()}.png`;
-  };
+  const [raceImage, setRaceImage] = useState<string | null>(null);
+  const defaultAvatar = "/default-avatar.png"; // Ensure this file exists in the public directory
+
+  useEffect(() => {
+    const fetchRaceImage = async () => {
+      if (selectedRace && selectedGender) {
+        try {
+          const response = await fetch(
+            `http://localhost:5000/api/races/name/${selectedRace}/gender/${selectedGender}/image`
+          );
+          if (response.ok && response.status !== 304) {
+            const imageBlob = await response.blob();
+            const imageUrl = URL.createObjectURL(imageBlob);
+            setRaceImage(imageUrl);
+          } else {
+            setRaceImage(defaultAvatar); // Fallback to default if 304 or not found
+          }
+        } catch (error) {
+          console.error("Error fetching race image:", error);
+          setRaceImage(defaultAvatar); // Fallback on error
+        }
+      } else {
+        setRaceImage(defaultAvatar);
+      }
+    };
+    fetchRaceImage();
+
+    return () => {
+      if (raceImage && raceImage.startsWith("blob:")) URL.revokeObjectURL(raceImage);
+    };
+  }, [selectedRace, selectedGender]);
+
+  const getRaceImage = () => (raceImage || defaultAvatar);
 
   return (
     <div className="w-1/2 flex flex-col">
       <div className="h-96 relative rounded-lg border border-metin-gold/30 bg-black/40 overflow-hidden">
-        {/* Background image */}
         {selectedBackground && (
           <div className="absolute inset-0 z-0">
-            <Image
+            <img
               src={selectedBackground}
               alt="Fundal selectat"
-              fill
-              className="object-cover opacity-70"
-              priority
+              className="object-cover opacity-70 w-full h-full"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
           </div>
         )}
 
-        {/* Character preview */}
         {selectedRace && selectedGender ? (
           <div className="absolute inset-0 flex items-end justify-center">
             <div className="relative w-full h-full">
-              <Image
-                src={getRaceImage(selectedRace, selectedGender)}
+              <img
+                src={getRaceImage()}
                 alt={`${selectedRace} ${selectedGender}`}
-                fill
-                className="z-10 object-contain object-bottom"
+                className="z-10 object-contain object-bottom w-full h-full"
                 style={{ objectPosition: "center 10%" }}
-                priority
               />
             </div>
           </div>
@@ -72,22 +98,19 @@ const CharacterPreview: React.FC<CharacterPreviewProps> = ({
           </div>
         )}
 
-        {/* HUD-style overlay - simplificat */}
         <div className="absolute inset-x-0 top-0 p-3">
           <div className="bg-black/60 backdrop-blur-sm px-2 py-1 rounded border border-metin-gold/20 inline-block">
             <h2 className="text-metin-gold text-xs uppercase tracking-wider">Previzualizare</h2>
           </div>
         </div>
 
-        {/* Display character name if entered */}
         {characterName && (
           <div className="absolute inset-x-0 bottom-0 p-3">
-            {/* You can add character name display here if needed */}
+            {/* Character name display can be added here if needed */}
           </div>
         )}
       </div>
 
-      {/* Background selector component */}
       <BackgroundSelector
         backgrounds={backgrounds}
         backgroundIndex={backgroundIndex}
@@ -98,6 +121,7 @@ const CharacterPreview: React.FC<CharacterPreviewProps> = ({
         characterName={characterName}
         selectedRace={selectedRace}
         selectedGender={selectedGender}
+        backgroundImages={backgroundImages}
       />
     </div>
   );

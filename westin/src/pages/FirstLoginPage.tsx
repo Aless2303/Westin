@@ -1,59 +1,94 @@
 "use client";
-import React, { useState } from "react";
-import { useRouter } from 'next/navigation';
+
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { CharacterForm, CharacterPreview } from "../features/character";
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from "../context/AuthContext";
 
 const FirstLoginPage: React.FC = () => {
   const { currentUser, markCharacterCreated } = useAuth();
   const router = useRouter();
-  
-  // State for character selection, character name, background, and validity
+
   const [characterName, setCharacterName] = useState("");
   const [selectedRace, setSelectedRace] = useState<string | null>(null);
-  const [selectedGender, setSelectedGender] = useState<string | null>(null); // Male/Female
-  const [selectedBackground, setSelectedBackground] = useState<string | null>(null); // Background from Backgrounds
+  const [selectedGender, setSelectedGender] = useState<string | null>(null);
+  const [selectedBackground, setSelectedBackground] = useState<string | null>(null);
   const [isFormValid, setIsFormValid] = useState(false);
   const [backgroundIndex, setBackgroundIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [backgroundImages, setBackgroundImages] = useState<string[]>([]);
 
-  // Available backgrounds
   const backgrounds = [
-    "/Backgrounds/western1.jpg",
-    "/Backgrounds/western2.jpg",
-    "/Backgrounds/western3.jpg",
-    "/Backgrounds/western4.jpg",
+    "western1.jpg",
+    "western2.jpg",
+    "western3.jpg",
+    "western4.jpg",
   ];
 
-  // Check form validity (name, race, gender, background)
+  useEffect(() => {
+    const fetchBackgroundImages = async () => {
+      setIsLoading(true);
+      try {
+        const images = await Promise.all(
+          backgrounds.map(async (bg) => {
+            const response = await fetch(`http://localhost:5000/api/backgrounds/filename/${bg}/image`);
+            if (response.ok && response.status !== 304) {
+              const imageBlob = await response.blob();
+              return URL.createObjectURL(imageBlob);
+            }
+            return null; // Handle 304 or failed requests by returning null
+          })
+        );
+        // Filter out null values and use the first valid image as default
+        const validImages = images.filter((img) => img !== null) as string[];
+        if (validImages.length > 0) {
+          setBackgroundImages(validImages);
+          setSelectedBackground(validImages[0]);
+        } else {
+          setBackgroundImages([`/default-background.jpg`]); // Fallback to a default image
+          setSelectedBackground(`/default-background.jpg`);
+        }
+      } catch (err) {
+        console.error("Error fetching background images:", err);
+        setBackgroundImages([`/default-background.jpg`]); // Fallback
+        setSelectedBackground(`/default-background.jpg`);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchBackgroundImages();
+
+    return () => {
+      backgroundImages.forEach((img) => {
+        if (img.startsWith("blob:")) URL.revokeObjectURL(img);
+      });
+    };
+  }, []);
+
   const checkFormValidity = (name: string, race: string | null, gender: string | null, background: string | null) => {
     setIsFormValid(name.trim().length > 0 && race !== null && gender !== null && background !== null);
   };
 
-  // Handle submit (navigation to GamePage.tsx)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isFormValid && currentUser) {
       setIsLoading(true);
       setError(null);
-      
+
       try {
-        // Creează obiectul cu datele personajului
         const characterData = {
           name: characterName,
           race: selectedRace,
           gender: selectedGender,
-          background: selectedBackground
+          background: selectedBackground,
         };
-        
-        // Trimite datele la server
+
         const success = await markCharacterCreated(currentUser.characterId, characterData);
-        
+
         if (success) {
           console.log("Character created:", characterData);
-          // Navigare către GamePage.tsx
-          router.push('/game');
+          router.push("/game");
         } else {
           setError("Nu s-a putut salva personajul. Încearcă din nou.");
         }
@@ -65,17 +100,11 @@ const FirstLoginPage: React.FC = () => {
     }
   };
 
-  // Function for navigating between backgrounds
-  const navigateBackground = (direction: 'next' | 'prev') => {
-    let newIndex;
-    if (direction === 'next') {
-      newIndex = (backgroundIndex + 1) % backgrounds.length;
-    } else {
-      newIndex = (backgroundIndex - 1 + backgrounds.length) % backgrounds.length;
-    }
+  const navigateBackground = (direction: "next" | "prev") => {
+    let newIndex = direction === "next" ? (backgroundIndex + 1) % backgrounds.length : (backgroundIndex - 1 + backgrounds.length) % backgrounds.length;
     setBackgroundIndex(newIndex);
-    setSelectedBackground(backgrounds[newIndex]);
-    checkFormValidity(characterName, selectedRace, selectedGender, backgrounds[newIndex]);
+    setSelectedBackground(backgroundImages[newIndex % backgroundImages.length]);
+    checkFormValidity(characterName, selectedRace, selectedGender, backgroundImages[newIndex % backgroundImages.length]);
   };
 
   return (
@@ -90,31 +119,26 @@ const FirstLoginPage: React.FC = () => {
       }}
     >
       <div className="relative w-full max-w-7xl h-[90vh] flex p-6 bg-metin-dark/90 backdrop-blur-lg rounded-xl border border-metin-gold/30 shadow-lg overflow-hidden">
-        {/* Decorative futuristic lines */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute left-0 top-0 w-full h-px bg-gradient-to-r from-transparent via-metin-gold/50 to-transparent animate-pulse-slow"></div>
           <div className="absolute right-0 top-0 w-px h-full bg-gradient-to-b from-transparent via-metin-gold/50 to-transparent animate-pulse-slow"></div>
           <div className="absolute left-0 bottom-0 w-full h-px bg-gradient-to-r from-transparent via-metin-gold/50 to-transparent animate-pulse-slow"></div>
           <div className="absolute left-0 top-0 w-px h-full bg-gradient-to-b from-transparent via-metin-gold/50 to-transparent animate-pulse-slow"></div>
         </div>
-        
-        {/* Futuristic header */}
+
         <div className="absolute top-0 left-0 w-full px-8 py-4 flex justify-between items-center border-b border-metin-gold/20 bg-metin-dark/50 backdrop-blur-md z-10">
           <h1 className="text-3xl font-serif text-metin-gold drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] tracking-wider">
             WESTIN · <span className="text-metin-light/80 text-xl">Crearea Personajului</span>
           </h1>
         </div>
 
-        {/* Display error message if any */}
         {error && (
           <div className="absolute top-16 left-0 right-0 mx-auto w-max p-3 bg-red-500/20 border border-red-600 rounded-lg text-metin-light text-center z-20">
             {error}
           </div>
         )}
 
-        {/* Main layout - two columns */}
         <div className="flex w-full h-full pt-20">
-          {/* Left column - Form */}
           <div className="w-1/2 pr-6 overflow-y-auto thin-scrollbar">
             <CharacterForm
               characterName={characterName}
@@ -135,7 +159,6 @@ const FirstLoginPage: React.FC = () => {
             />
           </div>
 
-          {/* Right column - Preview */}
           <CharacterPreview
             selectedRace={selectedRace}
             selectedGender={selectedGender}
@@ -146,6 +169,7 @@ const FirstLoginPage: React.FC = () => {
             navigateBackground={navigateBackground}
             setSelectedBackground={setSelectedBackground}
             checkFormValidity={checkFormValidity}
+            backgroundImages={backgroundImages}
           />
         </div>
       </div>
