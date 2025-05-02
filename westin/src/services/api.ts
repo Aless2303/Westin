@@ -61,8 +61,35 @@ export const authService = {
   },
 };
 
+export const passwordService = {
+    // Solicită resetarea parolei
+    requestReset: async (username: string, email: string) => {
+      return fetchWithAuth('/password/request-reset', {
+        method: 'POST',
+        body: JSON.stringify({ username, email }),
+      });
+    },
+    
+    // Validează token-ul de resetare
+    validateToken: async (token: string) => {
+      return fetchWithAuth(`/password/validate-token/${token}`);
+    },
+    
+    // Resetează parola
+    resetPassword: async (token: string, newPassword: string) => {
+      return fetchWithAuth('/password/reset-password', {
+        method: 'POST',
+        body: JSON.stringify({ token, newPassword }),
+      });
+    },
+  };
+
+
+
+
 // Exportă serviciile pentru a fi utilizate în aplicație
 export default {
   auth: authService,
+  password: passwordService,
   // Aici poți adăuga alte servicii pentru alte funcționalități
 };

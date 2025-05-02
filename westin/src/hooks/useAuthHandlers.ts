@@ -2,7 +2,7 @@
 import { useRouter } from 'next/navigation';
 import { FormEvent, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { authService } from '../services/api';
+import { authService, passwordService } from '../services/api';
 
 interface UseAuthHandlersProps {
   username: string;
@@ -86,21 +86,20 @@ export const useAuthHandlers = ({
       setError(null);
       
       try {
-        // Implementarea reală ar trebui să facă o cerere la backend
-        // Momentan simulăm un răspuns de succes
+        // Facem cererea la backend
+        const response = await passwordService.requestReset(username, email);
+        
+        // Afișăm mesajul de succes
+        setResetSuccessMessage(response.message || 'Un email cu instrucțiuni de resetare a parolei a fost trimis la adresa asociată contului');
+        
+        // Reset form after 5 seconds and return to login page
         setTimeout(() => {
-          setResetSuccessMessage(`Un email cu instrucțiuni de resetare a parolei a fost trimis la adresa ${email}.`);
-          
-          // Reset form after 5 seconds and return to login page
-          setTimeout(() => {
-            switchToLogin();
-            setResetSuccessMessage('');
-          }, 5000);
-          
-          setIsLoading(false);
-        }, 1000);
-      } catch (error) {
-        setError('A apărut o eroare la trimiterea instrucțiunilor de resetare.');
+          switchToLogin();
+          setResetSuccessMessage('');
+        }, 5000);
+      } catch (error: any) {
+        setError(error.message || 'A apărut o eroare la trimiterea instrucțiunilor de resetare.');
+      } finally {
         setIsLoading(false);
       }
     }

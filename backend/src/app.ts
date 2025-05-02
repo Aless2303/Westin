@@ -1,4 +1,5 @@
-import express, { Express } from 'express';
+// backend/src/app.ts
+import express, { Express, Request, Response, NextFunction } from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -14,6 +15,7 @@ import mobRoutes from './routes/mobRoutes';
 import inventoryRoutes from './routes/inventoryRoutes';
 import reportRoutes from './routes/reportRoutes';
 import itemRoutes from './routes/itemRoutes';
+import passwordResetRoutes from './routes/passwordResetRoutes';
 
 // Load environment variables
 dotenv.config();
@@ -43,6 +45,7 @@ app.use('/api/mobs', mobRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/items', itemRoutes);
+app.use('/api/password', passwordResetRoutes);
 
 // Default route
 app.get('/', (req, res) => {
@@ -50,7 +53,7 @@ app.get('/', (req, res) => {
 });
 
 // Error handling middleware
-app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   console.error(err.stack);
   res.status(500).json({
     message: 'Something went wrong',
