@@ -1,13 +1,22 @@
 'use client';
 
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import { User, authenticateUser } from '../data/mock/users';
+import { authService } from '../services/api';
+
+interface User {
+  _id: string;
+  username: string;
+  email: string;
+  isAdmin: boolean;
+  characterId: string;
+}
 
 interface AuthContextType {
   currentUser: User | null;
-  login: (username: string, password: string) => boolean;
+  login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
   isAdmin: boolean;
+  loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -19,41 +28,64 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    // Check for saved user in localStorage on component mount
-    const savedUser = localStorage.getItem('currentUser');
-    if (savedUser) {
-      try {
-        const parsedUser = JSON.parse(savedUser);
-        setCurrentUser(parsedUser);
-        setIsAdmin(parsedUser.isAdmin);
-      } catch (error) {
-        console.error('Failed to parse saved user', error);
-        localStorage.removeItem('currentUser');
-      }
+    // Verifică dacă există un token salvat în localStorage
+    const token = localStorage.getItem('token');
+    if (token) {
+      // Încearcă să obții profilul utilizatorului utilizând token-ul
+      authService.getProfile()
+        .then(userData => {
+          setCurrentUser(userData);
+          setIsAdmin(userData.isAdmin);
+        })
+        .catch(() => {
+          // În caz de eroare, șterge token-ul și setează utilizatorul ca null
+          localStorage.removeItem('token');
+          setCurrentUser(null);
+          setIsAdmin(false);
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    } else {
+      setLoading(false);
     }
   }, []);
 
-  const login = (username: string, password: string): boolean => {
-    const user = authenticateUser(username, password);
-    if (user) {
-      setCurrentUser(user);
-      setIsAdmin(user.isAdmin);
-      localStorage.setItem('currentUser', JSON.stringify(user));
+  const login = async (username: string, password: string): Promise<boolean> => {
+    try {
+      const response = await authService.login(username, password);
+      
+      // Salvează token-ul în localStorage
+      localStorage.setItem('token', response.token);
+      
+      // Setează utilizatorul curent
+      setCurrentUser({
+        _id: response._id,
+        username: response.username,
+        email: response.email,
+        isAdmin: response.isAdmin,
+        characterId: response.characterId,
+      });
+      
+      setIsAdmin(response.isAdmin);
       return true;
+    } catch (error) {
+      console.error('Login failed:', error);
+      return false;
     }
-    return false;
   };
 
   const logout = () => {
+    localStorage.removeItem('token');
     setCurrentUser(null);
     setIsAdmin(false);
-    localStorage.removeItem('currentUser');
   };
 
   return (
-    <AuthContext.Provider value={{ currentUser, login, logout, isAdmin }}>
+    <AuthContext.Provider value={{ currentUser, login, logout, isAdmin, loading }}>
       {children}
     </AuthContext.Provider>
   );

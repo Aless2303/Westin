@@ -44,7 +44,7 @@ export const getInventory = async (req: Request & { user?: any }, res: Response)
         maxSlots: 20
       });
 
-      return res.status(200).json(newInventory);
+      res.status(200).json(newInventory);
     }
 
     res.status(200).json(inventory);

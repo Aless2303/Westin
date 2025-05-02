@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import Item from '../models/ItemModel';
+import Item from '../models/itemModel';
 import { ApiError } from '../middleware/errorMiddleware';
 import mongoose from 'mongoose';
 

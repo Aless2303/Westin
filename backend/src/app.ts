@@ -12,6 +12,8 @@ import authRoutes from './routes/authRoutes';
 import characterRoutes from './routes/characterRoutes';
 import mobRoutes from './routes/mobRoutes';
 import inventoryRoutes from './routes/inventoryRoutes';
+import reportRoutes from './routes/reportRoutes';
+import itemRoutes from './routes/itemRoutes';
 
 // Load environment variables
 dotenv.config();
@@ -23,7 +25,10 @@ const app: Express = express();
 connectDB();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:3000', // Adresa frontend-ului
+  credentials: true
+}));
 app.use(helmet());
 app.use(morgan('dev'));
 app.use(express.json());
@@ -36,6 +41,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/characters', characterRoutes);
 app.use('/api/mobs', mobRoutes);
 app.use('/api/inventory', inventoryRoutes);
+app.use('/api/reports', reportRoutes);
+app.use('/api/items', itemRoutes);
 
 // Default route
 app.get('/', (req, res) => {

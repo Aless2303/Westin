@@ -53,9 +53,18 @@ userSchema.pre('save', async function (next) {
   this.password = await bcrypt.hash(this.password, salt);
 });
 
-// Match user entered password to hashed password in database
+// backend/src/models/userModel.ts - verifică metoda matchPassword
 userSchema.methods.matchPassword = async function (enteredPassword: string): Promise<boolean> {
-  return await bcrypt.compare(enteredPassword, this.password);
+  console.log('Matching password:', enteredPassword); // Pentru debugging
+  // Folosește try-catch pentru a gestiona erorile de comparare
+  try {
+    const result = await bcrypt.compare(enteredPassword, this.password);
+    console.log('Password match result:', result); // Pentru debugging
+    return result;
+  } catch (error) {
+    console.error('Error comparing passwords:', error);
+    return false;
+  }
 };
 
 const User = mongoose.model<IUser>('User', userSchema);

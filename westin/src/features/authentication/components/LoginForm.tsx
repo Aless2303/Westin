@@ -27,6 +27,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
   const router = useRouter();
   const { login } = useAuth();
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   // Handle username change
   const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -43,16 +44,23 @@ const LoginForm: React.FC<LoginFormProps> = ({
   };
 
   // Handle the login form submission
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (isFormValid) {
-      const success = login(username, password);
-      
-      if (success) {
-        router.push('/game');
-      } else {
-        setLoginError('Utilizator sau parolă incorecte');
+      setIsLoading(true);
+      try {
+        const success = await login(username, password);
+        
+        if (success) {
+          router.push('/game');
+        } else {
+          setLoginError('Utilizator sau parolă incorecte');
+        }
+      } catch (error) {
+        setLoginError('A apărut o eroare. Te rugăm să încerci din nou.');
+      } finally {
+        setIsLoading(false);
       }
     }
   };
@@ -99,13 +107,13 @@ const LoginForm: React.FC<LoginFormProps> = ({
         <button
           type="submit"
           className={`w-full py-3 px-4 bg-gradient-to-b from-metin-gold to-metin-gold/80 text-metin-dark font-bold rounded-lg shadow-md transition-all duration-300 ${
-            !isFormValid
+            !isFormValid || isLoading
               ? "opacity-60 cursor-not-allowed"
               : "hover:from-metin-gold/90 hover:to-metin-gold/70 hover:shadow-lg active:transform active:scale-98"
           }`}
-          disabled={!isFormValid}
+          disabled={!isFormValid || isLoading}
         >
-          Intră în luptă
+          {isLoading ? 'Se încarcă...' : 'Intră în luptă'}
         </button>
         <button
           type="button"
@@ -125,33 +133,6 @@ const LoginForm: React.FC<LoginFormProps> = ({
           Ai uitat parola?
         </button>
       </div>
-
-      {/* Demo login buttons */}
-      <div className="mt-4 grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          onClick={() => {
-            setUsername('user');
-            setPassword('user123');
-            setIsFormValid(true);
-          }}
-          className="py-3 px-4 bg-gradient-to-b from-blue-500 to-blue-600 text-metin-light font-bold rounded-lg shadow-md transition-all duration-300 hover:from-blue-600 hover:to-blue-700"
-        >
-          Demo User
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setUsername('admin');
-            setPassword('admin123');
-            setIsFormValid(true);
-          }}
-          className="py-3 px-4 bg-gradient-to-b from-purple-500 to-purple-600 text-metin-light font-bold rounded-lg shadow-md transition-all duration-300 hover:from-purple-600 hover:to-purple-700"
-        >
-          Demo Admin
-        </button>
-      </div>
-
 
     </form>
   );

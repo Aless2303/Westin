@@ -1,4 +1,6 @@
-import React from 'react';
+// src/features/authentication/components/RegisterForm.tsx
+import React, { useState } from 'react';
+import { authService } from '../../../services/api';
 
 interface RegisterFormProps {
   username: string;
@@ -25,10 +27,13 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
   confirmPassword,
   setConfirmPassword,
   isFormValid,
-  handleRegister,
+  handleRegister: originalHandleRegister,
   switchToLogin,
   setIsFormValid
 }) => {
+  const [registerError, setRegisterError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
   // Validation function
   const validateForm = (
     u: string, 
@@ -42,6 +47,35 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
     const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
     
     setIsFormValid(isUsernameValid && isPasswordValid && isConfirmPasswordValid && isEmailValid);
+  };
+
+  // Handle register form submission
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (isFormValid) {
+      setIsLoading(true);
+      setRegisterError(null);
+      
+      try {
+        // Întâi adăugăm datele de bază (race și gender vor fi stabilite pe prima pagină de creare caracter)
+        await authService.register({
+          username,
+          email,
+          password,
+          characterName: username, // Putem folosi username-ul ca nume inițial de caracter
+          race: 'Warrior', // Valoare implicită, va fi schimbată în pagina FirstLoginPage
+          gender: 'Masculin' // Valoare implicită, va fi schimbată în pagina FirstLoginPage
+        });
+        
+        // Redirecționează la login
+        switchToLogin();
+      } catch (error: any) {
+        setRegisterError(error.message || 'A apărut o eroare la înregistrare.');
+      } finally {
+        setIsLoading(false);
+      }
+    }
   };
 
   return (
@@ -121,17 +155,23 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
         )}
       </div>
 
+      {registerError && (
+        <div className="p-3 bg-red-500/20 border border-red-600 rounded-lg text-metin-light text-center">
+          {registerError}
+        </div>
+      )}
+
       <div className="space-y-3 pt-2">
         <button
           type="submit"
           className={`w-full py-3 px-4 bg-gradient-to-b from-metin-red to-metin-red/80 text-metin-light font-bold rounded-lg shadow-md transition-all duration-300 ${
-            !isFormValid
+            !isFormValid || isLoading
               ? "opacity-60 cursor-not-allowed"
               : "hover:from-metin-red/90 hover:to-metin-red/70 hover:shadow-lg active:transform active:scale-98"
           }`}
-          disabled={!isFormValid}
+          disabled={!isFormValid || isLoading}
         >
-          Creează cont
+          {isLoading ? 'Se procesează...' : 'Creează cont'}
         </button>
         <button
           type="button"
