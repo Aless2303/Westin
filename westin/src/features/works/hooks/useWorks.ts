@@ -6,6 +6,8 @@ export interface Job {
   mobName?: string; // Added mob name to display in the jobs panel
 }
 
+
+
 export const useWorks = () => {
   const [jobs, setJobs] = useState<Job[]>([]);
 
