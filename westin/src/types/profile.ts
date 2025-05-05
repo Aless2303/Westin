@@ -1,18 +1,27 @@
 // Profile types
 export interface ProfileType {
+  _id: string;
   name: string;
   level: number;
   race: string;
   gender: string;
   background: string;
-  image: string;
-  duelsWon: number;
-  duelsLost: number;
-  motto: string;  // User's custom profile text
+  image?: string;
+  hp: {
+    current: number;
+    max: number;
+  };
+  stamina: {
+    current: number;
+    max: number;
+  };
   experience: {
     current: number;
     percentage: number;
   };
+  duelsWon?: number;
+  duelsLost?: number;
+  motto?: string;
 }
 
 // Type for the equipment slots displayed in the profile

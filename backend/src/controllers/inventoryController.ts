@@ -30,14 +30,11 @@ export const getInventory = async (req: Request & { user?: any }, res: Response)
     }
 
     // Get inventory with populated item data
-    const inventory = await Inventory.findOne({ characterId }).populate({
-      path: 'equippedItems.weapon equippedItems.helmet equippedItems.armor equippedItems.shield equippedItems.earrings equippedItems.bracelet equippedItems.necklace equippedItems.boots backpack.itemId',
-      model: 'Item'
-    });
+    let inventory = await Inventory.findOne({ characterId });
 
     if (!inventory) {
       // Create empty inventory if it doesn't exist
-      const newInventory = await Inventory.create({
+      inventory = await Inventory.create({
         characterId,
         equippedItems: {
           weapon: null,
@@ -52,11 +49,50 @@ export const getInventory = async (req: Request & { user?: any }, res: Response)
         backpack: [],
         maxSlots: 20
       });
-
-      res.status(200).json(newInventory);
     }
 
-    res.status(200).json(inventory);
+    // Fully populate each item type
+    const populatedInventory = await Inventory.findById(inventory._id);
+    const result = populatedInventory?.toObject();
+    
+    // Populate each equipped item with full details
+    if (result && result.equippedItems) {
+      const equippedSlots = ['weapon', 'helmet', 'armor', 'shield', 'earrings', 'bracelet', 'necklace', 'boots'];
+      
+      // Create a populated version of equippedItems
+      const populatedEquippedItems: any = {};
+      
+      // Populate each slot
+      for (const slot of equippedSlots) {
+        const itemId = (result.equippedItems as any)[slot];
+        if (itemId) {
+          const item = await Item.findById(itemId);
+          if (item) {
+            populatedEquippedItems[slot] = item;
+          }
+        }
+      }
+      
+      // Replace the equipped items with populated versions
+      result.equippedItems = populatedEquippedItems;
+    }
+    
+    // Populate backpack items
+    if (result && result.backpack && result.backpack.length > 0) {
+      const populatedBackpack = await Promise.all(
+        result.backpack.map(async (backpackItem: any) => {
+          const item = await Item.findById(backpackItem.itemId);
+          return {
+            ...backpackItem,
+            itemId: item
+          };
+        })
+      );
+      
+      result.backpack = populatedBackpack;
+    }
+
+    res.status(200).json(result);
   } catch (error) {
     if (error instanceof ApiError) {
       res.status(error.statusCode).json({ message: error.message });

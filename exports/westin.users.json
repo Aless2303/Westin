@@ -17,4 +17,24 @@
   "characterId": {
     "$oid": "6814ed4f44034900e5d457a8"
   }
+},
+{
+  "_id": {
+    "$oid": "6818634ad04e86deed4ecb9a"
+  },
+  "username": "qweqweqwe",
+  "email": "qwe@gmail.com",
+  "password": "$2b$10$0yNcI3zljbE0RpouPlYIxuMQnL4qIOjPHZYtdiySAFL42b.c1/RLK",
+  "isAdmin": false,
+  "hasCreatedCharacter": true,
+  "createdAt": {
+    "$date": "2025-05-05T07:05:46.676Z"
+  },
+  "updatedAt": {
+    "$date": "2025-05-05T07:06:22.699Z"
+  },
+  "__v": 0,
+  "characterId": {
+    "$oid": "6818634ad04e86deed4ecb9c"
+  }
 }]

@@ -83,6 +83,31 @@ const ProfileWindow: React.FC<ProfileWindowProps> = ({
     }
   };
 
+  // Verifică dacă un string este o imagine base64
+  const isBase64Image = (str: string) => {
+    return typeof str === 'string' && (
+      str.startsWith('data:image') || 
+      str.startsWith('iVBOR') || // PNG în base64
+      str.startsWith('/9j/') // JPEG în base64
+    );
+  };
+
+  // Funcție auxiliară pentru a genera URL-ul corect pentru imagini
+  const getImageUrl = (src: string) => {
+    if (!src) return '';
+    if (src.startsWith('http') || src.startsWith('/')) return src;
+    
+    // Verificăm dacă e base64 fără header și adăugăm header-ul
+    if (src.startsWith('iVBOR')) {
+      return `data:image/png;base64,${src}`;
+    }
+    if (src.startsWith('/9j/')) {
+      return `data:image/jpeg;base64,${src}`;
+    }
+    
+    return src;
+  };
+
   // Creează imaginea caracterului
   const characterImagePath = profile ? `/Races/${profile.gender.toLowerCase()}/${profile.race.toLowerCase()}.png` : "";
 
@@ -118,12 +143,20 @@ const ProfileWindow: React.FC<ProfileWindowProps> = ({
                 <div className="relative w-[120px] h-[140px] sm:w-[180px] sm:h-[220px] overflow-hidden border-2 border-metin-gold/40 rounded-md bg-black/40">
                   {/* Background image */}
                   <div className="absolute inset-0 z-0">
-                    <Image
-                      src={profile.background}
-                      alt="Character background"
-                      fill
-                      className="object-cover opacity-40"
-                    />
+                    {isBase64Image(profile.background) ? (
+                      <img
+                        src={getImageUrl(profile.background)}
+                        alt="Character background"
+                        className="object-cover opacity-40 w-full h-full"
+                      />
+                    ) : (
+                      <Image
+                        src={profile.background}
+                        alt="Character background"
+                        fill
+                        className="object-cover opacity-40"
+                      />
+                    )}
                   </div>
                   
                   {/* Character image */}
@@ -153,14 +186,26 @@ const ProfileWindow: React.FC<ProfileWindowProps> = ({
                     slot.id === 'helmet' ? 'col-start-5 col-end-6 row-start-4 row-end-5' : ''
                   } border border-metin-gold/30 bg-black/30 rounded-md overflow-hidden relative`}
                 >
-                  {slot.item && (
-                    <Image 
-                      src={slot.item.imagePath} 
-                      alt={slot.item.name}
-                      width={slot.size === 'large' ? 60 : slot.size === 'medium' ? 40 : 30}
-                      height={slot.size === 'large' ? 120 : slot.size === 'medium' ? 60 : 30}
-                      className="object-contain absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
-                    />
+                  {slot.item && slot.item.imagePath && (
+                    <>
+                      {isBase64Image(slot.item.imagePath) ? (
+                        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full h-full flex items-center justify-center">
+                          <img 
+                            src={getImageUrl(slot.item.imagePath)}
+                            alt={slot.item.name}
+                            className="object-contain max-w-full max-h-full"
+                          />
+                        </div>
+                      ) : (
+                        <Image 
+                          src={slot.item.imagePath} 
+                          alt={slot.item.name}
+                          width={slot.size === 'large' ? 60 : slot.size === 'medium' ? 40 : 30}
+                          height={slot.size === 'large' ? 120 : slot.size === 'medium' ? 60 : 30}
+                          className="object-contain absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
+                        />
+                      )}
+                    </>
                   )}
                 </div>
               ))}
@@ -250,7 +295,7 @@ const ProfileWindow: React.FC<ProfileWindowProps> = ({
               ) : (
                 <div className="relative">
                   <p className="text-metin-light italic bg-black/40 p-2 sm:p-3 rounded-md min-h-[60px] sm:min-h-[80px] text-sm sm:text-base">
-                    {motto ? <>"{motto}"</> : 
+                    {motto ? <>{motto}</> : 
                     <span className="text-metin-light/50">
                       {isEditable ? "Niciun motto adăugat încă. Apasă pe butonul de editare pentru a adăuga." : "Acest jucător nu are un motto setat."}
                     </span>}

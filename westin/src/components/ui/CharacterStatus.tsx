@@ -3,16 +3,51 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Leaderboard } from '../../features/leaderboard';
 import { ProfileWindow } from '../../features/profile';
-import { generateEquipment } from '../../data/mock/inventory';
-import mockProfileData from '../../data/mock/profile';
+import { EquipmentSlot, InventoryItem } from '../../types/inventory';
 import { useAuth } from '../../context/AuthContext';
+
+// Define Character type to fix the any
+interface Character {
+  _id: string;
+  name: string;
+  level: number;
+  race: string;
+  gender: string;
+  background: string;
+  image?: string; // Adăugat pentru compatibilitate cu ProfileType
+  hp: {
+    current: number;
+    max: number;
+  };
+  stamina: {
+    current: number;
+    max: number;
+  };
+  experience: {
+    current: number;
+    percentage: number;
+  };
+  money: {
+    cash: number;
+    bank: number;
+  };
+  x: number;
+  y: number;
+  attack: number;
+  defense: number;
+  duelsWon: number;
+  duelsLost: number;
+  motto: string;
+  userId: string;
+}
 
 const CharacterStatus: React.FC = () => {
   const { currentUser } = useAuth();
   const [isPanelVisible, setIsPanelVisible] = useState(true);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [characterData, setCharacterData] = useState<any>(null);
+  const [characterData, setCharacterData] = useState<Character | null>(null);
+  const [characterEquipment, setCharacterEquipment] = useState<EquipmentSlot[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,6 +91,81 @@ const CharacterStatus: React.FC = () => {
     fetchCharacterData();
   }, [currentUser]);
 
+  // Fetch inventory and equipped items
+  useEffect(() => {
+    const fetchInventory = async () => {
+      if (!characterData?._id) return;
+      
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          console.error("No authentication token found");
+          return;
+        }
+        
+        const response = await fetch(`http://localhost:5000/api/inventory/${characterData._id}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Error ${response.status}: ${await response.text()}`);
+        }
+        
+        const inventoryData = await response.json();
+        
+        // Create equipment slots based on equipped items
+        const equipment: EquipmentSlot[] = [
+          { id: 'weapon', name: 'Armă', item: null, gridArea: 'weapon', size: 'large' },
+          { id: 'helmet', name: 'Coif', item: null, gridArea: 'helmet', size: 'medium' },
+          { id: 'armor', name: 'Armură', item: null, gridArea: 'armor', size: 'large' },
+          { id: 'shield', name: 'Scut', item: null, gridArea: 'shield', size: 'medium' },
+          { id: 'earrings', name: 'Cercei', item: null, gridArea: 'earrings', size: 'small' },
+          { id: 'bracelet', name: 'Brățară', item: null, gridArea: 'bracelet', size: 'small' },
+          { id: 'necklace', name: 'Colier', item: null, gridArea: 'necklace', size: 'small' },
+          { id: 'boots', name: 'Papuci', item: null, gridArea: 'boots', size: 'medium' },
+        ];
+        
+        // Map equipped items from inventory to equipment slots
+        if (inventoryData.equippedItems) {
+          // Get all slot types
+          const slotTypes = ['weapon', 'helmet', 'armor', 'shield', 'earrings', 'bracelet', 'necklace', 'boots'];
+          
+          slotTypes.forEach(slotType => {
+            // The backend now returns the full item object directly in equippedItems
+            const itemData = inventoryData.equippedItems[slotType];
+            if (itemData) {
+              const slot = equipment.find(slot => slot.id === slotType);
+              if (slot) {
+                // Create InventoryItem from the item data
+                const item: InventoryItem = {
+                  id: itemData._id,
+                  name: itemData.name,
+                  // Tratează imaginea în format base64
+                  imagePath: itemData.image || '', 
+                  type: itemData.type,
+                  stackable: itemData.tradeable || false,
+                  stats: itemData.stats || {},
+                  description: itemData.description || '',
+                  requiredLevel: itemData.requiredLevel || 1
+                };
+                slot.item = item;
+              }
+            }
+          });
+        }
+        
+        setCharacterEquipment(equipment);
+      } catch (err) {
+        console.error("Error fetching inventory data:", err);
+      }
+    };
+    
+    fetchInventory();
+  }, [characterData]);
+
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 640) {
@@ -82,8 +192,31 @@ const CharacterStatus: React.FC = () => {
     setIsProfileOpen(!isProfileOpen);
   };
 
-  // Folosim mock data pentru echipament până când implementăm inventarul real
-  const characterEquipment = characterData ? generateEquipment(characterData.race, characterData.level) : [];
+  // Verifică dacă un string este o imagine base64
+  const isBase64Image = (str: string) => {
+    if (!str) return false;
+    return typeof str === 'string' && (
+      str.startsWith('data:image') || 
+      str.startsWith('iVBOR') || // PNG în base64
+      str.startsWith('/9j/') // JPEG în base64
+    );
+  };
+
+  // Funcție auxiliară pentru a genera URL-ul corect pentru imagini
+  const getImageUrl = (src: string) => {
+    if (!src) return '';
+    if (src.startsWith('http') || src.startsWith('/')) return src;
+    
+    // Verificăm dacă e base64 fără header și adăugăm header-ul
+    if (src.startsWith('iVBOR')) {
+      return `data:image/png;base64,${src}`;
+    }
+    if (src.startsWith('/9j/')) {
+      return `data:image/jpeg;base64,${src}`;
+    }
+    
+    return src;
+  };
 
   // Afișare stare de încărcare
   if (loading) {
@@ -154,12 +287,20 @@ const CharacterStatus: React.FC = () => {
                 title="Deschide profilul"
               >
                 <div className="absolute inset-0 z-0">
-                  <Image
-                    src={characterData.background}
-                    alt="Character background"
-                    fill
-                    className="object-cover opacity-40"
-                  />
+                  {isBase64Image(characterData.background) ? (
+                    <img
+                      src={getImageUrl(characterData.background)}
+                      alt="Character background"
+                      className="w-full h-full object-cover opacity-40"
+                    />
+                  ) : (
+                    <Image
+                      src={characterData.background}
+                      alt="Character background"
+                      fill
+                      className="object-cover opacity-40"
+                    />
+                  )}
                 </div>
                 <div className="absolute inset-0 bg-gradient-to-b from-metin-gold/20 to-transparent opacity-0 hover:opacity-60 transition-opacity z-20"></div>
                 <Image
@@ -242,7 +383,20 @@ const CharacterStatus: React.FC = () => {
       <ProfileWindow
         isOpen={isProfileOpen}
         onClose={() => setIsProfileOpen(false)}
-        profile={characterData}
+        profile={{
+          _id: characterData?._id || '',
+          name: characterData?.name || '',
+          level: characterData?.level || 1,
+          race: characterData?.race || '',
+          gender: characterData?.gender || '',
+          background: characterData?.background || '',
+          hp: characterData?.hp || { current: 0, max: 0 },
+          stamina: characterData?.stamina || { current: 0, max: 0 },
+          experience: characterData?.experience || { current: 0, percentage: 0 },
+          duelsWon: characterData?.duelsWon || 0,
+          duelsLost: characterData?.duelsLost || 0,
+          motto: characterData?.motto || ''
+        }}
         equipment={characterEquipment}
         isEditable={true}
       />

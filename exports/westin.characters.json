@@ -86,13 +86,13 @@
 },
 {
   "_id": {
-    "$oid": "6817d32c4d7659cfa4001c85"
+    "$oid": "6818634ad04e86deed4ecb9c"
   },
-  "name": "brize",
+  "name": "mileanossss",
   "level": 1,
   "race": "Warrior",
   "gender": "Masculin",
-  "background": "blob:http://localhost:3000/32d90a80-c6b7-457b-b012-c54217aefd07",
+  "background": "blob:http://localhost:3000/81b44f8c-c39a-4e7a-ac8c-63b4ce1110ed",
   "hp": {
     "current": 100,
     "max": 100
@@ -117,13 +117,13 @@
   "duelsLost": 0,
   "motto": "",
   "userId": {
-    "$oid": "6817d32b4d7659cfa4001c83"
+    "$oid": "6818634ad04e86deed4ecb9a"
   },
   "createdAt": {
-    "$date": "2025-05-04T20:50:52.054Z"
+    "$date": "2025-05-05T07:05:46.739Z"
   },
   "updatedAt": {
-    "$date": "2025-05-04T20:51:06.157Z"
+    "$date": "2025-05-05T07:06:22.701Z"
   },
   "__v": 0
 }]
