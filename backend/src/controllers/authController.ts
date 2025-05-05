@@ -53,10 +53,19 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
     user.characterId = character._id as unknown as mongoose.Types.ObjectId;
     await user.save();
 
-    // Create empty inventory for the character
+    // Create empty inventory for the character (without items)
     await Inventory.create({
       characterId: character._id,
-      equippedItems: {},
+      equippedItems: {
+        weapon: null,
+        helmet: null,
+        armor: null,
+        shield: null,
+        earrings: null,
+        bracelet: null,
+        necklace: null,
+        boots: null
+      },
       backpack: [],
       maxSlots: 20,
     });

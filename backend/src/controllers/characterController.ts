@@ -234,6 +234,7 @@ export const updateCharacterMoney = async (req: Request & { user?: any }, res: R
 // @route   PUT /api/characters/:id/creation-complete
 // @access  Private
 export const markCharacterCreationComplete = async (req: Request & { user?: any }, res: Response): Promise<void> => {
+  // Remove session/transaction code
   try {
     const { id } = req.params;
     
@@ -277,6 +278,92 @@ export const markCharacterCreationComplete = async (req: Request & { user?: any 
     if (name) character.name = name;
 
     await character.save();
+
+    // Initialize character inventory with race-specific starter items
+    const Inventory = (await import('../models/inventoryModel')).default;
+    const Item = (await import('../models/itemModel')).default;
+    
+    // Get race-specific level 1 starter items (weapon, armor, helmet)
+    const raceSpecificItems = await Item.find({
+      raceRestriction: character.race,
+      requiredLevel: 1,
+      type: { $in: ['weapon', 'armor', 'helmet'] }
+    });
+
+    // Get general items for the other slots (no race restriction)
+    const generalItems = await Item.find({
+      raceRestriction: { $exists: false },
+      requiredLevel: 1,
+      type: { $in: ['shield', 'earrings', 'bracelet', 'necklace', 'boots'] }
+    });
+
+    // If no general items found, try to get any items without race restriction
+    const allItems = [...raceSpecificItems];
+    
+    for (const type of ['shield', 'earrings', 'bracelet', 'necklace', 'boots']) {
+      const typeItems = generalItems.filter(item => item.type === type);
+      
+      if (typeItems.length > 0) {
+        // Add the first item of this type
+        allItems.push(typeItems[0]);
+      } else {
+        // Try to find any item of this type without race restriction
+        const anyItem = await Item.findOne({
+          type,
+          requiredLevel: 1,
+          $or: [
+            { raceRestriction: { $exists: false } },
+            { raceRestriction: null }
+          ]
+        });
+        
+        if (anyItem) {
+          allItems.push(anyItem);
+        }
+      }
+    }
+
+    // Group items by type
+    const itemsByType: Record<string, any> = {};
+    allItems.forEach(item => {
+      itemsByType[item.type] = item._id;
+    });
+
+    // Check if inventory already exists
+    const existingInventory = await Inventory.findOne({ characterId: character._id });
+    
+    if (existingInventory) {
+      // Update existing inventory with race-specific equipment
+      existingInventory.equippedItems = {
+        weapon: itemsByType['weapon'] || null,
+        armor: itemsByType['armor'] || null,
+        helmet: itemsByType['helmet'] || null,
+        shield: itemsByType['shield'] || null,
+        earrings: itemsByType['earrings'] || null,
+        bracelet: itemsByType['bracelet'] || null,
+        necklace: itemsByType['necklace'] || null,
+        boots: itemsByType['boots'] || null
+      };
+      
+      await existingInventory.save();
+    } else {
+      // Create new inventory with equipped items
+      await Inventory.create({
+        characterId: character._id,
+        equippedItems: {
+          weapon: itemsByType['weapon'] || null,
+          armor: itemsByType['armor'] || null,
+          helmet: itemsByType['helmet'] || null,
+          shield: itemsByType['shield'] || null,
+          earrings: itemsByType['earrings'] || null,
+          bracelet: itemsByType['bracelet'] || null,
+          necklace: itemsByType['necklace'] || null,
+          boots: itemsByType['boots'] || null
+        },
+        backpack: [], // Empty backpack
+        maxSlots: 20
+      });
+    }
 
     res.status(200).json({
       _id: character._id,

@@ -39,7 +39,16 @@ export const getInventory = async (req: Request & { user?: any }, res: Response)
       // Create empty inventory if it doesn't exist
       const newInventory = await Inventory.create({
         characterId,
-        equippedItems: {},
+        equippedItems: {
+          weapon: null,
+          helmet: null,
+          armor: null,
+          shield: null,
+          earrings: null,
+          bracelet: null,
+          necklace: null,
+          boots: null
+        },
         backpack: [],
         maxSlots: 20
       });
@@ -421,6 +430,137 @@ export const addItemToInventory = async (req: Request & { user?: any }, res: Res
       await session.abortTransaction();
       session.endSession();
       throw error;
+    }
+  } catch (error) {
+    if (error instanceof ApiError) {
+      res.status(error.statusCode).json({ message: error.message });
+    } else if (error instanceof Error) {
+      res.status(500).json({ message: error.message });
+    } else {
+      res.status(500).json({ message: 'An unknown error occurred' });
+    }
+  }
+};
+
+// @desc    Initialize character inventory with race-specific starter items
+// @route   POST /api/inventory/:characterId/initialize
+// @access  Private
+export const initializeCharacterInventory = async (req: Request & { user?: any }, res: Response): Promise<void> => {
+  try {
+    const { characterId } = req.params;
+
+    // Validate characterId
+    if (!mongoose.Types.ObjectId.isValid(characterId)) {
+      throw new ApiError('Invalid character ID', 400);
+    }
+
+    // Get character
+    const character = await Character.findById(characterId);
+    if (!character) {
+      throw new ApiError('Character not found', 404);
+    }
+
+    // Check if user is authorized
+    if (req.user && character.userId.toString() !== req.user._id.toString() && !req.user.isAdmin) {
+      throw new ApiError('Not authorized to initialize this inventory', 401);
+    }
+
+    // Get race-specific level 1 starter items (weapon, armor, helmet)
+    const raceSpecificItems = await Item.find({
+      raceRestriction: character.race,
+      requiredLevel: 1,
+      type: { $in: ['weapon', 'armor', 'helmet'] }
+    });
+
+    // Get general items for the other slots (no race restriction)
+    const generalItems = await Item.find({
+      raceRestriction: { $exists: false },
+      requiredLevel: 1,
+      type: { $in: ['shield', 'earrings', 'bracelet', 'necklace', 'boots'] }
+    });
+
+    // If no general items found, try to get any items without race restriction
+    const allItems = [...raceSpecificItems];
+    
+    for (const type of ['shield', 'earrings', 'bracelet', 'necklace', 'boots']) {
+      const typeItems = generalItems.filter(item => item.type === type);
+      
+      if (typeItems.length > 0) {
+        // Add the first item of this type
+        allItems.push(typeItems[0]);
+      } else {
+        // Try to find any item of this type without race restriction
+        const anyItem = await Item.findOne({
+          type,
+          requiredLevel: 1,
+          $or: [
+            { raceRestriction: { $exists: false } },
+            { raceRestriction: null }
+          ]
+        });
+        
+        if (anyItem) {
+          allItems.push(anyItem);
+        }
+      }
+    }
+
+    // Group items by type
+    const itemsByType: Record<string, mongoose.Types.ObjectId> = {};
+    allItems.forEach(item => {
+      itemsByType[item.type] = item._id as unknown as mongoose.Types.ObjectId;
+    });
+
+    // Check if inventory already exists
+    const existingInventory = await Inventory.findOne({ characterId });
+    
+    if (existingInventory) {
+      // Update existing inventory with race-specific equipment
+      existingInventory.equippedItems = {
+        weapon: itemsByType['weapon'] || null,
+        armor: itemsByType['armor'] || null,
+        helmet: itemsByType['helmet'] || null,
+        shield: itemsByType['shield'] || null,
+        earrings: itemsByType['earrings'] || null,
+        bracelet: itemsByType['bracelet'] || null,
+        necklace: itemsByType['necklace'] || null,
+        boots: itemsByType['boots'] || null
+      };
+      
+      await existingInventory.save();
+      
+      // Return populated inventory
+      const populatedInventory = await Inventory.findById(existingInventory._id).populate({
+        path: 'equippedItems.weapon equippedItems.helmet equippedItems.armor equippedItems.shield equippedItems.earrings equippedItems.bracelet equippedItems.necklace equippedItems.boots',
+        model: 'Item'
+      });
+      
+      res.status(200).json(populatedInventory);
+    } else {
+      // Create new inventory with equipped items
+      const newInventory = await Inventory.create({
+        characterId,
+        equippedItems: {
+          weapon: itemsByType['weapon'] || null,
+          armor: itemsByType['armor'] || null,
+          helmet: itemsByType['helmet'] || null,
+          shield: itemsByType['shield'] || null,
+          earrings: itemsByType['earrings'] || null,
+          bracelet: itemsByType['bracelet'] || null,
+          necklace: itemsByType['necklace'] || null,
+          boots: itemsByType['boots'] || null
+        },
+        backpack: [], // Empty backpack
+        maxSlots: 20
+      });
+  
+      // Return populated inventory
+      const populatedInventory = await Inventory.findById(newInventory._id).populate({
+        path: 'equippedItems.weapon equippedItems.helmet equippedItems.armor equippedItems.shield equippedItems.earrings equippedItems.bracelet equippedItems.necklace equippedItems.boots',
+        model: 'Item'
+      });
+  
+      res.status(201).json(populatedInventory);
     }
   } catch (error) {
     if (error instanceof ApiError) {

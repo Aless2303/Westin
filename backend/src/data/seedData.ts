@@ -126,14 +126,32 @@ const seedData = async () => {
     // Creează inventarele pentru utilizatori
     await Inventory.create({
       characterId: userCharacter._id,
-      equippedItems: {},
+      equippedItems: {
+        weapon: null,
+        helmet: null,
+        armor: null,
+        shield: null,
+        earrings: null,
+        bracelet: null,
+        necklace: null,
+        boots: null
+      },
       backpack: [],
       maxSlots: 20
     });
 
     await Inventory.create({
       characterId: adminCharacter._id,
-      equippedItems: {},
+      equippedItems: {
+        weapon: null,
+        helmet: null,
+        armor: null,
+        shield: null,
+        earrings: null,
+        bracelet: null,
+        necklace: null,
+        boots: null
+      },
       backpack: [],
       maxSlots: 30
     });

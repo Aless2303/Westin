@@ -4,7 +4,8 @@ import {
   getInventory, 
   equipItem, 
   unequipItem, 
-  addItemToInventory 
+  addItemToInventory,
+  initializeCharacterInventory
 } from '../controllers/inventoryController';
 import { protect } from '../middleware/authMiddleware';
 
@@ -29,5 +30,10 @@ router.put('/:characterId/unequip', protect, unequipItem);
 // @desc    Add item to inventory
 // @access  Private
 router.post('/:characterId/items', protect, addItemToInventory);
+
+// @route   POST /api/inventory/:characterId/initialize
+// @desc    Initialize character inventory with race-specific starter items
+// @access  Private
+router.post('/:characterId/initialize', protect, initializeCharacterInventory);
 
 export default router;

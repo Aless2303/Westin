@@ -1,0 +1,20 @@
+[{
+  "_id": {
+    "$oid": "6814ed4f44034900e5d457a6"
+  },
+  "username": "alex",
+  "email": "milea84.am@gmail.com",
+  "password": "$2b$10$ae6oaKVc25En3EnnLYSqV.4Z5OP1xfcSOLHswrOSAbiFuldgQPrOe",
+  "isAdmin": false,
+  "hasCreatedCharacter": true,
+  "createdAt": {
+    "$date": "2025-05-02T16:05:35.156Z"
+  },
+  "updatedAt": {
+    "$date": "2025-05-02T16:13:44.325Z"
+  },
+  "__v": 0,
+  "characterId": {
+    "$oid": "6814ed4f44034900e5d457a8"
+  }
+}]
