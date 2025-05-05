@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useRef, useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useChatContext } from '../context/ChatContext';
@@ -82,7 +84,10 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     closePrivateConversation(conversationId);
   };
 
-  const shouldShowHeader = (messages: any[], index: number) => {
+  const shouldShowHeader = (messages: Array<{
+    senderId: string;
+    timestamp: number;
+  }>, index: number) => {
     if (index === 0) return true;
     const currentMessage = messages[index];
     const previousMessage = messages[index - 1];
@@ -130,7 +135,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     return (
       <div className="space-y-1 sm:space-y-4">
         {messages.map((message, index) => (
-          <div key={message.id} className={`message ${message.senderId === characterId ? 'flex flex-row-reverse' : 'flex'}`}>
+          <div key={message.id || `message-${index}`} className={`message ${message.senderId === characterId ? 'flex flex-row-reverse' : 'flex'}`}>
             <div className={`flex max-w-full ${message.senderId === characterId ? 'flex-row-reverse' : ''}`}>
               {shouldShowHeader(messages, index) ? (
                 <div className={`flex-shrink-0 ${message.senderId === characterId ? 'ml-0.5 sm:ml-2' : 'mr-0.5 sm:mr-2'}`}>

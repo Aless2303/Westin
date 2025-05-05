@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useRef, useEffect } from 'react';
 import { useChatContext } from '../context/ChatContext';
 import { formatTimestamp } from '../utils/formatTimestamp';

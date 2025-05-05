@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { geistSans, geistMono } from "../src/lib/nextFonts";
 import "../src/assets/styles/globals.css";  // Check this path
 import { AuthProvider } from "../src/context/AuthContext";
+import ClientOnly from "../src/components/ClientOnly";
 import AuthCheck from "../src/components/AuthCheck"
 
 export const metadata: Metadata = {
@@ -18,8 +19,10 @@ export default function RootLayout({
     <html lang="ro">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <AuthProvider>
-          <AuthCheck/>
-          {children}
+          <ClientOnly>
+            <AuthCheck/>
+            {children}
+          </ClientOnly>
         </AuthProvider>
       </body>
     </html>

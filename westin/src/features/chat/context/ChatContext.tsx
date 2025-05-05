@@ -1,3 +1,5 @@
+"use client";
+
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useChatState } from '../hooks/useChatState';
 import { GlobalChatMessage, PrivateConversation, ChatType } from '../../../types/chat';
