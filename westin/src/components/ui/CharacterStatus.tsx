@@ -1,5 +1,5 @@
 // src/components/ui/CharacterStatus.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { Leaderboard } from '../../features/leaderboard';
 import { ProfileWindow } from '../../features/profile';
@@ -93,76 +93,9 @@ const CharacterStatus: React.FC = () => {
 
   // Fetch inventory and equipped items
   useEffect(() => {
-    const fetchInventory = async () => {
-      if (!characterData?._id) return;
-      
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          console.error("No authentication token found");
-          return;
-        }
-        
-        const response = await fetch(`http://localhost:5000/api/inventory/${characterData._id}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Error ${response.status}: ${await response.text()}`);
-        }
-        
-        const inventoryData = await response.json();
-        
-        // Create equipment slots based on equipped items
-        const equipment: EquipmentSlot[] = [
-          { id: 'weapon', name: 'Armă', item: null, gridArea: 'weapon', size: 'large' },
-          { id: 'helmet', name: 'Coif', item: null, gridArea: 'helmet', size: 'medium' },
-          { id: 'armor', name: 'Armură', item: null, gridArea: 'armor', size: 'large' },
-          { id: 'shield', name: 'Scut', item: null, gridArea: 'shield', size: 'medium' },
-          { id: 'earrings', name: 'Cercei', item: null, gridArea: 'earrings', size: 'small' },
-          { id: 'bracelet', name: 'Brățară', item: null, gridArea: 'bracelet', size: 'small' },
-          { id: 'necklace', name: 'Colier', item: null, gridArea: 'necklace', size: 'small' },
-          { id: 'boots', name: 'Papuci', item: null, gridArea: 'boots', size: 'medium' },
-        ];
-        
-        // Map equipped items from inventory to equipment slots
-        if (inventoryData.equippedItems) {
-          // Get all slot types
-          const slotTypes = ['weapon', 'helmet', 'armor', 'shield', 'earrings', 'bracelet', 'necklace', 'boots'];
-          
-          slotTypes.forEach(slotType => {
-            // The backend now returns the full item object directly in equippedItems
-            const itemData = inventoryData.equippedItems[slotType];
-            if (itemData) {
-              const slot = equipment.find(slot => slot.id === slotType);
-              if (slot) {
-                // Create InventoryItem from the item data
-                const item: InventoryItem = {
-                  id: itemData._id,
-                  name: itemData.name,
-                  // Tratează imaginea în format base64
-                  imagePath: itemData.image || '', 
-                  type: itemData.type,
-                  stackable: itemData.tradeable || false,
-                  stats: itemData.stats || {},
-                  description: itemData.description || '',
-                  requiredLevel: itemData.requiredLevel || 1
-                };
-                slot.item = item;
-              }
-            }
-          });
-        }
-        
-        setCharacterEquipment(equipment);
-      } catch (err) {
-        console.error("Error fetching inventory data:", err);
-      }
-    };
+    if (!characterData?._id) return;
     
+    // Initial load of inventory data
     fetchInventory();
   }, [characterData]);
 
@@ -188,8 +121,86 @@ const CharacterStatus: React.FC = () => {
     setIsLeaderboardOpen(!isLeaderboardOpen);
   };
 
-  const toggleProfile = () => {
-    setIsProfileOpen(!isProfileOpen);
+  // Fetch inventory data function
+  const fetchInventory = useCallback(async () => {
+    if (!characterData?._id) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error("No authentication token found");
+        return;
+      }
+      
+      const response = await fetch(`http://localhost:5000/api/inventory/${characterData._id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${await response.text()}`);
+      }
+      
+      const inventoryData = await response.json();
+      
+      // Create equipment slots based on equipped items
+      const equipment: EquipmentSlot[] = [
+        { id: 'weapon', name: 'Armă', item: null, gridArea: 'weapon', size: 'large' },
+        { id: 'helmet', name: 'Coif', item: null, gridArea: 'helmet', size: 'medium' },
+        { id: 'armor', name: 'Armură', item: null, gridArea: 'armor', size: 'large' },
+        { id: 'shield', name: 'Scut', item: null, gridArea: 'shield', size: 'medium' },
+        { id: 'earrings', name: 'Cercei', item: null, gridArea: 'earrings', size: 'small' },
+        { id: 'bracelet', name: 'Brățară', item: null, gridArea: 'bracelet', size: 'small' },
+        { id: 'necklace', name: 'Colier', item: null, gridArea: 'necklace', size: 'small' },
+        { id: 'boots', name: 'Papuci', item: null, gridArea: 'boots', size: 'medium' },
+      ];
+      
+      // Map equipped items from inventory to equipment slots
+      if (inventoryData.equippedItems) {
+        // Get all slot types
+        const slotTypes = ['weapon', 'helmet', 'armor', 'shield', 'earrings', 'bracelet', 'necklace', 'boots'];
+        
+        slotTypes.forEach(slotType => {
+          // The backend now returns the full item object directly in equippedItems
+          const itemData = inventoryData.equippedItems[slotType];
+          if (itemData) {
+            const slot = equipment.find(slot => slot.id === slotType);
+            if (slot) {
+              // Create InventoryItem from the item data
+              const item: InventoryItem = {
+                id: itemData._id,
+                name: itemData.name,
+                // Tratează imaginea în format base64
+                imagePath: itemData.image || '', 
+                type: itemData.type,
+                stackable: itemData.tradeable || false,
+                stats: itemData.stats || {},
+                description: itemData.description || '',
+                requiredLevel: itemData.requiredLevel || 1
+              };
+              slot.item = item;
+            }
+          }
+        });
+      }
+      
+      setCharacterEquipment(equipment);
+      console.log("Inventory data refreshed for profile");
+    } catch (err) {
+      console.error("Error fetching inventory data:", err);
+    }
+  }, [characterData]);
+
+  const toggleProfile = async () => {
+    if (!isProfileOpen) {
+      // If we're opening the profile, refresh the inventory data first
+      await fetchInventory();
+      setIsProfileOpen(true);
+    } else {
+      setIsProfileOpen(false);
+    }
   };
 
   // Verifică dacă un string este o imagine base64

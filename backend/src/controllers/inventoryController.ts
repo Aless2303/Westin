@@ -141,9 +141,17 @@ export const equipItem = async (req: Request & { user?: any }, res: Response): P
     }
 
     // Get item from inventory's backpack
-    const backpackItemIndex = inventory.backpack.findIndex(
+    // First try to find by slot AND itemId
+    let backpackItemIndex = inventory.backpack.findIndex(
       item => item.slot === slot && item.itemId.toString() === itemId
     );
+
+    // If not found by slot AND itemId, try just by itemId
+    if (backpackItemIndex === -1) {
+      backpackItemIndex = inventory.backpack.findIndex(
+        item => item.itemId.toString() === itemId
+      );
+    }
 
     if (backpackItemIndex === -1) {
       throw new ApiError('Item not found in backpack', 404);
@@ -167,64 +175,84 @@ export const equipItem = async (req: Request & { user?: any }, res: Response): P
       throw new ApiError(`Character level too low (required: ${item.requiredLevel})`, 400);
     }
 
-    // Start a transaction
-    const session = await mongoose.startSession();
-    session.startTransaction();
+    // Remove item from backpack
+    const itemToRemove = inventory.backpack[backpackItemIndex];
+    inventory.backpack.splice(backpackItemIndex, 1);
 
-    try {
-      // Remove item from backpack
-      const itemToRemove = inventory.backpack[backpackItemIndex];
-      inventory.backpack.splice(backpackItemIndex, 1);
-
-      // Get currently equipped item if any
-      const currentlyEquippedId = (inventory.equippedItems as any)[item.type];
+    // Get currently equipped item if any
+    const currentlyEquippedId = (inventory.equippedItems as any)[item.type];
+    
+    // If there's already an item equipped in this slot, move it to backpack
+    if (currentlyEquippedId) {
+      // Find first available slot
+      let availableSlot = 0;
+      const usedSlots = inventory.backpack.map(item => item.slot);
       
-      // If there's already an item equipped in this slot, move it to backpack
-      if (currentlyEquippedId) {
-        // Find first available slot
-        let availableSlot = 0;
-        const usedSlots = inventory.backpack.map(item => item.slot);
-        
-        while (usedSlots.includes(availableSlot)) {
-          availableSlot++;
-        }
-
-        // Check if inventory is full
-        if (availableSlot >= inventory.maxSlots) {
-          throw new ApiError('Inventory is full', 400);
-        }
-
-        // Add previously equipped item to backpack
-        inventory.backpack.push({
-          itemId: currentlyEquippedId,
-          quantity: 1,
-          slot: availableSlot
-        });
+      while (usedSlots.includes(availableSlot)) {
+        availableSlot++;
       }
 
-      // Equip new item
-      (inventory.equippedItems as any)[item.type] = itemToRemove.itemId;
+      // Check if inventory is full
+      if (availableSlot >= inventory.maxSlots) {
+        throw new ApiError('Inventory is full', 400);
+      }
 
-      // Save inventory
-      await inventory.save({ session });
-
-      // Commit transaction
-      await session.commitTransaction();
-      session.endSession();
-
-      // Get updated inventory with populated items
-      const updatedInventory = await Inventory.findOne({ characterId }).populate({
-        path: 'equippedItems.weapon equippedItems.helmet equippedItems.armor equippedItems.shield equippedItems.earrings equippedItems.bracelet equippedItems.necklace equippedItems.boots backpack.itemId',
-        model: 'Item'
+      // Add previously equipped item to backpack
+      inventory.backpack.push({
+        itemId: currentlyEquippedId,
+        quantity: 1,
+        slot: availableSlot
       });
-
-      res.status(200).json(updatedInventory);
-    } catch (error) {
-      // Abort transaction on error
-      await session.abortTransaction();
-      session.endSession();
-      throw error;
     }
+
+    // Equip new item
+    (inventory.equippedItems as any)[item.type] = itemToRemove.itemId;
+
+    // Save inventory
+    await inventory.save();
+
+    // Get updated inventory with populated items
+    const updatedInventory = await Inventory.findOne({ characterId });
+    const result = updatedInventory?.toObject();
+    
+    // Populate each equipped item with full details
+    if (result && result.equippedItems) {
+      const equippedSlots = ['weapon', 'helmet', 'armor', 'shield', 'earrings', 'bracelet', 'necklace', 'boots'];
+      
+      // Create a populated version of equippedItems
+      const populatedEquippedItems: any = {};
+      
+      // Populate each slot
+      for (const slot of equippedSlots) {
+        const itemId = (result.equippedItems as any)[slot];
+        if (itemId) {
+          const item = await Item.findById(itemId);
+          if (item) {
+            populatedEquippedItems[slot] = item;
+          }
+        }
+      }
+      
+      // Replace the equipped items with populated versions
+      result.equippedItems = populatedEquippedItems;
+    }
+    
+    // Populate backpack items
+    if (result && result.backpack && result.backpack.length > 0) {
+      const populatedBackpack = await Promise.all(
+        result.backpack.map(async (backpackItem: any) => {
+          const item = await Item.findById(backpackItem.itemId);
+          return {
+            ...backpackItem,
+            itemId: item
+          };
+        })
+      );
+      
+      result.backpack = populatedBackpack;
+    }
+
+    res.status(200).json(result);
   } catch (error) {
     if (error instanceof ApiError) {
       res.status(error.statusCode).json({ message: error.message });
@@ -284,54 +312,74 @@ export const unequipItem = async (req: Request & { user?: any }, res: Response):
       throw new ApiError('No item equipped in this slot', 404);
     }
 
-    // Start a transaction
-    const session = await mongoose.startSession();
-    session.startTransaction();
-
-    try {
-      // Find first available slot in backpack
-      let availableSlot = 0;
-      const usedSlots = inventory.backpack.map(item => item.slot);
-      
-      while (usedSlots.includes(availableSlot)) {
-        availableSlot++;
-      }
-
-      // Check if inventory is full
-      if (availableSlot >= inventory.maxSlots) {
-        throw new ApiError('Inventory is full', 400);
-      }
-
-      // Add unequipped item to backpack
-      inventory.backpack.push({
-        itemId: equippedItemId,
-        quantity: 1,
-        slot: availableSlot
-      });
-
-      // Remove item from equipped items
-      (inventory.equippedItems as any)[itemType] = undefined;
-
-      // Save inventory
-      await inventory.save({ session });
-
-      // Commit transaction
-      await session.commitTransaction();
-      session.endSession();
-
-      // Get updated inventory with populated items
-      const updatedInventory = await Inventory.findOne({ characterId }).populate({
-        path: 'equippedItems.weapon equippedItems.helmet equippedItems.armor equippedItems.shield equippedItems.earrings equippedItems.bracelet equippedItems.necklace equippedItems.boots backpack.itemId',
-        model: 'Item'
-      });
-
-      res.status(200).json(updatedInventory);
-    } catch (error) {
-      // Abort transaction on error
-      await session.abortTransaction();
-      session.endSession();
-      throw error;
+    // Find first available slot in backpack
+    let availableSlot = 0;
+    const usedSlots = inventory.backpack.map(item => item.slot);
+    
+    while (usedSlots.includes(availableSlot)) {
+      availableSlot++;
     }
+
+    // Check if inventory is full
+    if (availableSlot >= inventory.maxSlots) {
+      throw new ApiError('Inventory is full', 400);
+    }
+
+    // Add unequipped item to backpack
+    inventory.backpack.push({
+      itemId: equippedItemId,
+      quantity: 1,
+      slot: availableSlot
+    });
+
+    // Remove item from equipped items
+    (inventory.equippedItems as any)[itemType] = null;
+
+    // Save inventory
+    await inventory.save();
+
+    // Get updated inventory with populated items
+    const updatedInventory = await Inventory.findOne({ characterId });
+    const result = updatedInventory?.toObject();
+    
+    // Populate each equipped item with full details
+    if (result && result.equippedItems) {
+      const equippedSlots = ['weapon', 'helmet', 'armor', 'shield', 'earrings', 'bracelet', 'necklace', 'boots'];
+      
+      // Create a populated version of equippedItems
+      const populatedEquippedItems: any = {};
+      
+      // Populate each slot
+      for (const slot of equippedSlots) {
+        const itemId = (result.equippedItems as any)[slot];
+        if (itemId) {
+          const item = await Item.findById(itemId);
+          if (item) {
+            populatedEquippedItems[slot] = item;
+          }
+        }
+      }
+      
+      // Replace the equipped items with populated versions
+      result.equippedItems = populatedEquippedItems;
+    }
+    
+    // Populate backpack items
+    if (result && result.backpack && result.backpack.length > 0) {
+      const populatedBackpack = await Promise.all(
+        result.backpack.map(async (backpackItem: any) => {
+          const item = await Item.findById(backpackItem.itemId);
+          return {
+            ...backpackItem,
+            itemId: item
+          };
+        })
+      );
+      
+      result.backpack = populatedBackpack;
+    }
+
+    res.status(200).json(result);
   } catch (error) {
     if (error instanceof ApiError) {
       res.status(error.statusCode).json({ message: error.message });
@@ -407,66 +455,87 @@ export const addItemToInventory = async (req: Request & { user?: any }, res: Res
       item => item.slot === targetSlot
     );
 
-    // Start a transaction
-    const session = await mongoose.startSession();
-    session.startTransaction();
-
-    try {
-      if (existingItemIndex !== -1) {
-        const existingItem = inventory.backpack[existingItemIndex];
-        
-        // If same item and stackable, increase quantity
-        if (existingItem.itemId.toString() === itemId && item.stackable) {
-          existingItem.quantity += quantity;
-          inventory.backpack[existingItemIndex] = existingItem;
-        } else {
-          // Different item or not stackable, find another slot
-          const usedSlots = inventory.backpack.map(item => item.slot);
-          let availableSlot = 0;
-          
-          while (usedSlots.includes(availableSlot)) {
-            availableSlot++;
-          }
-          
-          if (availableSlot >= inventory.maxSlots) {
-            throw new ApiError('Inventory is full', 400);
-          }
-          
-          inventory.backpack.push({
-            itemId: new mongoose.Types.ObjectId(itemId),
-            quantity,
-            slot: availableSlot
-          });
-        }
+    // Handle item placement or stacking
+    if (existingItemIndex !== -1) {
+      const existingItem = inventory.backpack[existingItemIndex];
+      
+      // If same item and stackable, increase quantity
+      if (existingItem.itemId.toString() === itemId && item.stackable) {
+        existingItem.quantity += quantity;
+        inventory.backpack[existingItemIndex] = existingItem;
       } else {
-        // Slot is free, add item
+        // Different item or not stackable, find another slot
+        const usedSlots = inventory.backpack.map(item => item.slot);
+        let availableSlot = 0;
+        
+        while (usedSlots.includes(availableSlot)) {
+          availableSlot++;
+        }
+        
+        if (availableSlot >= inventory.maxSlots) {
+          throw new ApiError('Inventory is full', 400);
+        }
+        
         inventory.backpack.push({
           itemId: new mongoose.Types.ObjectId(itemId),
           quantity,
-          slot: targetSlot
+          slot: availableSlot
         });
       }
-
-      // Save inventory
-      await inventory.save({ session });
-
-      // Commit transaction
-      await session.commitTransaction();
-      session.endSession();
-
-      // Get updated inventory with populated items
-      const updatedInventory = await Inventory.findOne({ characterId }).populate({
-        path: 'equippedItems.weapon equippedItems.helmet equippedItems.armor equippedItems.shield equippedItems.earrings equippedItems.bracelet equippedItems.necklace equippedItems.boots backpack.itemId',
-        model: 'Item'
+    } else {
+      // Slot is free, add item
+      inventory.backpack.push({
+        itemId: new mongoose.Types.ObjectId(itemId),
+        quantity,
+        slot: targetSlot
       });
-
-      res.status(200).json(updatedInventory);
-    } catch (error) {
-      // Abort transaction on error
-      await session.abortTransaction();
-      session.endSession();
-      throw error;
     }
+
+    // Save inventory
+    await inventory.save();
+    
+    // Get updated inventory with populated items
+    const updatedInventory = await Inventory.findOne({ characterId });
+    const result = updatedInventory?.toObject();
+    
+    // Populate each equipped item with full details
+    if (result && result.equippedItems) {
+      const equippedSlots = ['weapon', 'helmet', 'armor', 'shield', 'earrings', 'bracelet', 'necklace', 'boots'];
+      
+      // Create a populated version of equippedItems
+      const populatedEquippedItems: any = {};
+      
+      // Populate each slot
+      for (const slot of equippedSlots) {
+        const itemId = (result.equippedItems as any)[slot];
+        if (itemId) {
+          const item = await Item.findById(itemId);
+          if (item) {
+            populatedEquippedItems[slot] = item;
+          }
+        }
+      }
+      
+      // Replace the equipped items with populated versions
+      result.equippedItems = populatedEquippedItems;
+    }
+    
+    // Populate backpack items
+    if (result && result.backpack && result.backpack.length > 0) {
+      const populatedBackpack = await Promise.all(
+        result.backpack.map(async (backpackItem: any) => {
+          const item = await Item.findById(backpackItem.itemId);
+          return {
+            ...backpackItem,
+            itemId: item
+          };
+        })
+      );
+      
+      result.backpack = populatedBackpack;
+    }
+
+    res.status(200).json(result);
   } catch (error) {
     if (error instanceof ApiError) {
       res.status(error.statusCode).json({ message: error.message });

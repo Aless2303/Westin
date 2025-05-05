@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import Image from 'next/image';
 
 // Interface for inventory items
@@ -19,11 +19,17 @@ interface InventoryItem {
 interface BackpackProps {
   backpackItems: (InventoryItem | null)[];
   onEquip: (item: InventoryItem, index: number) => void;
+  isBase64Image: (str: string) => boolean;
+  getImageUrl: (src: string) => string;
 }
 
-const Backpack: React.FC<BackpackProps> = ({ backpackItems, onEquip }) => {
+const Backpack: React.FC<BackpackProps> = ({ backpackItems, onEquip, isBase64Image, getImageUrl }) => {
   const [tooltipItem, setTooltipItem] = useState<InventoryItem | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  
+  // For double-tap detection on touch devices
+  const lastTapTimeRef = useRef<{ [key: number]: number }>({});
+  const doubleTapDelay = 300; // milliseconds
 
   const handleMouseEnter = (item: InventoryItem, e: React.MouseEvent) => {
     setTooltipItem(item);
@@ -51,6 +57,32 @@ const Backpack: React.FC<BackpackProps> = ({ backpackItems, onEquip }) => {
       setTooltipPosition({ x: adjustedX, y: adjustedY });
     }
   };
+  
+  // Handler for touch taps with double-tap detection
+  const handleTouchStart = (item: InventoryItem, index: number, e: React.TouchEvent) => {
+    // Create mock event for tooltip positioning
+    const touch = e.touches[0];
+    const mockEvent = {
+      clientX: touch.clientX,
+      clientY: touch.clientY
+    } as React.MouseEvent;
+    
+    // Show tooltip
+    handleMouseEnter(item, mockEvent);
+    
+    // Check for double tap
+    const now = Date.now();
+    const lastTap = lastTapTimeRef.current[index] || 0;
+    
+    if (now - lastTap < doubleTapDelay) {
+      // Double tap detected
+      onEquip(item, index);
+      lastTapTimeRef.current[index] = 0; // Reset after action
+    } else {
+      // Store timestamp for this index
+      lastTapTimeRef.current[index] = now;
+    }
+  };
 
   const slotsToShow = window.innerWidth < 640 ? 10 : 20;
 
@@ -70,19 +102,27 @@ const Backpack: React.FC<BackpackProps> = ({ backpackItems, onEquip }) => {
                 onMouseLeave={handleMouseLeave}
                 onMouseMove={handleMouseMove}
                 onDoubleClick={() => item && onEquip(item, index)}
-                onTouchStart={item ? (e) => handleMouseEnter(item, e) : undefined}
+                onTouchStart={item ? (e) => handleTouchStart(item, index, e) : undefined}
                 onTouchEnd={handleMouseLeave}
               >
                 {item ? (
                   <>
                     <div className="w-10 sm:w-12 h-10 sm:h-12 flex items-center justify-center relative">
                       <div className="relative w-9 sm:w-11 h-9 sm:h-11 bg-metin-brown/40 rounded flex items-center justify-center">
-                        <Image
-                          src={item.imagePath}
-                          alt={item.name}
-                          fill
-                          className="object-contain p-1"
-                        />
+                        {isBase64Image(item.imagePath) ? (
+                          <img
+                            src={getImageUrl(item.imagePath)}
+                            alt={item.name}
+                            className="object-contain max-w-full max-h-full p-1"
+                          />
+                        ) : (
+                          <Image
+                            src={item.imagePath}
+                            alt={item.name}
+                            fill
+                            className="object-contain p-1"
+                          />
+                        )}
                       </div>
                       <div className="absolute bottom-0 left-0 bg-metin-dark/80 text-metin-gold text-xs px-1 rounded-tr">
                         {item.requiredLevel}

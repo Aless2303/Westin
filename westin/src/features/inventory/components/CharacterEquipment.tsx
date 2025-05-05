@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import Image from 'next/image';
 
 // Interface for inventory items
@@ -29,12 +29,15 @@ interface CharacterEquipmentProps {
   playerRace: string;
   equipmentSlots: EquipmentSlot[];
   onUnequip: (slotId: string) => void;
+  isBase64Image: (str: string) => boolean;
+  getImageUrl: (src: string) => string;
 }
 
 const CharacterEquipment: React.FC<CharacterEquipmentProps> = ({
-  playerRace,
   equipmentSlots,
   onUnequip,
+  isBase64Image,
+  getImageUrl,
 }) => {
   const gridTemplateAreas = `
     "weapon helmet . ."
@@ -45,6 +48,10 @@ const CharacterEquipment: React.FC<CharacterEquipmentProps> = ({
 
   const [tooltipItem, setTooltipItem] = useState<InventoryItem | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  
+  // For double-tap detection on touch devices
+  const lastTapTimeRef = useRef<{ [key: string]: number }>({});
+  const doubleTapDelay = 300; // milliseconds
 
   const handleMouseEnter = (item: InventoryItem, e: React.MouseEvent) => {
     setTooltipItem(item);
@@ -72,6 +79,34 @@ const CharacterEquipment: React.FC<CharacterEquipmentProps> = ({
       setTooltipPosition({ x: adjustedX, y: adjustedY });
     }
   };
+  
+  // Handler for touch taps with double-tap detection
+  const handleTouchStart = (slot: EquipmentSlot, e: React.TouchEvent) => {
+    if (!slot.item) return;
+    
+    // Create mock event for tooltip positioning
+    const touch = e.touches[0];
+    const mockEvent = {
+      clientX: touch.clientX,
+      clientY: touch.clientY
+    } as React.MouseEvent;
+    
+    // Show tooltip
+    handleMouseEnter(slot.item, mockEvent);
+    
+    // Check for double tap
+    const now = Date.now();
+    const lastTap = lastTapTimeRef.current[slot.id] || 0;
+    
+    if (now - lastTap < doubleTapDelay) {
+      // Double tap detected
+      onUnequip(slot.id);
+      lastTapTimeRef.current[slot.id] = 0; // Reset after action
+    } else {
+      // Store timestamp for this slot
+      lastTapTimeRef.current[slot.id] = now;
+    }
+  };
 
   return (
     <div className="h-full p-1">
@@ -88,19 +123,27 @@ const CharacterEquipment: React.FC<CharacterEquipmentProps> = ({
             onMouseLeave={handleMouseLeave}
             onMouseMove={handleMouseMove}
             onDoubleClick={() => slot.item && onUnequip(slot.id)}
-            onTouchStart={slot.item ? (e) => handleMouseEnter(slot.item!, e) : undefined}
+            onTouchStart={slot.item ? (e) => handleTouchStart(slot, e) : undefined}
             onTouchEnd={handleMouseLeave}
           >
             {slot.item ? (
               <div className="w-full h-full p-2 relative">
                 <div className="bg-metin-brown/40 rounded w-full h-full flex items-center justify-center relative">
                   <div className="relative w-full h-full flex items-center justify-center">
-                    <Image
-                      src={slot.item.imagePath}
-                      alt={slot.item.name}
-                      fill
-                      className="object-contain p-1"
-                    />
+                    {isBase64Image(slot.item.imagePath) ? (
+                      <img 
+                        src={getImageUrl(slot.item.imagePath)}
+                        alt={slot.item.name}
+                        className="object-contain max-w-full max-h-full p-1"
+                      />
+                    ) : (
+                      <Image
+                        src={slot.item.imagePath}
+                        alt={slot.item.name}
+                        fill
+                        className="object-contain p-1"
+                      />
+                    )}
                   </div>
                   <div className="absolute bottom-0 right-0 bg-metin-dark/80 text-metin-gold text-xs px-1 rounded-tl">
                     LvL {slot.item.requiredLevel}
@@ -149,6 +192,9 @@ const CharacterEquipment: React.FC<CharacterEquipmentProps> = ({
           </div>
           <div className="mt-1 text-xs text-metin-light/50">
             Nivel necesar: {tooltipItem.requiredLevel}
+          </div>
+          <div className="mt-1 text-xs text-metin-gold/80 italic">
+            Dublu click pentru a dezechipa
           </div>
         </div>
       )}
