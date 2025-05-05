@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useChatContext } from '../context/ChatContext';
-import mockData from '../../../data/mock';
+import axios from 'axios';
 import { PlayerType } from '../../../types/player';
 
 const PlayerSearch: React.FC = () => {
@@ -15,17 +15,53 @@ const PlayerSearch: React.FC = () => {
   } = useChatContext();
   
   const [searchResults, setSearchResults] = useState<PlayerType[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (searchPlayerInput.trim().length >= 2) {
-      const results = mockData.players.filter((player) =>
-        player.name.toLowerCase().includes(searchPlayerInput.toLowerCase())
-      );
-      setSearchResults(results);
-    } else {
-      setSearchResults([]);
-    }
+    // Setup search debounce
+    const searchTimeout = setTimeout(() => {
+      if (searchPlayerInput.trim().length >= 2) {
+        searchPlayers(searchPlayerInput);
+      } else {
+        setSearchResults([]);
+      }
+    }, 300);
+
+    return () => clearTimeout(searchTimeout);
   }, [searchPlayerInput]);
+
+  const searchPlayers = async (query: string) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError("Trebuie să fii autentificat");
+        return;
+      }
+      
+      const response = await axios.get(`http://localhost:5000/api/characters/search`, {
+        params: { query },
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      console.log('Search results:', response.data);
+      setSearchResults(response.data);
+    } catch (error: unknown) {
+      console.error('Error searching players:', error);
+      const errorMessage = 
+        axios.isAxiosError(error) && error.response?.data?.message 
+          ? error.response.data.message 
+          : "Eroare la căutarea jucătorilor";
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSelectPlayer = (playerId: string, playerName: string) => {
     initiatePrivateChat(playerId, playerName);
@@ -60,13 +96,30 @@ const PlayerSearch: React.FC = () => {
             autoFocus
           />
           <div className="absolute inset-y-0 right-0 flex items-center pr-1 sm:pr-3">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 sm:h-5 w-3.5 sm:w-5 text-metin-gold/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+            {isLoading ? (
+              <div className="h-3.5 sm:h-5 w-3.5 sm:w-5 text-metin-gold/50 animate-spin rounded-full border-2 border-t-transparent border-metin-gold/50"></div>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 sm:h-5 w-3.5 sm:w-5 text-metin-gold/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            )}
           </div>
-
         </div>
       </div>
+
+      {error && (
+        <div className="mb-3 p-2 border border-metin-red/30 bg-metin-red/10 rounded-md text-metin-red text-[10px] sm:text-sm">
+          <div className="flex flex-col sm:flex-row items-center justify-between">
+            <p>{error}</p>
+            <button 
+              onClick={() => searchPlayerInput.trim().length >= 2 && searchPlayers(searchPlayerInput)}
+              className="mt-1 sm:mt-0 px-2 py-0.5 text-[8px] sm:text-xs bg-metin-dark/50 border border-metin-gold/30 rounded hover:bg-metin-gold/10 text-metin-gold"
+            >
+              Încearcă din nou
+            </button>
+          </div>
+        </div>
+      )}
 
       {searchResults.length > 0 ? (
         <div className="max-h-60 sm:max-h-80 overflow-y-auto pr-0.5 sm:pr-1 scrollbar-thin scrollbar-thumb-metin-gold/20 scrollbar-track-transparent">
@@ -107,12 +160,17 @@ const PlayerSearch: React.FC = () => {
             ))}
           </ul>
         </div>
-      ) : searchPlayerInput.trim().length >= 2 ? (
+      ) : searchPlayerInput.trim().length >= 2 && !isLoading ? (
         <div className="flex flex-col items-center justify-center py-3 sm:py-6 text-metin-light/70 border border-dashed border-metin-gold/20 rounded-md bg-metin-dark/30">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 sm:h-10 w-6 sm:w-10 text-metin-gold/30 mb-1 sm:mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <p className="text-[10px] sm:text-sm">Niciun jucător găsit</p>
+        </div>
+      ) : isLoading ? (
+        <div className="flex flex-col items-center justify-center py-3 sm:py-6 text-metin-light/70 border border-dashed border-metin-gold/20 rounded-md bg-metin-dark/30">
+          <div className="w-6 sm:w-10 h-6 sm:h-10 border-4 border-metin-gold/20 border-t-metin-gold/60 rounded-full animate-spin mb-1 sm:mb-2"></div>
+          <p className="text-[10px] sm:text-sm">Se caută...</p>
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-3 sm:py-6 text-metin-light/70 border border-dashed border-metin-gold/20 rounded-md bg-metin-dark/30">

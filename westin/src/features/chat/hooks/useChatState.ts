@@ -252,7 +252,10 @@ export const useChatState = (characterId: string, _characterName: string) => {
   const findOrCreatePrivateConversation = useCallback(async (targetPlayerId: string, targetPlayerName: string) => {
     try {
       const token = localStorage.getItem('token');
-      if (!token) return null;
+      if (!token) {
+        console.error('No authentication token found');
+        return null;
+      }
       
       // Check if conversation already exists
       const existingConversation = privateConversations.find(conv => 
@@ -261,8 +264,11 @@ export const useChatState = (characterId: string, _characterName: string) => {
       );
       
       if (existingConversation) {
+        console.log('Using existing conversation:', existingConversation.id);
         return existingConversation.id;
       }
+      
+      console.log('Creating new conversation with player:', targetPlayerId);
       
       // If not, create new conversation
       const response = await axios.post('http://localhost:5000/api/chat/conversations', 
@@ -273,6 +279,8 @@ export const useChatState = (characterId: string, _characterName: string) => {
           }
         }
       );
+      
+      console.log('Server response:', response.data);
       
       const newConversation: PrivateConversation = {
         id: response.data.id,
@@ -285,8 +293,15 @@ export const useChatState = (characterId: string, _characterName: string) => {
       
       setPrivateConversations(prev => [...prev, newConversation]);
       return newConversation.id;
-    } catch (error) {
-      console.error('Error creating conversation:', error);
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        const errorMessage = error.response?.data?.message || 'Unknown error';
+        console.error(`Error creating conversation: ${errorMessage}`, error.response?.data);
+        alert(`Could not create conversation: ${errorMessage}`);
+      } else {
+        console.error('Error creating conversation:', error);
+        alert('Could not create conversation. Please try again later.');
+      }
       return null;
     }
   }, [privateConversations, characterId]);

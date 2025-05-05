@@ -142,21 +142,43 @@ export const getConversationMessages = async (req: Request & { user?: any }, res
 export const initiateConversation = async (req: Request & { user?: any }, res: Response): Promise<void> => {
   try {
     const { targetUserId } = req.body;
+    
+    // Log for debugging
+    console.log('Initiating conversation with targetUserId:', targetUserId);
+    console.log('Request user ID:', req.user?._id);
+    
+    if (!targetUserId) {
+      console.error('Invalid request: targetUserId is missing');
+      res.status(400).json({ message: 'Target user ID is required' });
+      return;
+    }
 
-    if (!targetUserId || !mongoose.Types.ObjectId.isValid(targetUserId)) {
-      throw new ApiError('Invalid user ID', 400);
+    // Validate that targetUserId is a valid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(targetUserId)) {
+      console.error(`Invalid ObjectId: ${targetUserId}`);
+      res.status(400).json({ message: 'Invalid user ID format' });
+      return;
     }
 
     if (targetUserId === req.user._id.toString()) {
-      throw new ApiError('Cannot start a conversation with yourself', 400);
+      res.status(400).json({ message: 'Cannot start a conversation with yourself' });
+      return;
     }
 
     // Get character information for both users
     const initiatorCharacter = await Character.findOne({ userId: req.user._id });
     const targetCharacter = await Character.findOne({ userId: targetUserId });
 
-    if (!initiatorCharacter || !targetCharacter) {
-      throw new ApiError('Character not found', 404);
+    if (!initiatorCharacter) {
+      console.error(`Initiator character not found for user: ${req.user._id}`);
+      res.status(404).json({ message: 'Your character not found' });
+      return;
+    }
+    
+    if (!targetCharacter) {
+      console.error(`Target character not found for user: ${targetUserId}`);
+      res.status(404).json({ message: 'Target user character not found' });
+      return;
     }
 
     // Check if a conversation already exists between these users
@@ -208,6 +230,7 @@ export const initiateConversation = async (req: Request & { user?: any }, res: R
       isAccepted: conversation.isAccepted
     });
   } catch (error) {
+    console.error('Error in initiateConversation:', error);
     if (error instanceof ApiError) {
       res.status(error.statusCode).json({ message: error.message });
     } else if (error instanceof Error) {

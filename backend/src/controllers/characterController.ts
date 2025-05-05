@@ -383,3 +383,41 @@ export const markCharacterCreationComplete = async (req: Request & { user?: any 
     }
   }
 };
+
+// @desc    Search characters by name
+// @route   GET /api/characters/search
+// @access  Public
+export const searchCharacters = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { query } = req.query;
+    
+    if (!query || typeof query !== 'string') {
+      res.status(400).json({ message: 'Search query is required' });
+      return;
+    }
+
+    // Find characters whose name contains the query string (case-insensitive)
+    const characters = await Character.find({
+      name: { $regex: query, $options: 'i' }
+    })
+    .select('_id name level race gender userId')
+    .limit(10)
+    .lean();
+
+    // Map the result to a simpler format for the frontend
+    const formattedResults = characters.map(character => ({
+      id: character.userId.toString(), // We use userId as the player id for chat
+      characterId: character._id.toString(),
+      name: character.name,
+      level: character.level,
+      race: character.race,
+      gender: character.gender,
+      image: `/Races/${character.gender}/${character.race}.png`
+    }));
+
+    res.status(200).json(formattedResults);
+  } catch (error) {
+    console.error('Error searching characters:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};

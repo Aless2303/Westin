@@ -7,11 +7,17 @@ import {
   getLeaderboard,
   updateCharacterPosition,
   updateCharacterMoney,
-  markCharacterCreationComplete
+  markCharacterCreationComplete,
+  searchCharacters
 } from '../controllers/characterController';
 import { protect } from '../middleware/authMiddleware';
 
 const router = express.Router();
+
+// @route   GET /api/characters/search
+// @desc    Search characters by name
+// @access  Public
+router.get('/search', searchCharacters);
 
 // @route   GET /api/characters/leaderboard
 // @desc    Get all characters for leaderboard
