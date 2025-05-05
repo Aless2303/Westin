@@ -37,51 +37,69 @@ const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
       
       if (!token) {
         console.error("No authentication token found");
-        // Use empty equipment since we can't fetch without token
         setPlayerEquipment(createEmptyEquipment());
         return;
       }
 
-      const response = await fetch(`http://localhost:5000/api/inventory/${characterId}`, {
+      // First, fetch the inventory to get equipped item IDs
+      const invResponse = await fetch(`http://localhost:5000/api/inventory/${characterId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
       
-      if (!response.ok) {
-        console.error(`Error fetching inventory: ${response.status}`);
+      if (!invResponse.ok) {
+        console.error(`Error fetching inventory: ${invResponse.status}`);
         setPlayerEquipment(createEmptyEquipment());
         return;
       }
       
-      const inventoryData = await response.json();
+      const inventoryData = await invResponse.json();
       
       // Create equipment slots from fetched data
       const equipment = createEmptyEquipment();
       
-      // Map equipped items to equipment slots
+      // If we have equipped items data
       if (inventoryData.equippedItems) {
         const slotTypes = ['weapon', 'helmet', 'armor', 'shield', 'earrings', 'bracelet', 'necklace', 'boots'];
         
-        slotTypes.forEach(slotType => {
-          const itemData = inventoryData.equippedItems[slotType];
-          if (itemData) {
-            const slot = equipment.find(slot => slot.id === slotType);
-            if (slot) {
-              slot.item = {
-                id: itemData._id,
-                name: itemData.name,
-                imagePath: itemData.image || '', 
-                type: itemData.type,
-                stackable: itemData.tradeable || false,
-                stats: itemData.stats || {},
-                description: itemData.description || '',
-                requiredLevel: itemData.requiredLevel || 1
-              };
+        // Process each slot and fetch the corresponding item data if needed
+        await Promise.all(slotTypes.map(async (slotType) => {
+          const itemId = inventoryData.equippedItems[slotType];
+          if (itemId) {
+            try {
+              // Fetch the item details
+              const itemResponse = await fetch(`http://localhost:5000/api/items/${typeof itemId === 'object' ? itemId._id : itemId}`, {
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json'
+                }
+              });
+              
+              if (itemResponse.ok) {
+                const itemData = await itemResponse.json();
+                const slot = equipment.find(slot => slot.id === slotType);
+                if (slot) {
+                  slot.item = {
+                    id: itemData._id,
+                    name: itemData.name,
+                    imagePath: itemData.image || '', 
+                    type: itemData.type,
+                    stackable: itemData.tradeable || false,
+                    stats: itemData.stats || {},
+                    description: itemData.description || '',
+                    requiredLevel: itemData.requiredLevel || 1
+                  };
+                }
+              } else {
+                console.error(`Error fetching item data for slot ${slotType}: ${itemResponse.status}`);
+              }
+            } catch (error) {
+              console.error(`Error processing equipped item for slot ${slotType}:`, error);
             }
           }
-        });
+        }));
       }
       
       setPlayerEquipment(equipment);

@@ -24,10 +24,8 @@ export const getInventory = async (req: Request & { user?: any }, res: Response)
       throw new ApiError('Character not found', 404);
     }
 
-    // Check if user is authorized to view this character's inventory
-    if (req.user && character.userId.toString() !== req.user._id.toString() && !req.user.isAdmin) {
-      throw new ApiError('Not authorized to view this inventory', 401);
-    }
+    // We're no longer restricting view access to equipped items, but we still check for user
+    // authentication when modifying the inventory in other functions
 
     // Get inventory with populated item data
     let inventory = await Inventory.findOne({ characterId });
@@ -51,9 +49,14 @@ export const getInventory = async (req: Request & { user?: any }, res: Response)
       });
     }
 
-    // Fully populate each item type
     const populatedInventory = await Inventory.findById(inventory._id);
     const result = populatedInventory?.toObject();
+    
+    // Check if user is authorized to view full inventory including backpack
+    const isAuthorized = req.user && (
+      character.userId.toString() === req.user._id.toString() || 
+      req.user.isAdmin
+    );
     
     // Populate each equipped item with full details
     if (result && result.equippedItems) {
@@ -77,8 +80,12 @@ export const getInventory = async (req: Request & { user?: any }, res: Response)
       result.equippedItems = populatedEquippedItems;
     }
     
-    // Populate backpack items
-    if (result && result.backpack && result.backpack.length > 0) {
+    // Only return backpack contents if user is authorized
+    if (result && !isAuthorized) {
+      result.backpack = [];
+    }
+    // Populate backpack items if user is authorized
+    else if (result && result.backpack && result.backpack.length > 0) {
       const populatedBackpack = await Promise.all(
         result.backpack.map(async (backpackItem: any) => {
           const item = await Item.findById(backpackItem.itemId);

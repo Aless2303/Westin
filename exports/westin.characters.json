@@ -1,98 +1,12 @@
 [{
   "_id": {
-    "$oid": "68148fcaf6e70afcacfa4ec9"
+    "$oid": "6818b9da7a7b28b97f4b4ae2"
   },
-  "name": "Ravensword",
-  "level": 134,
-  "race": "Ninja",
-  "gender": "Masculin",
-  "background": "/Backgrounds/western2.jpg",
-  "hp": {
-    "current": 6339,
-    "max": 7500
-  },
-  "stamina": {
-    "current": 84,
-    "max": 100
-  },
-  "experience": {
-    "current": 12345,
-    "percentage": 63
-  },
-  "money": {
-    "cash": 154250,
-    "bank": 867540
-  },
-  "x": 350,
-  "y": 611,
-  "attack": 5000,
-  "defense": 200,
-  "duelsWon": 47,
-  "duelsLost": 12,
-  "motto": "Cel mai rapid pistolar din vest. Mereu pe urmele aventurii și a recompensei.",
-  "userId": {
-    "$oid": "68148fcaf6e70afcacfa4ec5"
-  },
-  "createdAt": {
-    "$date": "2025-05-02T09:26:34.256Z"
-  },
-  "updatedAt": {
-    "$date": "2025-05-02T09:26:34.256Z"
-  },
-  "__v": 0
-},
-{
-  "_id": {
-    "$oid": "6814ed4f44034900e5d457a8"
-  },
-  "name": "Breeze",
-  "level": 1,
-  "race": "Shaman",
-  "gender": "Feminin",
-  "background": "/Backgrounds/western4.jpg",
-  "hp": {
-    "current": 100,
-    "max": 100
-  },
-  "stamina": {
-    "current": 100,
-    "max": 100
-  },
-  "experience": {
-    "current": 0,
-    "percentage": 0
-  },
-  "money": {
-    "cash": 1000,
-    "bank": 0
-  },
-  "x": 350,
-  "y": 611,
-  "attack": 12,
-  "defense": 10,
-  "duelsWon": 0,
-  "duelsLost": 0,
-  "motto": "sunt cel mai tare saman de pe sv",
-  "userId": {
-    "$oid": "6814ed4f44034900e5d457a6"
-  },
-  "createdAt": {
-    "$date": "2025-05-02T16:05:35.243Z"
-  },
-  "updatedAt": {
-    "$date": "2025-05-02T16:55:07.939Z"
-  },
-  "__v": 0
-},
-{
-  "_id": {
-    "$oid": "6818634ad04e86deed4ecb9c"
-  },
-  "name": "mileanossss",
-  "level": 1,
+  "name": "qwetrei",
+  "level": 13,
   "race": "Warrior",
   "gender": "Masculin",
-  "background": "blob:http://localhost:3000/81b44f8c-c39a-4e7a-ac8c-63b4ce1110ed",
+  "background": "blob:http://localhost:3000/78b5ee0e-fbb6-4cd9-b014-ff533aa3c54a",
   "hp": {
     "current": 100,
     "max": 100
@@ -113,17 +27,103 @@
   "y": 611,
   "attack": 12,
   "defense": 10,
-  "duelsWon": 0,
-  "duelsLost": 0,
+  "duelsWon": 15,
+  "duelsLost": 6,
   "motto": "",
   "userId": {
-    "$oid": "6818634ad04e86deed4ecb9a"
+    "$oid": "6818b9da7a7b28b97f4b4ae0"
   },
   "createdAt": {
-    "$date": "2025-05-05T07:05:46.739Z"
+    "$date": "2025-05-05T13:15:06.729Z"
   },
   "updatedAt": {
-    "$date": "2025-05-05T07:06:22.701Z"
+    "$date": "2025-05-05T13:17:05.273Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6818b9e27a7b28b97f4b4aea"
+  },
+  "name": "qweunu",
+  "level": 12,
+  "race": "Ninja",
+  "gender": "Masculin",
+  "background": "blob:http://localhost:3000/ce4c8872-4ceb-413c-9f57-ab5b642acdfa",
+  "hp": {
+    "current": 100,
+    "max": 100
+  },
+  "stamina": {
+    "current": 100,
+    "max": 100
+  },
+  "experience": {
+    "current": 0,
+    "percentage": 0
+  },
+  "money": {
+    "cash": 1000,
+    "bank": 0
+  },
+  "x": 350,
+  "y": 611,
+  "attack": 12,
+  "defense": 10,
+  "duelsWon": 3,
+  "duelsLost": 12,
+  "motto": "am cel mai bun scut de pe sv",
+  "userId": {
+    "$oid": "6818b9e27a7b28b97f4b4ae8"
+  },
+  "createdAt": {
+    "$date": "2025-05-05T13:15:14.235Z"
+  },
+  "updatedAt": {
+    "$date": "2025-05-05T13:16:15.064Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6818b9ea7a7b28b97f4b4af2"
+  },
+  "name": "qwedoi",
+  "level": 115,
+  "race": "Shaman",
+  "gender": "Feminin",
+  "background": "blob:http://localhost:3000/7a254afb-acbb-4670-9443-4135dc21eabe",
+  "hp": {
+    "current": 100,
+    "max": 100
+  },
+  "stamina": {
+    "current": 100,
+    "max": 100
+  },
+  "experience": {
+    "current": 0,
+    "percentage": 0
+  },
+  "money": {
+    "cash": 1000,
+    "bank": 0
+  },
+  "x": 350,
+  "y": 611,
+  "attack": 12,
+  "defense": 10,
+  "duelsWon": 3,
+  "duelsLost": 13,
+  "motto": "",
+  "userId": {
+    "$oid": "6818b9ea7a7b28b97f4b4af0"
+  },
+  "createdAt": {
+    "$date": "2025-05-05T13:15:22.876Z"
+  },
+  "updatedAt": {
+    "$date": "2025-05-05T13:16:28.587Z"
   },
   "__v": 0
 }]
