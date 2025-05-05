@@ -7,6 +7,7 @@ import { ChatType } from '../../../types/chat';
 import { formatTimestamp } from '../utils/formatTimestamp';
 import PlayerSearch from './PlayerSearch';
 import ChatRequests from './ChatRequests';
+import ChatNotificationIndicator from './ChatNotificationIndicator';
 
 interface ChatPanelProps {
   characterId: string;
@@ -39,6 +40,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
 
   const [showPendingRequests, setShowPendingRequests] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [newConversationHighlight, setNewConversationHighlight] = useState<string | null>(null);
   
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -46,31 +48,84 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     }
   }, [globalMessages, selectedConversation, privateConversations]);
   
-  const acceptedConversations = privateConversations.filter(conv => conv.isAccepted);
+  useEffect(() => {
+    if (selectedConversation && !newConversationHighlight) {
+      setNewConversationHighlight(selectedConversation);
+      
+      const timer = setTimeout(() => {
+        setNewConversationHighlight(null);
+      }, 3000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [selectedConversation]);
+  
+  const allConversations = privateConversations.filter(conv => conv.isAccepted);
   const selectedConvo = selectedConversation
     ? privateConversations.find(conv => conv.id === selectedConversation)
     : null;
 
   if (!isOpen) return null;
 
+  // Normalizează un ID pentru comparații
+  const normalizeId = (id: string | { toString(): string } | null | undefined): string => {
+    if (!id) return '';
+    return typeof id === 'string' ? id : id.toString();
+  };
+
   const getParticipantName = (conversationId: string) => {
     const conversation = privateConversations.find(conv => conv.id === conversationId);
     if (!conversation) return '';
-    const otherParticipantIndex = conversation.participantIds.findIndex(id => id !== characterId);
-    return conversation.participantNames[otherParticipantIndex] || '';
+    
+    // Pentru debug - adăugăm mai multe informații de diagnosticare
+    console.log('[getParticipantName - DETAILED DEBUG]:');
+    console.log('- Conversation ID:', conversationId);
+    console.log('- CharacterId (props):', characterId);
+    console.log('- Participant IDs (raw):', conversation.participantIds);
+    console.log('- Participant Names (raw):', conversation.participantNames);
+    
+    // Afișăm ID-urile normalizate pentru debug
+    const normalizedIds = conversation.participantIds.map(id => normalizeId(id));
+    console.log('- Normalized participant IDs:', normalizedIds);
+    console.log('- Normalized characterId:', normalizeId(characterId));
+    
+    // Verificăm dacă conversația are exact 2 participanți
+    if (conversation.participantIds.length !== 2 || conversation.participantNames.length !== 2) {
+      console.warn('Conversația nu are exact 2 participanți!');
+      return 'Utilizator necunoscut';
+    }
+    
+    // În loc să ne bazăm pe index finding, vom returna direct participantul care nu este curent
+    // Acest approach este mai robust la diferite tipuri de ID-uri
+    if (normalizeId(conversation.participantIds[0]) === normalizeId(characterId)) {
+      console.log('- Returning second participant name:', conversation.participantNames[1]);
+      return conversation.participantNames[1];
+    } else {
+      console.log('- Returning first participant name:', conversation.participantNames[0]);
+      return conversation.participantNames[0];
+    }
   };
 
   const hasUnreadMessages = (conversationId: string) => {
     const conversation = privateConversations.find(conv => conv.id === conversationId);
     if (!conversation) return false;
-    return conversation.messages.some(msg => msg.receiverId === characterId && !msg.isRead);
+    return conversation.messages.some(msg => 
+      normalizeId(msg.receiverId) === normalizeId(characterId) && !msg.isRead
+    );
   };
 
   const selectPrivateConversation = (conversationId: string) => {
+    // Always force load messages for this conversation to ensure they're available
+    const conversation = privateConversations.find(conv => conv.id === conversationId);
+    
+    // Set the active chat type and selected conversation
     setSelectedConversation(conversationId);
     setActiveChatType(ChatType.PRIVATE);
-    const conversation = privateConversations.find(conv => conv.id === conversationId);
-    if (conversation && conversation.messages.some(msg => msg.receiverId === characterId && !msg.isRead)) {
+    
+    // Mark any unread messages as read
+    if (conversation && conversation.messages.some(msg => 
+      normalizeId(msg.receiverId) === normalizeId(characterId) && !msg.isRead
+    )) {
       markConversationAsRead(conversationId);
     }
   };
@@ -111,23 +166,45 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     if (activeChatType === ChatType.GLOBAL) {
       sendGlobalMessage(messageInput);
     } else if (selectedConvo) {
-      const otherParticipantIndex = selectedConvo.participantIds.findIndex(id => id !== characterId);
       sendPrivateMessage(
         selectedConvo.id,
-        messageInput,
-        selectedConvo.participantIds[otherParticipantIndex],
-        selectedConvo.participantNames[otherParticipantIndex]
+        messageInput
       );
     }
   };
 
   const getOtherParticipant = () => {
     if (!selectedConvo) return { id: '', name: '' };
-    const otherParticipantIndex = selectedConvo.participantIds.findIndex(id => id !== characterId);
-    return {
-      id: selectedConvo.participantIds[otherParticipantIndex] || '',
-      name: selectedConvo.participantNames[otherParticipantIndex] || ''
-    };
+
+    console.log('[getOtherParticipant - DETAILED DEBUG]:');
+    console.log('- Selected conversation:', selectedConvo);
+    console.log('- CharacterId (props):', characterId);
+    console.log('- Participant IDs (raw):', selectedConvo.participantIds);
+    console.log('- Participant Names (raw):', selectedConvo.participantNames);
+    
+    // Afișăm ID-urile normalizate pentru debug
+    const normalizedIds = selectedConvo.participantIds.map(id => normalizeId(id));
+    console.log('- Normalized participant IDs:', normalizedIds);
+    console.log('- Normalized characterId:', normalizeId(characterId));
+    
+    // Verificăm dacă conversația are exact 2 participanți
+    if (selectedConvo.participantIds.length !== 2 || selectedConvo.participantNames.length !== 2) {
+      console.warn('Conversația nu are exact 2 participanți!');
+      return { id: '', name: 'Utilizator necunoscut' };
+    }
+    
+    // În loc să ne bazăm pe index finding, vom returna direct participantul care nu este curent
+    if (normalizeId(selectedConvo.participantIds[0]) === normalizeId(characterId)) {
+      return {
+        id: selectedConvo.participantIds[1] || '',
+        name: selectedConvo.participantNames[1] || 'Necunoscut'
+      };
+    } else {
+      return {
+        id: selectedConvo.participantIds[0] || '',
+        name: selectedConvo.participantNames[0] || 'Necunoscut'
+      };
+    }
   };
 
   const renderMessages = () => {
@@ -197,30 +274,33 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
             >
               Global
             </button>
-            {acceptedConversations.map((conv) => (
-              <button
-                key={conv.id}
-                onClick={() => selectPrivateConversation(conv.id)}
-                className={`group px-1.5 sm:px-3 py-0.5 sm:py-1 text-[9px] sm:text-xs rounded-t-md border-t border-l border-r flex items-center whitespace-nowrap
-                  ${activeChatType === ChatType.PRIVATE && selectedConversation === conv.id
-                    ? 'bg-metin-gold/20 text-metin-gold border-metin-gold/40'
-                    : 'text-metin-light/70 hover:bg-metin-gold/10 border-metin-gold/20'}`}
-              >
-                <span className="truncate max-w-[60px] sm:max-w-[100px]">{getParticipantName(conv.id)}</span>
-                {hasUnreadMessages(conv.id) && (
-                  <span className="ml-0.5 sm:ml-1 bg-metin-red text-white text-[6px] sm:text-xs rounded-full h-2.5 sm:h-4 w-2.5 sm:w-4 flex items-center justify-center">
-                    !
-                  </span>
-                )}
-                <span 
-                  onClick={(e) => handleCloseConversation(e, conv.id)}
-                  className="ml-0.5 sm:ml-1 text-metin-light/40 hover:text-metin-light cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity text-[8px] sm:text-xs"
-                  title="Închide conversația"
+            {allConversations
+              .sort((a, b) => b.lastActivity - a.lastActivity)
+              .map((conv) => (
+                <button
+                  key={conv.id}
+                  onClick={() => selectPrivateConversation(conv.id)}
+                  className={`group px-1.5 sm:px-3 py-0.5 sm:py-1 text-[9px] sm:text-xs rounded-t-md border-t border-l border-r flex items-center whitespace-nowrap transition-all
+                    ${activeChatType === ChatType.PRIVATE && selectedConversation === conv.id
+                      ? 'bg-metin-gold/20 text-metin-gold border-metin-gold/40'
+                      : 'text-metin-light/70 hover:bg-metin-gold/10 border-metin-gold/20'}
+                    ${newConversationHighlight === conv.id && 'animate-pulse border-metin-gold/60 bg-metin-gold/10'}`}
                 >
-                  ×
-                </span>
-              </button>
-            ))}
+                  <span className="truncate max-w-[60px] sm:max-w-[100px]">{getParticipantName(conv.id)}</span>
+                  {hasUnreadMessages(conv.id) && (
+                    <span className="ml-0.5 sm:ml-1 bg-metin-red text-white text-[6px] sm:text-xs rounded-full h-2.5 sm:h-4 w-2.5 sm:w-4 flex items-center justify-center">
+                      !
+                    </span>
+                  )}
+                  <span 
+                    onClick={(e) => handleCloseConversation(e, conv.id)}
+                    className="ml-0.5 sm:ml-1 text-metin-light/40 hover:text-metin-light cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity text-[8px] sm:text-xs"
+                    title="Închide conversația"
+                  >
+                    ×
+                  </span>
+                </button>
+              ))}
           </div>
           <div className="flex items-center space-x-0.5 sm:space-x-1 ml-0.5">
             {pendingRequests.length > 0 && (
@@ -261,6 +341,20 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           <div className="flex-1 overflow-y-auto p-1 sm:p-3 scrollbar-thin scrollbar-thumb-metin-gold/20 scrollbar-track-transparent">
             {renderMessages()}
           </div>
+          {activeChatType === ChatType.PRIVATE && selectedConvo && (
+            <div className="px-1 sm:px-3 py-0.5 sm:py-1 bg-metin-dark/80 border-t border-metin-gold/30 flex justify-between items-center">
+              <div className="text-[10px] sm:text-xs text-metin-gold">
+                Conversație cu <span className="font-semibold">{getParticipantName(selectedConvo.id)}</span>
+              </div>
+              <button
+                onClick={() => handleCloseConversation({ stopPropagation: () => {} } as React.MouseEvent, selectedConvo.id)}
+                className="text-metin-light/70 hover:text-metin-light text-[10px] sm:text-xs px-1 py-0.5 border border-metin-gold/30 rounded-sm"
+                title="Părăsește conversația"
+              >
+                Părăsește conversația
+              </button>
+            </div>
+          )}
           <form onSubmit={handleSendMessage} className="p-1 sm:p-2 border-t border-metin-gold/30 bg-metin-dark/80">
             <div className="flex items-center bg-metin-dark/70 border border-metin-gold/30 rounded-md overflow-hidden">
               <input
@@ -287,6 +381,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           </form>
         </div>
       </div>
+      
       {showPlayerSearch && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
           <PlayerSearch />
@@ -300,6 +395,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           />
         </div>
       )}
+      <ChatNotificationIndicator />
     </div>
   );
 };

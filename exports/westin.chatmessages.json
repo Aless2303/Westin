@@ -1,0 +1,76 @@
+[{
+  "_id": {
+    "$oid": "6819155350448ec184d5547b"
+  },
+  "senderId": {
+    "$oid": "6818b9e27a7b28b97f4b4ae8"
+  },
+  "senderName": "qweunu",
+  "content": "salut",
+  "timestamp": {
+    "$date": "2025-05-05T19:45:23.363Z"
+  },
+  "isGlobal": true,
+  "isRead": true,
+  "createdAt": {
+    "$date": "2025-05-05T19:45:23.364Z"
+  },
+  "updatedAt": {
+    "$date": "2025-05-05T19:45:23.364Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6819155550448ec184d55484"
+  },
+  "senderId": {
+    "$oid": "6818b9e27a7b28b97f4b4ae8"
+  },
+  "senderName": "qweunu",
+  "receiverId": {
+    "$oid": "6818b9da7a7b28b97f4b4ae0"
+  },
+  "receiverName": "qwetrei",
+  "content": "qweunu a inițiat o conversație.",
+  "timestamp": {
+    "$date": "2025-05-05T19:45:25.668Z"
+  },
+  "isGlobal": false,
+  "isRead": true,
+  "conversationId": "6819155550448ec184d55482",
+  "createdAt": {
+    "$date": "2025-05-05T19:45:25.669Z"
+  },
+  "updatedAt": {
+    "$date": "2025-05-05T19:52:29.586Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "681916e72d18b8f3f2699fbc"
+  },
+  "senderId": {
+    "$oid": "6818b9e27a7b28b97f4b4ae8"
+  },
+  "senderName": "qweunu",
+  "receiverId": {
+    "$oid": "6818b9da7a7b28b97f4b4ae0"
+  },
+  "receiverName": "qwetrei",
+  "content": "salut",
+  "timestamp": {
+    "$date": "2025-05-05T19:52:07.189Z"
+  },
+  "isGlobal": false,
+  "isRead": true,
+  "conversationId": "6819155550448ec184d55482",
+  "createdAt": {
+    "$date": "2025-05-05T19:52:07.190Z"
+  },
+  "updatedAt": {
+    "$date": "2025-05-05T19:52:29.586Z"
+  },
+  "__v": 0
+}]

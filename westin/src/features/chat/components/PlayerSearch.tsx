@@ -64,7 +64,8 @@ const PlayerSearch: React.FC = () => {
   };
 
   const handleSelectPlayer = (playerId: string, playerName: string) => {
-    initiatePrivateChat(playerId, playerName);
+    console.log('Selected player for chat:', { id: playerId, name: playerName });
+    initiatePrivateChat(playerId);
   };
 
   return (

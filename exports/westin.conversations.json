@@ -1,0 +1,56 @@
+[{
+  "_id": {
+    "$oid": "6819155550448ec184d55482"
+  },
+  "participants": [
+    {
+      "$oid": "6818b9e27a7b28b97f4b4ae8"
+    },
+    {
+      "$oid": "6818b9da7a7b28b97f4b4ae0"
+    }
+  ],
+  "participantNames": [
+    "qweunu",
+    "qwetrei"
+  ],
+  "lastMessageAt": {
+    "$date": "2025-05-05T19:52:07.192Z"
+  },
+  "isAccepted": false,
+  "createdAt": {
+    "$date": "2025-05-05T19:45:25.667Z"
+  },
+  "updatedAt": {
+    "$date": "2025-05-05T19:52:07.192Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "681916ed2d18b8f3f2699fe7"
+  },
+  "participants": [
+    {
+      "$oid": "6818b9e27a7b28b97f4b4ae8"
+    },
+    {
+      "$oid": "6818b9ea7a7b28b97f4b4af0"
+    }
+  ],
+  "participantNames": [
+    "qweunu",
+    "qwedoi"
+  ],
+  "lastMessageAt": {
+    "$date": "2025-05-05T19:52:13.374Z"
+  },
+  "isAccepted": true,
+  "createdAt": {
+    "$date": "2025-05-05T19:52:13.375Z"
+  },
+  "updatedAt": {
+    "$date": "2025-05-05T19:52:13.375Z"
+  },
+  "__v": 0
+}]

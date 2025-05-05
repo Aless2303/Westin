@@ -19,8 +19,15 @@ const PrivateChat: React.FC<PrivateChatProps> = ({ characterId }) => {
     setMessageInput,
     sendPrivateMessage,
     markConversationAsRead,
-    setActiveChatType
+    setActiveChatType,
+    closePrivateConversation
   } = useChatContext();
+  
+  // Normalizează un ID pentru comparații
+  const normalizeId = (id: string | { toString(): string } | null | undefined): string => {
+    if (!id) return '';
+    return typeof id === 'string' ? id : id.toString();
+  };
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -41,7 +48,7 @@ const PrivateChat: React.FC<PrivateChatProps> = ({ characterId }) => {
       
       // Verificăm dacă există mesaje necitite înainte de a marca toate ca citite
       const hasUnreadMessages = conversation.messages.some(
-        msg => msg.receiverId === characterId && !msg.isRead
+        msg => normalizeId(msg.receiverId) === normalizeId(characterId) && !msg.isRead
       );
       
       if (hasUnreadMessages) {
@@ -54,11 +61,22 @@ const PrivateChat: React.FC<PrivateChatProps> = ({ characterId }) => {
   const getOtherParticipant = () => {
     if (!conversation) return { id: '', name: '' };
     
-    const otherParticipantIndex = conversation.participantIds.findIndex(id => id !== characterId);
+    const otherParticipantIndex = conversation.participantIds.findIndex(
+      id => normalizeId(id) !== normalizeId(characterId)
+    );
+    
+    if (otherParticipantIndex === -1) {
+      console.warn('Nu am putut găsi un alt participant:', {
+        conversationId: conversation.id,
+        participants: conversation.participantIds.map(normalizeId),
+        characterId: normalizeId(characterId)
+      });
+      return { id: '', name: 'Necunoscut' };
+    }
     
     return {
       id: conversation.participantIds[otherParticipantIndex] || '',
-      name: conversation.participantNames[otherParticipantIndex] || ''
+      name: conversation.participantNames[otherParticipantIndex] || 'Necunoscut'
     };
   };
 
@@ -70,9 +88,7 @@ const PrivateChat: React.FC<PrivateChatProps> = ({ characterId }) => {
     if (messageInput.trim() && conversation) {
       sendPrivateMessage(
         conversation.id,
-        messageInput,
-        otherParticipant.id,
-        otherParticipant.name
+        messageInput
       );
     }
   };
@@ -133,6 +149,23 @@ const PrivateChat: React.FC<PrivateChatProps> = ({ characterId }) => {
 
   return (
     <div className="flex flex-col h-full">
+      {/* Chat Header */}
+      <div className="bg-metin-dark/90 border-b border-metin-gold/30 py-1 px-3 flex justify-between items-center mb-2">
+        <h3 className="text-metin-gold text-sm font-medium">
+          Conversație cu <span className="font-semibold">{otherParticipant.name}</span>
+        </h3>
+        <button
+          onClick={() => {
+            if (conversation) {
+              closePrivateConversation(conversation.id);
+            }
+          }}
+          className="text-metin-light/70 hover:text-metin-light text-xs px-2 py-1 border border-metin-gold/30 rounded hover:bg-metin-gold/10"
+        >
+          Încheie conversația
+        </button>
+      </div>
+
       {/* Zona de mesaje */}
       <div className="flex-1 overflow-y-auto mb-2 pr-1">
         <div className="space-y-3">

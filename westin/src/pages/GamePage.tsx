@@ -14,11 +14,79 @@ import { useAuth } from '../context/AuthContext';
 import mockData from '../data/mock';
 import { MobType } from '../types/mob';
 import { CharacterType } from '../types/character';
+import ChatNotificationIndicator from '../features/chat/components/ChatNotificationIndicator';
+import { useChatContext } from '../features/chat/context/ChatContext';
+
+// Separate component for chat features that need the ChatContext
+const ChatFeatures = ({ isChatOpen, setIsChatOpen, characterId }: { 
+  isChatOpen: boolean, 
+  setIsChatOpen: (isOpen: boolean) => void,
+  characterId: string
+}) => {
+  const { newMessageNotification } = useChatContext();
+  
+  return (
+    <>
+      {/* Floating notification for new messages when chat is closed */}
+      {!isChatOpen && newMessageNotification.show && (
+        <div className="absolute bottom-16 left-4 z-40 animate-bounce">
+          <div 
+            className="bg-metin-dark/90 border border-metin-gold text-metin-gold px-3 py-1.5 rounded-lg shadow-lg cursor-pointer flex items-center"
+            onClick={() => setIsChatOpen(true)}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            <div className="flex flex-col">
+              <span className="text-xs font-semibold">Mesaj nou de la {newMessageNotification.senderName}</span>
+              <span className="text-xs text-metin-light truncate max-w-[200px]">Clic pentru a deschide</span>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {isChatOpen && (
+        <ChatPanel
+          characterId={characterId}
+          isOpen={isChatOpen}
+          onClose={() => setIsChatOpen(false)}
+        />
+      )}
+      
+      <button
+        onClick={() => setIsChatOpen(!isChatOpen)}
+        className="absolute bottom-4 left-4 z-30 bg-metin-dark/90 hover:bg-metin-dark border border-metin-gold/50 text-metin-gold rounded-full w-12 h-12 flex items-center justify-center shadow-lg"
+        title="Chat"
+      >
+        <div className="relative">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-6 w-6"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+            />
+          </svg>
+          
+          {!isChatOpen && (
+            <ChatNotificationIndicator />
+          )}
+        </div>
+      </button>
+    </>
+  );
+};
 
 const GamePage: React.FC = () => {
   const MAP_WIDTH = 2048;
   const MAP_HEIGHT = 2048;
-  const { isAdmin } = useAuth();
+  const { isAdmin, currentUser } = useAuth();
 
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [scale, setScale] = useState(1.0);
@@ -224,7 +292,7 @@ const GamePage: React.FC = () => {
   };
 
   return (
-    <ChatProvider characterId="character" characterName={characterData.name}>
+    <ChatProvider characterId={currentUser?._id || ""}>
       <ReportsProvider>
         <WorksProvider
           characterPositionUpdater={updateCharacterPosition}
@@ -401,26 +469,11 @@ const GamePage: React.FC = () => {
                   </div>
                 </div>
               )}
-              <button
-                onClick={() => setIsChatOpen(!isChatOpen)}
-                className="absolute bottom-4 left-4 z-30 bg-metin-dark/90 hover:bg-metin-dark border border-metin-gold/50 text-metin-gold rounded-full w-12 h-12 flex items-center justify-center shadow-lg"
-                title="Chat"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                  />
-                </svg>
-              </button>
+              <ChatFeatures 
+                isChatOpen={isChatOpen} 
+                setIsChatOpen={setIsChatOpen}
+                characterId={currentUser?._id || ""}
+              />
               {isAdmin && (
                 <button
                   onClick={() => setIsAdminPanelOpen(true)}
@@ -449,7 +502,6 @@ const GamePage: React.FC = () => {
                   </svg>
                 </button>
               )}
-              <ChatPanel characterId="character" isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
               <TownPanel />
               {isAdmin && isAdminPanelOpen && <AdminPanel onClose={() => setIsAdminPanelOpen(false)} />}
             </div>

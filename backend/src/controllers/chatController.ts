@@ -161,13 +161,18 @@ export const initiateConversation = async (req: Request & { user?: any }, res: R
     }
 
     if (targetUserId === req.user._id.toString()) {
+      console.error(`Cannot start conversation with self: ${targetUserId} === ${req.user._id}`);
       res.status(400).json({ message: 'Cannot start a conversation with yourself' });
       return;
     }
 
+    // Convertim string IDs în ObjectIds pentru căutare
+    const initiatorObjectId = new mongoose.Types.ObjectId(req.user._id);
+    const targetObjectId = new mongoose.Types.ObjectId(targetUserId);
+
     // Get character information for both users
-    const initiatorCharacter = await Character.findOne({ userId: req.user._id });
-    const targetCharacter = await Character.findOne({ userId: targetUserId });
+    const initiatorCharacter = await Character.findOne({ userId: initiatorObjectId });
+    const targetCharacter = await Character.findOne({ userId: targetObjectId });
 
     if (!initiatorCharacter) {
       console.error(`Initiator character not found for user: ${req.user._id}`);
@@ -181,12 +186,36 @@ export const initiateConversation = async (req: Request & { user?: any }, res: R
       return;
     }
 
-    // Check if a conversation already exists between these users
+    console.log('Initiator character:', {
+      id: initiatorCharacter._id,
+      name: initiatorCharacter.name,
+      userId: initiatorCharacter.userId
+    });
+    
+    console.log('Target character:', {
+      id: targetCharacter._id,
+      name: targetCharacter.name,
+      userId: targetCharacter.userId
+    });
+
+    // Check if a conversation already exists between these users in any order
     let conversation = await Conversation.findOne({
-      participants: { $all: [req.user._id, targetUserId] }
+      participants: { 
+        $all: [
+          initiatorObjectId,
+          targetObjectId
+        ]
+      }
     });
 
     if (conversation) {
+      // Log existing conversation details for debugging
+      console.log('Found existing conversation:', {
+        id: conversation._id,
+        participants: conversation.participants,
+        participantNames: conversation.participantNames
+      });
+      
       // If conversation exists, return it
       res.status(200).json({
         id: conversation._id,
@@ -198,12 +227,18 @@ export const initiateConversation = async (req: Request & { user?: any }, res: R
       return;
     }
 
-    // Create new conversation
+    // Create new conversation - mark as accepted by default so it appears for both users
     conversation = await Conversation.create({
-      participants: [req.user._id, targetUserId],
+      participants: [initiatorObjectId, targetObjectId],
       participantNames: [initiatorCharacter.name, targetCharacter.name],
       lastMessageAt: new Date(),
-      isAccepted: false // Target user needs to accept
+      isAccepted: true // Marcat ca acceptat pentru a apărea imediat pentru ambii utilizatori
+    });
+
+    console.log('Created new conversation:', {
+      id: conversation._id,
+      participants: conversation.participants,
+      participantNames: conversation.participantNames
     });
 
     // Get the conversation ID
@@ -213,7 +248,7 @@ export const initiateConversation = async (req: Request & { user?: any }, res: R
     await ChatMessage.create({
       senderId: req.user._id,
       senderName: initiatorCharacter.name,
-      receiverId: targetUserId,
+      receiverId: targetObjectId,
       receiverName: targetCharacter.name,
       content: `${initiatorCharacter.name} a inițiat o conversație.`,
       timestamp: new Date(),
@@ -275,10 +310,23 @@ export const acceptConversation = async (req: Request & { user?: any }, res: Res
     // Get the conversation ID as string
     const conversationIdStr = (conversation._id as mongoose.Types.ObjectId).toString();
 
+    // Find the other participant in the conversation
+    const otherParticipantId = conversation.participants.find(
+      (id) => id.toString() !== req.user._id.toString()
+    );
+
+    // Get the other participant's character
+    const otherCharacter = await Character.findOne({ userId: otherParticipantId });
+    if (!otherCharacter) {
+      throw new ApiError('Other participant character not found', 404);
+    }
+
     // Create a system message
     await ChatMessage.create({
       senderId: req.user._id,
       senderName: userCharacter.name,
+      receiverId: otherParticipantId,
+      receiverName: otherCharacter.name,
       content: `${userCharacter.name} a acceptat conversația.`,
       timestamp: new Date(),
       isGlobal: false,
@@ -301,7 +349,7 @@ export const acceptConversation = async (req: Request & { user?: any }, res: Res
   }
 };
 
-// @desc    Reject/delete a conversation
+// @desc    Leave/delete a conversation
 // @route   DELETE /api/chat/conversations/:conversationId
 // @access  Private
 export const rejectConversation = async (req: Request & { user?: any }, res: Response): Promise<void> => {
@@ -322,13 +370,32 @@ export const rejectConversation = async (req: Request & { user?: any }, res: Res
       throw new ApiError('Not authorized to modify this conversation', 403);
     }
 
+    // Get the user's character name for socket event
+    const userCharacter = await Character.findOne({ userId: req.user._id });
+    if (!userCharacter) {
+      throw new ApiError('Character not found', 404);
+    }
+
+    // Find the other participant
+    const otherParticipantId = conversation.participants.find(
+      id => id.toString() !== req.user._id.toString()
+    );
+      
+    // Emit socket event to notify the other user
+    const io = req.app.get('io');
+    io.to(`conversation:${conversationId}`).emit('conversation-user-left', {
+      conversationId,
+      userId: req.user._id,
+      userName: userCharacter.name
+    });
+
     // Delete all messages in this conversation
     await ChatMessage.deleteMany({ conversationId });
-
+    
     // Delete the conversation
     await Conversation.findByIdAndDelete(conversationId);
 
-    res.status(200).json({ message: 'Conversation deleted successfully' });
+    res.status(200).json({ message: 'Conversation has been deleted' });
   } catch (error) {
     if (error instanceof ApiError) {
       res.status(error.statusCode).json({ message: error.message });

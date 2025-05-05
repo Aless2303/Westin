@@ -45,6 +45,9 @@ const io = new Server(server, {
 // Connect to MongoDB
 connectDB();
 
+// Make io available to the express app
+app.set('io', io);
+
 // Middleware
 app.use(cors({
   origin: 'http://localhost:3000', // Adresa frontend-ului
@@ -181,18 +184,23 @@ io.on('connection', async (socket) => {
   // Listen for private message
   socket.on('private-message', async (data) => {
     try {
+      console.log(`Received private message from ${characterName} (${userId}) for conversation ${data.conversationId}:`, data.content);
+      
       if (!data.content || !data.content.trim() || !data.conversationId) {
+        console.warn('Invalid private message data:', data);
         return;
       }
       
       // Find the conversation
       const conversation = await Conversation.findById(data.conversationId);
       if (!conversation) {
+        console.warn(`Conversation not found: ${data.conversationId}`);
         return socket.emit('error', { message: 'Conversation not found' });
       }
       
       // Ensure user is part of the conversation
       if (!conversation.participants.includes(new mongoose.Types.ObjectId(userId))) {
+        console.warn(`User ${userId} not authorized for conversation ${data.conversationId}`);
         return socket.emit('error', { message: 'Not authorized to send message in this conversation' });
       }
       
@@ -224,8 +232,8 @@ io.on('connection', async (socket) => {
       conversation.lastMessageAt = new Date();
       await conversation.save();
       
-      // Send message to all clients in the conversation room
-      io.to(`conversation:${data.conversationId}`).emit('private-message', {
+      // Prepare message data for broadcast
+      const messageData = {
         id: message._id,
         senderId: userId,
         senderName: characterName,
@@ -235,7 +243,16 @@ io.on('connection', async (socket) => {
         timestamp: message.timestamp,
         isRead: false,
         conversationId: data.conversationId
-      });
+      };
+      
+      // Log info about the room we're broadcasting to
+      const roomName = `conversation:${data.conversationId}`;
+      const room = io.sockets.adapter.rooms.get(roomName);
+      console.log(`Broadcasting to room ${roomName} with ${room ? room.size : 0} connected clients`);
+      
+      // Send message to all clients in the conversation room
+      io.to(roomName).emit('private-message', messageData);
+      console.log(`Private message broadcast to room ${roomName}:`, messageData);
     } catch (error) {
       console.error('Error sending private message:', error);
     }
@@ -280,6 +297,53 @@ io.on('connection', async (socket) => {
       characterName,
       isTyping: data.isTyping
     });
+  });
+  
+  // Listen for conversation join requests
+  socket.on('join-conversation', async (data) => {
+    try {
+      if (!data.conversationId) {
+        return;
+      }
+      
+      // Verify this is a valid conversation that the user is part of
+      const conversation = await Conversation.findById(data.conversationId);
+      if (!conversation) {
+        return socket.emit('error', { message: 'Conversation not found' });
+      }
+      
+      // Ensure user is part of the conversation
+      if (!conversation.participants.includes(new mongoose.Types.ObjectId(userId))) {
+        return socket.emit('error', { message: 'Not authorized to join this conversation' });
+      }
+      
+      // Join the conversation room
+      const roomName = `conversation:${data.conversationId}`;
+      socket.join(roomName);
+      console.log(`User ${userId} joined conversation room: ${roomName}`);
+    } catch (error) {
+      console.error('Error joining conversation room:', error);
+    }
+  });
+  
+  // Listen for conversation leave events - This could be triggered from elsewhere in the app
+  socket.on('conversation-user-left', async (data) => {
+    try {
+      if (!data.conversationId || !data.userId || !data.userName) {
+        return;
+      }
+      
+      // Emit event to all clients in the conversation room except the sender
+      socket.to(`conversation:${data.conversationId}`).emit('conversation-user-left', {
+        conversationId: data.conversationId,
+        userId: data.userId,
+        userName: data.userName
+      });
+      
+      console.log(`Notified that user ${data.userName} left conversation: ${data.conversationId}`);
+    } catch (error) {
+      console.error('Error processing user left event:', error);
+    }
   });
 });
 

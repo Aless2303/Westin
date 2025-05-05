@@ -19,13 +19,21 @@ interface ChatContextType {
   showPlayerSearch: boolean;
   setShowPlayerSearch: (show: boolean) => void;
   sendGlobalMessage: (content: string) => void;
-  sendPrivateMessage: (conversationId: string, content: string, receiverId: string, receiverName: string) => void;
+  sendPrivateMessage: (conversationId: string, content: string) => void;
   acceptConversationRequest: (conversationId: string) => void;
   rejectConversationRequest: (conversationId: string) => void;
   markConversationAsRead: (conversationId: string) => void;
-  initiatePrivateChat: (targetPlayerId: string, targetPlayerName: string) => void;
+  initiatePrivateChat: (targetPlayerId: string) => void;
   getUnreadMessagesCount: () => number;
   closePrivateConversation: (conversationId: string) => void;
+  newMessageNotification: {
+    show: boolean;
+    conversationId: string | null;
+    senderName: string;
+    content: string;
+  };
+  dismissNotification: () => void;
+  openConversationFromNotification: () => void;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -41,15 +49,13 @@ export const useChatContext = () => {
 interface ChatProviderProps {
   children: ReactNode;
   characterId: string;
-  characterName: string;
 }
 
 export const ChatProvider: React.FC<ChatProviderProps> = ({ 
   children,
-  characterId,
-  characterName
+  characterId
 }) => {
-  const chatState = useChatState(characterId, characterName);
+  const chatState = useChatState(characterId);
 
   return (
     <ChatContext.Provider value={chatState}>
