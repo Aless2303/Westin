@@ -49,47 +49,52 @@ const CharacterStatus: React.FC = () => {
   const [characterData, setCharacterData] = useState<Character | null>(null);
   const [characterEquipment, setCharacterEquipment] = useState<EquipmentSlot[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshingProfile, setRefreshingProfile] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchCharacterData = async () => {
-      setLoading(true);
-      setError(null);
+  // Fetch character data function
+  const fetchCharacterData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // Obține token-ul salvat în localStorage
+      const token = localStorage.getItem('token');
       
-      try {
-        // Obține token-ul salvat în localStorage
-        const token = localStorage.getItem('token');
-        
-        if (!currentUser?.characterId || !token) {
-          setError("Nu s-a găsit ID-ul caracterului");
-          setLoading(false);
-          return;
-        }
-        
-        // Fă cererea către backend cu token-ul de autentificare
-        const response = await fetch(`http://localhost:5000/api/characters/${currentUser.characterId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Error ${response.status}: ${await response.text()}`);
-        }
-        
-        const data = await response.json();
-        setCharacterData(data);
+      if (!currentUser?.characterId || !token) {
+        setError("Nu s-a găsit ID-ul caracterului");
         setLoading(false);
-      } catch (err) {
-        console.error("Error fetching character data:", err);
-        setError("Nu s-a putut încărca personajul");
-        setLoading(false);
+        return;
       }
-    };
-
-    fetchCharacterData();
+      
+      // Fă cererea către backend cu token-ul de autentificare
+      const response = await fetch(`http://localhost:5000/api/characters/${currentUser.characterId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${await response.text()}`);
+      }
+      
+      const data = await response.json();
+      setCharacterData(data);
+      setLoading(false);
+      return data;
+    } catch (err) {
+      console.error("Error fetching character data:", err);
+      setError("Nu s-a putut încărca personajul");
+      setLoading(false);
+      return null;
+    }
   }, [currentUser]);
+
+  // Initial fetch of character data on component mount
+  useEffect(() => {
+    fetchCharacterData();
+  }, [fetchCharacterData]);
 
   // Fetch inventory and equipped items
   useEffect(() => {
@@ -195,9 +200,23 @@ const CharacterStatus: React.FC = () => {
 
   const toggleProfile = async () => {
     if (!isProfileOpen) {
-      // If we're opening the profile, refresh the inventory data first
-      await fetchInventory();
-      setIsProfileOpen(true);
+      // If we're opening the profile, refresh all character data first
+      setRefreshingProfile(true);
+      try {
+        // First refresh the character data to get updated stats
+        const updatedChar = await fetchCharacterData();
+        
+        if (updatedChar) {
+          // Then refresh the inventory with the updated character
+          await fetchInventory();
+        }
+        
+        setIsProfileOpen(true);
+      } catch (error) {
+        console.error("Error refreshing profile data:", error);
+      } finally {
+        setRefreshingProfile(false);
+      }
     } else {
       setIsProfileOpen(false);
     }
@@ -215,10 +234,21 @@ const CharacterStatus: React.FC = () => {
 
   // Funcție auxiliară pentru a genera URL-ul corect pentru imagini
   const getImageUrl = (src: string) => {
-    if (!src) return '';
-    if (src.startsWith('http') || src.startsWith('/')) return src;
+    if (!src) return '/Backgrounds/western1.jpg'; // Default fallback
     
-    // Verificăm dacă e base64 fără header și adăugăm header-ul
+    // Handle already formatted data URLs
+    if (src.startsWith('data:image')) return src;
+    
+    // Handle absolute URLs or paths starting with /
+    if (src.startsWith('http') || src.startsWith('/')) {
+      // If it's a relative path to the Backgrounds folder but doesn't have the full path
+      if (src.includes('western') && !src.startsWith('/Backgrounds/')) {
+        return `/Backgrounds/${src}`;
+      }
+      return src;
+    }
+    
+    // Handle base64 without headers
     if (src.startsWith('iVBOR')) {
       return `data:image/png;base64,${src}`;
     }
@@ -226,11 +256,16 @@ const CharacterStatus: React.FC = () => {
       return `data:image/jpeg;base64,${src}`;
     }
     
+    // If it's just a filename for a background, add the proper path
+    if (src.includes('western')) {
+      return `/Backgrounds/${src}`;
+    }
+    
     return src;
   };
 
-  // Afișare stare de încărcare
-  if (loading) {
+  // Afișare stare de încărcare inițială
+  if (loading && !refreshingProfile) {
     return (
       <div className="absolute top-3 left-3 z-50">
         <div className="w-56 bg-metin-dark/95 border border-metin-gold/40 rounded-lg p-4 flex items-center justify-center">
@@ -305,12 +340,21 @@ const CharacterStatus: React.FC = () => {
                       className="w-full h-full object-cover opacity-40"
                     />
                   ) : (
-                    <Image
-                      src={characterData.background}
-                      alt="Character background"
-                      fill
-                      className="object-cover opacity-40"
-                    />
+                    <div className="w-full h-full relative">
+                      <Image
+                        src={getImageUrl(characterData.background)}
+                        alt="Character background"
+                        fill
+                        className="object-cover opacity-40"
+                        unoptimized={true}
+                        onError={(e) => {
+                          // Fallback to default background if image fails to load
+                          const target = e.target as HTMLImageElement;
+                          console.warn("Background image failed to load, using fallback", characterData.background);
+                          target.src = "/Backgrounds/western1.jpg";
+                        }}
+                      />
+                    </div>
                   )}
                 </div>
                 <div className="absolute inset-0 bg-gradient-to-b from-metin-gold/20 to-transparent opacity-0 hover:opacity-60 transition-opacity z-20"></div>
@@ -400,7 +444,7 @@ const CharacterStatus: React.FC = () => {
           level: characterData?.level || 1,
           race: characterData?.race || '',
           gender: characterData?.gender || '',
-          background: characterData?.background || '',
+          background: getImageUrl(characterData?.background || '/Backgrounds/western1.jpg'),
           hp: characterData?.hp || { current: 0, max: 0 },
           stamina: characterData?.stamina || { current: 0, max: 0 },
           experience: characterData?.experience || { current: 0, percentage: 0 },
@@ -410,6 +454,7 @@ const CharacterStatus: React.FC = () => {
         }}
         equipment={characterEquipment}
         isEditable={true}
+        isRefreshing={refreshingProfile}
       />
     </div>
   );

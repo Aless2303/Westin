@@ -11,6 +11,7 @@ interface ProfileWindowProps {
   profile: ProfileType;
   equipment?: EquipmentSlot[];
   isEditable?: boolean;
+  isRefreshing?: boolean;
 }
 
 const ProfileWindow: React.FC<ProfileWindowProps> = ({
@@ -18,7 +19,8 @@ const ProfileWindow: React.FC<ProfileWindowProps> = ({
   onClose,
   profile,
   equipment = [],
-  isEditable = true
+  isEditable = true,
+  isRefreshing = false
 }) => {
   const { currentUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
@@ -27,11 +29,14 @@ const ProfileWindow: React.FC<ProfileWindowProps> = ({
   const [savingMotto, setSavingMotto] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Update local state whenever the profile changes
   useEffect(() => {
-    if (profile?.motto !== undefined) {
-      setMotto(profile.motto);
+    if (profile) {
+      if (profile.motto !== undefined) {
+        setMotto(profile.motto);
+      }
     }
-  }, [profile?.motto]);
+  }, [profile]);
   
   if (!isOpen || !profile) return null;
 
@@ -94,15 +99,31 @@ const ProfileWindow: React.FC<ProfileWindowProps> = ({
 
   // Funcție auxiliară pentru a genera URL-ul corect pentru imagini
   const getImageUrl = (src: string) => {
-    if (!src) return '';
-    if (src.startsWith('http') || src.startsWith('/')) return src;
+    if (!src) return '/Backgrounds/western1.jpg'; // Default fallback
     
-    // Verificăm dacă e base64 fără header și adăugăm header-ul
+    // Handle already formatted data URLs
+    if (src.startsWith('data:image')) return src;
+    
+    // Handle absolute URLs or paths starting with /
+    if (src.startsWith('http') || src.startsWith('/')) {
+      // If it's a relative path to the Backgrounds folder but doesn't have the full path
+      if (src.includes('western') && !src.startsWith('/Backgrounds/')) {
+        return `/Backgrounds/${src}`;
+      }
+      return src;
+    }
+    
+    // Handle base64 without headers
     if (src.startsWith('iVBOR')) {
       return `data:image/png;base64,${src}`;
     }
     if (src.startsWith('/9j/')) {
       return `data:image/jpeg;base64,${src}`;
+    }
+    
+    // If it's just a filename for a background, add the proper path
+    if (src.includes('western')) {
+      return `/Backgrounds/${src}`;
     }
     
     return src;
@@ -123,7 +144,12 @@ const ProfileWindow: React.FC<ProfileWindowProps> = ({
       <div className="relative w-[90vw] sm:w-[800px] bg-metin-dark/95 border-2 border-metin-gold/60 rounded-lg shadow-2xl overflow-hidden transform scale-100 transition-all max-h-[90vh] flex flex-col">
         {/* Header with title and close button */}
         <div className="bg-gradient-to-r from-metin-gold/20 to-transparent border-b border-metin-gold/30 px-4 py-3 flex justify-between items-center">
-          <h2 className="text-metin-gold text-lg sm:text-xl font-western">Profil Jucător</h2>
+          <div className="flex items-center">
+            <h2 className="text-metin-gold text-lg sm:text-xl font-western">Profil Jucător</h2>
+            {isRefreshing && (
+              <div className="ml-3 w-4 h-4 border-2 border-metin-gold/30 border-t-metin-gold rounded-full animate-spin"></div>
+            )}
+          </div>
           <button 
             onClick={onClose}
             className="w-6 h-6 sm:w-8 sm:h-8 rounded-full border border-metin-gold/50 flex items-center justify-center text-metin-gold hover:bg-metin-gold/20 transition-colors"
@@ -150,12 +176,21 @@ const ProfileWindow: React.FC<ProfileWindowProps> = ({
                         className="object-cover opacity-40 w-full h-full"
                       />
                     ) : (
-                      <Image
-                        src={profile.background}
-                        alt="Character background"
-                        fill
-                        className="object-cover opacity-40"
-                      />
+                      <div className="w-full h-full relative">
+                        <Image
+                          src={getImageUrl(profile.background)}
+                          alt="Character background"
+                          fill
+                          className="object-cover opacity-40"
+                          unoptimized={true}
+                          onError={(e) => {
+                            // Fallback to default background if image fails to load
+                            const target = e.target as HTMLImageElement;
+                            console.warn("Background image failed to load, using fallback", profile.background);
+                            target.src = "/Backgrounds/western1.jpg";
+                          }}
+                        />
+                      </div>
                     )}
                   </div>
                   
