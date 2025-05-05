@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useLeaderboard } from '../hooks/useLeaderboard';
 import { formatLastRefreshTime } from '../utils/formatting';
 import LeaderboardTable from './LeaderboardTable';
 import { PlayerType } from '../../../types/player';
 import { ProfileType } from '../../../types/profile';
 import { ProfileWindow } from '../../../features/profile';
-import { generateEquipment } from '../../../data/mock/inventory';
+import { EquipmentSlot } from '../../../types/inventory';
 
 interface LeaderboardModalProps {
   isOpen: boolean;
@@ -27,25 +27,104 @@ const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
   } = useLeaderboard({ refreshInterval, isOpen });
 
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerType | null>(null);
+  const [playerEquipment, setPlayerEquipment] = useState<EquipmentSlot[]>([]);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
 
-  const handlePlayerSelect = (player: PlayerType) => {
+  const fetchPlayerEquipment = useCallback(async (characterId: string) => {
+    setIsLoadingProfile(true);
+    try {
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        console.error("No authentication token found");
+        // Use empty equipment since we can't fetch without token
+        setPlayerEquipment(createEmptyEquipment());
+        return;
+      }
+
+      const response = await fetch(`http://localhost:5000/api/inventory/${characterId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        console.error(`Error fetching inventory: ${response.status}`);
+        setPlayerEquipment(createEmptyEquipment());
+        return;
+      }
+      
+      const inventoryData = await response.json();
+      
+      // Create equipment slots from fetched data
+      const equipment = createEmptyEquipment();
+      
+      // Map equipped items to equipment slots
+      if (inventoryData.equippedItems) {
+        const slotTypes = ['weapon', 'helmet', 'armor', 'shield', 'earrings', 'bracelet', 'necklace', 'boots'];
+        
+        slotTypes.forEach(slotType => {
+          const itemData = inventoryData.equippedItems[slotType];
+          if (itemData) {
+            const slot = equipment.find(slot => slot.id === slotType);
+            if (slot) {
+              slot.item = {
+                id: itemData._id,
+                name: itemData.name,
+                imagePath: itemData.image || '', 
+                type: itemData.type,
+                stackable: itemData.tradeable || false,
+                stats: itemData.stats || {},
+                description: itemData.description || '',
+                requiredLevel: itemData.requiredLevel || 1
+              };
+            }
+          }
+        });
+      }
+      
+      setPlayerEquipment(equipment);
+    } catch (error) {
+      console.error("Error fetching player equipment:", error);
+      setPlayerEquipment(createEmptyEquipment());
+    } finally {
+      setIsLoadingProfile(false);
+    }
+  }, []);
+
+  const createEmptyEquipment = (): EquipmentSlot[] => {
+    return [
+      { id: 'weapon', name: 'Armă', item: null, gridArea: 'weapon', size: 'large' },
+      { id: 'helmet', name: 'Coif', item: null, gridArea: 'helmet', size: 'medium' },
+      { id: 'armor', name: 'Armură', item: null, gridArea: 'armor', size: 'large' },
+      { id: 'shield', name: 'Scut', item: null, gridArea: 'shield', size: 'medium' },
+      { id: 'earrings', name: 'Cercei', item: null, gridArea: 'earrings', size: 'small' },
+      { id: 'bracelet', name: 'Brățară', item: null, gridArea: 'bracelet', size: 'small' },
+      { id: 'necklace', name: 'Colier', item: null, gridArea: 'necklace', size: 'small' },
+      { id: 'boots', name: 'Papuci', item: null, gridArea: 'boots', size: 'medium' },
+    ];
+  };
+
+  const handlePlayerSelect = async (player: PlayerType) => {
     setSelectedPlayer(player);
+    await fetchPlayerEquipment(player.id);
   };
 
   const playerProfile: ProfileType | null = selectedPlayer ? {
+    _id: selectedPlayer.id,
     name: selectedPlayer.name,
     level: selectedPlayer.level,
     race: selectedPlayer.race,
     gender: selectedPlayer.gender,
     background: "/Backgrounds/western2.jpg",
-    image: selectedPlayer.image,
+    hp: selectedPlayer.hp,
+    stamina: { current: 100, max: 100 },
+    experience: selectedPlayer.experience,
     duelsWon: selectedPlayer.duelsWon || 0,
     duelsLost: selectedPlayer.duelsLost || 0,
-    motto: selectedPlayer.motto || "Acest jucător nu are un motto setat.",
-    experience: selectedPlayer.experience
+    motto: selectedPlayer.motto || "Acest jucător nu are un motto setat."
   } : null;
-
-  const playerEquipment = selectedPlayer ? generateEquipment(selectedPlayer.race, selectedPlayer.level) : [];
 
   if (!isOpen) return null;
 
@@ -111,7 +190,16 @@ const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
         </div>
       </div>
 
-      {selectedPlayer && playerProfile && (
+      {isLoadingProfile && selectedPlayer && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
+          <div className="text-metin-gold flex flex-col items-center">
+            <div className="w-12 h-12 border-4 border-metin-gold/30 border-t-metin-gold rounded-full animate-spin mb-4"></div>
+            <div>Se încarcă profilul jucătorului...</div>
+          </div>
+        </div>
+      )}
+
+      {selectedPlayer && playerProfile && !isLoadingProfile && (
         <ProfileWindow
           isOpen={!!selectedPlayer}
           onClose={() => setSelectedPlayer(null)}
