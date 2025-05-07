@@ -143,7 +143,7 @@ const MobDetailsPanel: React.FC<MobDetailsPanelProps> = ({
     };
   }, [isDragging]);
 
-  const handleAttack = (duration: '15s' | '10m' | '1h') => {
+  const handleAttack = async (duration: '15s' | '10m' | '1h') => {
     if (!selectedMob) return;
     
     const staminaCost = 
@@ -170,7 +170,7 @@ const MobDetailsPanel: React.FC<MobDetailsPanelProps> = ({
       selectedMob.y
     );
     
-    const wasAdded = addJob({
+    const wasAdded = await addJob({
       type: duration,
       remainingTime: durationInSeconds,
       travelTime: travelTimeSeconds,

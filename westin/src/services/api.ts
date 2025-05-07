@@ -91,7 +91,7 @@ export const passwordService = {
 
 export const characterService = {
   // Actualizează detaliile personajului și marchează crearea ca finalizată
-  updateCharacterCreation: async (characterId: string, characterData: any) => {
+  updateCharacterCreation: async (characterId: string, characterData: Record<string, unknown>) => {
     return fetchWithAuth(`/characters/${characterId}/creation-complete`, {
       method: 'PUT',
       body: JSON.stringify(characterData),
@@ -133,10 +133,34 @@ export const characterService = {
   },
 };
 
+// Works
+export const workService = {
+  // Obține muncile personajului
+  getWorks: async (characterId: string) => {
+    return fetchWithAuth(`/works/${characterId}`);
+  },
+  
+  // Creează o muncă nouă
+  createWork: async (characterId: string, workData: Record<string, unknown>) => {
+    return fetchWithAuth(`/works/${characterId}`, {
+      method: 'POST',
+      body: JSON.stringify(workData),
+    });
+  },
+  
+  // Șterge o muncă
+  deleteWork: async (characterId: string, workId: string) => {
+    return fetchWithAuth(`/works/${characterId}/${workId}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
 // Exportă serviciile pentru a fi utilizate în aplicație
 export default {
   auth: authService,
   password: passwordService,
   character: characterService,
+  work: workService,
   // Aici poți adăuga alte servicii pentru alte funcționalități
 };

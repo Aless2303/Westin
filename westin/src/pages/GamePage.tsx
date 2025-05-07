@@ -106,52 +106,259 @@ const GamePage: React.FC = () => {
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
 
-  const updatePlayerHp = useCallback((newHp: number) => {
+  // Immediate effect to load character data on mount
+  useEffect(() => {
+    if (currentUser?.characterId) {
+      const loadInitialCharacterData = async () => {
+        try {
+          const token = localStorage.getItem('token');
+          if (!token) return;
+          
+          const response = await fetch(`http://localhost:5000/api/characters/${currentUser.characterId}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (!response.ok) return;
+          
+          const data = await response.json();
+          setCharacterData(prevData => ({
+            ...prevData,
+            name: data.name,
+            race: data.race,
+            gender: data.gender,
+            motto: data.motto,
+            duelsWon: data.duelsWon || 0,
+            duelsLost: data.duelsLost || 0
+          }));
+        } catch (err) {
+          console.error("Error loading initial character data:", err);
+        }
+      };
+      
+      loadInitialCharacterData();
+    }
+  }, [currentUser?.characterId]);
+
+  // Function to fetch character data from the API
+  const fetchCharacterData = useCallback(async () => {
+    if (!currentUser?.characterId) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error("No authentication token found");
+        return;
+      }
+      
+      const response = await fetch(`http://localhost:5000/api/characters/${currentUser.characterId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${await response.text()}`);
+      }
+      
+      const data = await response.json();
+      
+      // Update character data with the new data from the server
+      // But preserve the local changes we've made (like position)
+      setCharacterData(prevData => ({
+        ...prevData,
+        name: data.name,
+        race: data.race,
+        gender: data.gender,
+        hp: data.hp,
+        stamina: data.stamina,
+        experience: data.experience,
+        level: data.level,
+        money: data.money,
+        attack: data.attack,
+        defense: data.defense,
+        motto: data.motto,
+        duelsWon: data.duelsWon || 0,
+        duelsLost: data.duelsLost || 0
+      }));
+      
+    } catch (err) {
+      console.error("Error fetching character data:", err);
+    }
+  }, [currentUser?.characterId]);
+
+  // Fetch character data initially and set up periodic refresh
+  useEffect(() => {
+    // Fetch immediately with higher priority
+    fetchCharacterData();
+    
+    // Set up interval to refresh character data
+    const refreshInterval = setInterval(() => {
+      fetchCharacterData();
+    }, 3000); // Refresh every 3 seconds
+    
+    return () => clearInterval(refreshInterval);
+  }, [fetchCharacterData]);
+
+  const updatePlayerHp = useCallback(async (newHp: number) => {
+    if (!currentUser?.characterId) return;
+    
+    // Update local state immediately for UI responsiveness
     setCharacterData((prev) => {
-      if (newHp <= 0) {
+      const updatedHp = Math.max(0, Math.min(prev.hp.max, newHp));
+      
+      if (updatedHp <= 0) {
         setSystemMessage('Ai pierdut toată viața! Folosește poțiuni pentru a te vindeca.');
         setShowSystemMessage(true);
         setTimeout(() => setShowSystemMessage(false), 5000);
         return { ...prev, hp: { ...prev.hp, current: 0 } };
       }
-      return { ...prev, hp: { ...prev.hp, current: newHp } };
+      
+      return { ...prev, hp: { ...prev.hp, current: updatedHp } };
     });
-  }, []);
+    
+    // Then update the server data
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error("No authentication token found");
+        return;
+      }
+      
+      await fetch(`http://localhost:5000/api/characters/${currentUser.characterId}/hp`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ hp: newHp })
+      });
+      
+      // We don't need to update state again here as fetchCharacterData will do that
+    } catch (err) {
+      console.error("Error updating character HP:", err);
+    }
+  }, [currentUser?.characterId]);
 
-  const updatePlayerStamina = useCallback((newStamina: number) => {
+  const updatePlayerStamina = useCallback(async (newStamina: number) => {
+    if (!currentUser?.characterId) return;
+    
+    // Update local state immediately for UI responsiveness
     setCharacterData((prev) => {
-      if (newStamina === 0) {
+      const updatedStamina = Math.max(0, Math.min(prev.stamina.max, newStamina));
+      
+      if (updatedStamina === 0) {
         setSystemMessage('Nu mai ai stamină! Odihnește-te pentru a o regenera.');
         setShowSystemMessage(true);
         setTimeout(() => setShowSystemMessage(false), 5000);
-      } else if (newStamina <= 10 && prev.stamina.current > 10) {
+      } else if (updatedStamina <= 10 && prev.stamina.current > 10) {
         setSystemMessage('Stamina scăzută! Ai grijă cum o folosești.');
         setShowSystemMessage(true);
         setTimeout(() => setShowSystemMessage(false), 3000);
       }
-      return { ...prev, stamina: { ...prev.stamina, current: newStamina } };
+      
+      return { ...prev, stamina: { ...prev.stamina, current: updatedStamina } };
     });
-  }, []);
+    
+    // Then update the server data
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error("No authentication token found");
+        return;
+      }
+      
+      await fetch(`http://localhost:5000/api/characters/${currentUser.characterId}/stamina`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ stamina: newStamina })
+      });
+      
+      // We don't need to update state again here as fetchCharacterData will do that
+    } catch (err) {
+      console.error("Error updating character stamina:", err);
+    }
+  }, [currentUser?.characterId]);
 
   useEffect(() => {
-    const staminaRegenInterval = setInterval(() => {
-      setCharacterData((prev) =>
-        prev.stamina.current < prev.stamina.max
-          ? {
-              ...prev,
-              stamina: { ...prev.stamina, current: Math.min(prev.stamina.max, prev.stamina.current + 1) },
+    const staminaRegenInterval = setInterval(async () => {
+      // Check if character has max stamina
+      if (characterData.stamina.current < characterData.stamina.max) {
+        // Update local state
+        setCharacterData((prev) => ({
+          ...prev,
+          stamina: { 
+            ...prev.stamina, 
+            current: Math.min(prev.stamina.max, prev.stamina.current + 1) 
+          },
+        }));
+        
+        // Update server state
+        if (currentUser?.characterId) {
+          try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+              console.error("No authentication token found");
+              return;
             }
-          : prev
-      );
-    }, 60000);
+            
+            const newStamina = Math.min(
+              characterData.stamina.max, 
+              characterData.stamina.current + 1
+            );
+            
+            await fetch(`http://localhost:5000/api/characters/${currentUser.characterId}/stamina`, {
+              method: 'PUT',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ stamina: newStamina })
+            });
+          } catch (err) {
+            console.error("Error updating character stamina during regeneration:", err);
+          }
+        }
+      }
+    }, 60000); // Regenerate 1 stamina every minute
+    
     return () => clearInterval(staminaRegenInterval);
-  }, []);
+  }, [characterData.stamina, currentUser?.characterId]);
 
-  const updateCharacterPosition = (newX: number, newY: number) => {
+  const updateCharacterPosition = useCallback(async (newX: number, newY: number) => {
+    // Update local state
     setCharacterData((prev) => ({ ...prev, x: newX, y: newY }));
     setAnimation({ x: newX, y: newY, visible: true });
     setTimeout(() => setAnimation(null), 1500);
-  };
+    
+    // Update server state
+    if (currentUser?.characterId) {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          console.error("No authentication token found");
+          return;
+        }
+        
+        await fetch(`http://localhost:5000/api/characters/${currentUser.characterId}/position`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ x: newX, y: newY })
+        });
+      } catch (err) {
+        console.error("Error updating character position:", err);
+      }
+    }
+  }, [currentUser?.characterId]);
 
   const findClosestMob = (characterX: number, characterY: number): MobType => {
     let closestMob = mockData.mobs[0];
@@ -321,16 +528,11 @@ const GamePage: React.FC = () => {
                   touchAction: 'none', // Prevents default touch behaviors like pinch-zoom or scroll
                 }}
               >
-                <CharacterStatus
-                  name={characterData.name}
-                  level={characterData.level}
-                  race={characterData.race}
-                  gender={characterData.gender}
-                  background={characterData.background}
-                  hp={characterData.hp}
-                  stamina={characterData.stamina}
-                  experience={characterData.experience}
-                />
+                <CharacterStatus characterData={{
+                  _id: currentUser?.characterId || '',
+                  ...characterData,
+                  userId: currentUser?._id || ''
+                }} />
                 <BottomPanel
                   playerRace={characterData.race}
                   characterData={characterData}

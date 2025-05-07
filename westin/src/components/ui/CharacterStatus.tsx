@@ -8,7 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 
 // Define Character type to fix the any
 interface Character {
-  _id: string;
+  _id?: string;
   name: string;
   level: number;
   race: string;
@@ -31,17 +31,21 @@ interface Character {
     cash: number;
     bank: number;
   };
-  x: number;
-  y: number;
-  attack: number;
-  defense: number;
-  duelsWon: number;
-  duelsLost: number;
-  motto: string;
-  userId: string;
+  x?: number;
+  y?: number;
+  attack?: number;
+  defense?: number;
+  duelsWon?: number;
+  duelsLost?: number;
+  motto?: string;
+  userId?: string;
 }
 
-const CharacterStatus: React.FC = () => {
+interface CharacterStatusProps {
+  characterData?: Character | null;
+}
+
+const CharacterStatus: React.FC<CharacterStatusProps> = ({ characterData: propCharacterData }) => {
   const { currentUser } = useAuth();
   const [isPanelVisible, setIsPanelVisible] = useState(true);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
@@ -52,8 +56,22 @@ const CharacterStatus: React.FC = () => {
   const [refreshingProfile, setRefreshingProfile] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Update internal state when prop changes
+  useEffect(() => {
+    if (propCharacterData) {
+      setCharacterData(propCharacterData);
+      setLoading(false);
+      setError(null);
+    }
+  }, [propCharacterData]);
+
   // Fetch character data function
   const fetchCharacterData = useCallback(async () => {
+    // Only fetch if no character data was provided via props
+    if (propCharacterData) {
+      return propCharacterData;
+    }
+    
     setLoading(true);
     setError(null);
     
@@ -64,7 +82,7 @@ const CharacterStatus: React.FC = () => {
       if (!currentUser?.characterId || !token) {
         setError("Nu s-a găsit ID-ul caracterului");
         setLoading(false);
-        return;
+        return null;
       }
       
       // Fă cererea către backend cu token-ul de autentificare
@@ -89,12 +107,14 @@ const CharacterStatus: React.FC = () => {
       setLoading(false);
       return null;
     }
-  }, [currentUser]);
+  }, [currentUser, propCharacterData]);
 
-  // Initial fetch of character data on component mount
+  // Initial fetch of character data on component mount, only if not provided via props
   useEffect(() => {
-    fetchCharacterData();
-  }, [fetchCharacterData]);
+    if (!propCharacterData) {
+      fetchCharacterData();
+    }
+  }, [fetchCharacterData, propCharacterData]);
 
   // Fetch inventory and equipped items
   useEffect(() => {

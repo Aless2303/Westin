@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { useWorks } from '../context/WorksContext';
+import { useWorks, Job } from '../context/WorksContext';
 
 interface WorksPanelProps {
   isOpen: boolean;
@@ -39,8 +39,8 @@ const WorksPanel: React.FC<WorksPanelProps> = ({
   };
   
   // Helper to create a unique ID for each job
-  const createJobId = (job: any, index: number): string => {
-    return `${job.mobName}_${job.mobX}_${job.mobY}_${job.type}_${index}`;
+  const createJobId = (job: Job, index: number): string => {
+    return job._id || `${job.mobName}_${job.mobX}_${job.mobY}_${job.type}_${index}`;
   };
   
   // Initialize progress data when jobs change

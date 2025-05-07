@@ -27,6 +27,7 @@ import mapImageRoutes from './routes/mapImageRoutes';
 import backgroundRoutes from "./routes/backgroundRoutes";
 import raceRoutes from "./routes/raceRoutes";
 import chatRoutes from "./routes/chatRoutes";
+import workRoutes from './routes/workRoutes';
 
 // Load environment variables
 dotenv.config();
@@ -62,18 +63,19 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // Routes
-app.use('/api/users', userRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
 app.use('/api/characters', characterRoutes);
-app.use('/api/mobs', mobRoutes);
+app.use('/api/chat', chatRoutes);
 app.use('/api/inventory', inventoryRoutes);
-app.use('/api/reports', reportRoutes);
 app.use('/api/items', itemRoutes);
-app.use('/api/password', passwordResetRoutes);
+app.use('/api/races', raceRoutes);
+app.use('/api/backgrounds', backgroundRoutes);
 app.use('/api/map-images', mapImageRoutes);
-app.use("/api/backgrounds", backgroundRoutes);
-app.use("/api/races", raceRoutes);
-app.use("/api/chat", chatRoutes);
+app.use('/api/password-reset', passwordResetRoutes);
+app.use('/api/reports', reportRoutes);
+app.use('/api/mobs', mobRoutes);
+app.use('/api/works', workRoutes);
 
 // Default route
 app.get('/', (req, res) => {

@@ -12,8 +12,38 @@ interface User {
   hasCreatedCharacter: boolean;
 }
 
+interface Character {
+  _id: string;
+  name: string;
+  level: number;
+  race: string;
+  gender: string;
+  hp: {
+    current: number;
+    max: number;
+  };
+  stamina: {
+    current: number;
+    max: number;
+  };
+  experience: {
+    current: number;
+    percentage: number;
+  };
+  money: {
+    cash: number;
+    bank: number;
+  };
+  x: number;
+  y: number;
+  attack: number;
+  defense: number;
+  userId: string;
+}
+
 interface AuthContextType {
   currentUser: User | null;
+  currentCharacter: Character | null;
   login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
   isAdmin: boolean;
@@ -30,9 +60,20 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentCharacter, setCurrentCharacter] = useState<Character | null>(null);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [hasCreatedCharacter, setHasCreatedCharacter] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
+
+  // Funcție pentru a încărca datele caracterului
+  const loadCharacterData = async (characterId: string) => {
+    try {
+      const characterData = await characterService.getCharacter(characterId);
+      setCurrentCharacter(characterData);
+    } catch (error) {
+      console.error('Failed to load character data:', error);
+    }
+  };
 
   useEffect(() => {
     // Verifică dacă există un token salvat în localStorage
@@ -51,11 +92,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           });
           setIsAdmin(userData.isAdmin);
           setHasCreatedCharacter(userData.hasCreatedCharacter || false);
+          
+          // Încarcă datele caracterului dacă există un ID de caracter
+          if (userData.characterId && userData.hasCreatedCharacter) {
+            loadCharacterData(userData.characterId);
+          }
         })
         .catch(() => {
           // În caz de eroare, șterge token-ul și setează utilizatorul ca null
           localStorage.removeItem('token');
           setCurrentUser(null);
+          setCurrentCharacter(null);
           setIsAdmin(false);
           setHasCreatedCharacter(false);
         })
@@ -86,6 +133,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       setIsAdmin(response.isAdmin);
       setHasCreatedCharacter(response.hasCreatedCharacter || false);
+      
+      // Încarcă datele caracterului dacă există un ID de caracter
+      if (response.characterId && response.hasCreatedCharacter) {
+        await loadCharacterData(response.characterId);
+      }
+      
       return true;
     } catch (error) {
       console.error('Login failed:', error);
@@ -96,6 +149,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = () => {
     localStorage.removeItem('token');
     setCurrentUser(null);
+    setCurrentCharacter(null);
     setIsAdmin(false);
     setHasCreatedCharacter(false);
   };
@@ -114,6 +168,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         });
       }
       
+      // Încarcă datele caracterului
+      await loadCharacterData(characterId);
+      
       return true;
     } catch (error) {
       console.error('Failed to mark character as created:', error);
@@ -124,6 +181,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   return (
     <AuthContext.Provider value={{ 
       currentUser, 
+      currentCharacter,
       login, 
       logout, 
       isAdmin, 
