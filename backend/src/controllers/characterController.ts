@@ -421,3 +421,38 @@ export const searchCharacters = async (req: Request, res: Response): Promise<voi
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+// @desc    Get player data by user ID for chat
+// @route   GET /api/characters/player/:userId
+// @access  Private
+export const getPlayerData = async (req: Request & { user?: any }, res: Response): Promise<void> => {
+  try {
+    const { userId } = req.params;
+    
+    if (!userId) {
+      res.status(400).json({ message: 'User ID is required' });
+      return;
+    }
+
+    // Find character based on userId
+    const character = await Character.findOne({ userId })
+      .select('name race gender background')
+      .lean();
+
+    if (!character) {
+      res.status(404).json({ message: 'Character not found' });
+      return;
+    }
+
+    // Return the relevant data
+    res.status(200).json({
+      name: character.name,
+      race: character.race,
+      gender: character.gender,
+      background: character.background
+    });
+  } catch (error) {
+    console.error('Error fetching player data:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};

@@ -257,6 +257,27 @@ export const initiateConversation = async (req: Request & { user?: any }, res: R
       conversationId
     });
 
+    // Emit socket event to notify users about the new conversation
+    const io = req.app.get('io');
+    
+    // Notificăm ambii participanți despre noua conversație
+    console.log(`Emitting new-conversation event for conversation ID: ${conversationId}`);
+    io.to(`user:${initiatorObjectId}`).to(`user:${targetObjectId}`).emit('new-conversation', {
+      id: conversation._id,
+      participantIds: conversation.participants,
+      participantNames: conversation.participantNames,
+      lastActivity: conversation.lastMessageAt,
+      isAccepted: conversation.isAccepted
+    });
+
+    // Adăugăm direct la roomurile socket.io fără a căuta socketurile individuale
+    // Acest lucru va funcționa pentru că socket.io gestionează roomurile server-side
+    // și nu avem nevoie să găsim socketurile individuale
+    io.in(`user:${initiatorObjectId}`).socketsJoin(`conversation:${conversationId}`);
+    io.in(`user:${targetObjectId}`).socketsJoin(`conversation:${conversationId}`);
+    
+    console.log(`Adăugat utilizatorii la camera de conversație: ${conversationId}`);
+
     res.status(201).json({
       id: conversation._id,
       participantIds: conversation.participants,

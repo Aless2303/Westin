@@ -240,6 +240,39 @@ export const useChatState = (characterId: string) => {
       });
     });
     
+    // Listen for new conversations
+    socket.on('new-conversation', (conversation) => {
+      console.log('Received new conversation via socket:', conversation);
+      
+      // Add the new conversation to the list if it doesn't exist already
+      setPrivateConversations(prev => {
+        // Check if it already exists to avoid duplicates
+        if (!prev.some(conv => conv.id === conversation.id)) {
+          const newConversation: PrivateConversation = {
+            id: conversation.id,
+            participantIds: conversation.participantIds,
+            participantNames: conversation.participantNames,
+            messages: [], // Will load messages when selecting the conversation
+            lastActivity: new Date(conversation.lastActivity).getTime(),
+            isAccepted: conversation.isAccepted
+          };
+          
+          return [...prev, newConversation];
+        }
+        return prev;
+      });
+      
+      // Show notification about new conversation request if current user is not the initiator
+      if (conversation.participantIds[0] !== characterId) {
+        // The first participant is always the initiator in your system
+        showMessageNotification(
+          conversation.id, 
+          conversation.participantNames[0], 
+          "A inițiat o conversație nouă"
+        );
+      }
+    });
+    
     // Listen for when a user leaves a conversation
     socket.on('conversation-user-left', (data) => {
       console.log('User left conversation:', data);
@@ -288,6 +321,7 @@ export const useChatState = (characterId: string) => {
     return () => {
       socket.off('global-message');
       socket.off('private-message');
+      socket.off('new-conversation');
       socket.off('messages-read');
       socket.off('typing');
       socket.off('conversation-user-left');

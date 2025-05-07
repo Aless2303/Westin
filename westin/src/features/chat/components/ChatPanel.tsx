@@ -8,6 +8,16 @@ import { formatTimestamp } from '../utils/formatTimestamp';
 import PlayerSearch from './PlayerSearch';
 import ChatRequests from './ChatRequests';
 import ChatNotificationIndicator from './ChatNotificationIndicator';
+import { useAuth } from '../../../context/AuthContext';
+
+// Interfața pentru datele despre jucători
+interface PlayerData {
+  id: string;
+  name: string;
+  race: string;
+  gender: string;
+  background?: string;
+}
 
 interface ChatPanelProps {
   characterId: string;
@@ -20,6 +30,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   isOpen, 
   onClose 
 }) => {
+  const { currentUser } = useAuth();
   const { 
     activeChatType,
     setActiveChatType,
@@ -42,6 +53,15 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [newConversationHighlight, setNewConversationHighlight] = useState<string | null>(null);
   
+  // State pentru a stoca datele despre jucători
+  const [playerData, setPlayerData] = useState<Record<string, PlayerData>>({});
+  // State pentru a stoca datele despre caracterul curent
+  const [currentCharacterData, setCurrentCharacterData] = useState<{
+    race: string;
+    gender: string;
+    background?: string;
+  } | null>(null);
+  
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
@@ -59,6 +79,65 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       return () => clearTimeout(timer);
     }
   }, [selectedConversation]);
+
+  // Efect pentru a obține datele caracterului curent
+  useEffect(() => {
+    const fetchCurrentCharacter = async () => {
+      if (!characterId) return;
+      
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        
+        // Încearcă să obții datele din localStorage mai întâi
+        const userData = localStorage.getItem('userData');
+        if (userData) {
+          try {
+            const parsedData = JSON.parse(userData);
+            if (parsedData.character && parsedData.character.race && parsedData.character.gender) {
+              setCurrentCharacterData({
+                race: parsedData.character.race,
+                gender: parsedData.character.gender,
+                background: parsedData.character.background
+              });
+              return;
+            }
+          } catch (e) {
+            console.error('Error parsing user data:', e);
+          }
+        }
+        
+        // Dacă nu există în localStorage, obține de la server
+        const response = await fetch(`http://localhost:5000/api/characters/${currentUser?.characterId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setCurrentCharacterData({
+            race: data.race,
+            gender: data.gender,
+            background: data.background
+          });
+          
+          // Salvează datele în localStorage pentru acces mai rapid
+          localStorage.setItem('userData', JSON.stringify({
+            character: {
+              race: data.race,
+              gender: data.gender,
+              background: data.background
+            }
+          }));
+        }
+      } catch (error) {
+        console.error('Error fetching current character data:', error);
+      }
+    };
+    
+    fetchCurrentCharacter();
+  }, [characterId, currentUser]);
   
   const allConversations = privateConversations.filter(conv => conv.isAccepted);
   const selectedConvo = selectedConversation
@@ -152,12 +231,67 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     );
   };
 
+  // Funcție pentru a obține datele despre un jucător
+  const fetchPlayerData = async (playerId: string, senderName: string): Promise<void> => {
+    if (playerId === 'system' || playerId === characterId || playerData[playerId]) {
+      return;
+    }
+    
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      
+      const response = await fetch(`http://localhost:5000/api/characters/player/${playerId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setPlayerData(prev => ({
+          ...prev,
+          [playerId]: {
+            id: playerId,
+            name: senderName,
+            race: data.race || 'Shaman',
+            gender: data.gender || 'Masculin',
+            background: data.background
+          }
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching player data:', error);
+    }
+  };
+
   const getCharacterImagePath = (senderId: string, senderName: string) => {
+    // Pentru mesajele de sistem
     if (senderId === 'system') return "/Icons/system.png";
-    if (senderId === characterId) return "/Races/Masculin/Ninja.png";
-    if (senderName === "KnightShadow") return "/Races/Masculin/Warrior.png";
-    if (senderName === "WizardFrost") return "/Races/Feminin/Shaman.png";
-    return "/Races/Masculin/Sura.png";
+    
+    // Pentru mesajele proprii
+    if (senderId === characterId) {
+      if (currentCharacterData) {
+        const race = currentCharacterData.race.toLowerCase();
+        const gender = currentCharacterData.gender.toLowerCase();
+        return `/Races/${gender}/${race}.png`;
+      }
+      return "/Races/masculin/warrior.png"; // Fallback pentru caracterul curent
+    }
+    
+    // Pentru mesajele altor jucători
+    if (playerData[senderId]) {
+      const player = playerData[senderId];
+      const race = player.race.toLowerCase();
+      const gender = player.gender.toLowerCase();
+      return `/Races/${gender}/${race}.png`;
+    }
+    
+    // Dacă nu avem datele jucătorului, le cerem și folosim un fallback temporar
+    fetchPlayerData(senderId, senderName);
+    
+    // Fallback temporar până când avem datele jucătorului
+    return "/Races/masculin/warrior.png";
   };
 
   const handleSendMessage = (e: React.FormEvent) => {

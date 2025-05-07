@@ -8,7 +8,8 @@ import {
   updateCharacterPosition,
   updateCharacterMoney,
   markCharacterCreationComplete,
-  searchCharacters
+  searchCharacters,
+  getPlayerData
 } from '../controllers/characterController';
 import { protect } from '../middleware/authMiddleware';
 
@@ -23,6 +24,11 @@ router.get('/search', searchCharacters);
 // @desc    Get all characters for leaderboard
 // @access  Public
 router.get('/leaderboard', getLeaderboard);
+
+// @route   GET /api/characters/player/:userId
+// @desc    Get player data by user ID for chat
+// @access  Private
+router.get('/player/:userId', protect, getPlayerData);
 
 // @route   GET /api/characters/:id
 // @desc    Get character by ID
