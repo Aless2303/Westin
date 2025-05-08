@@ -59,7 +59,7 @@ const reportSchema = new Schema<IReport>(
     },
     result: {
       type: String,
-      enum: ['victory', 'defeat'],
+      enum: ['victory', 'defeat', 'impartial'],
     },
     combatStats: {
       playerHpLost: {

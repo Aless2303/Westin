@@ -222,60 +222,118 @@ const createWorkCompletionReport = async (work: any, character: any) => {
     combatLogs.push(`Status la finalul rundei ${round}: Tu (${currentPlayerHp}/${playerHp}) - ${mobName} (${currentMobHp}/${mobHp})`);
   }
   
-  // Always ensure player wins (since the work is completed)
-  if (currentMobHp > 0) {
-    const finalDamage = currentMobHp;
-    combatLogs.push(`-------- Runda finală --------`);
-    combatLogs.push(`Tu ataci ${mobName} pentru ${finalDamage} damage.`);
-    combatLogs.push(`→ HP-ul lui ${mobName}: 0/${mobHp}`);
-    combatLogs.push(`Victorie! Ai învins pe ${mobName}!`);
-    currentMobHp = 0;
+  // Determinăm rezultatul luptei
+  let result = 'impartial';
+  if (currentMobHp <= 0) {
+    result = 'victory';
+  } else if (currentPlayerHp <= 0) {
+    result = 'defeat';
   }
   
-  // Calculate final stats
+  // Calculăm statisticile finale
   const playerHpLost = playerHp - currentPlayerHp;
-  const damageDealt = mobHp;
-  const remainingMobHp = 0;
+  const damageDealt = mobHp - currentMobHp;
+  const remainingMobHp = currentMobHp;
+  
+  // Acordăm recompense doar în caz de victorie
+  let actualExpGained = 0;
+  let actualYangGained = 0;
+  
+  if (result === 'victory') {
+    actualExpGained = expGained;
+    actualYangGained = yangGained;
+  }
   
   // Create detailed report content
-  const content = `Ai finalizat o misiune de ${work.type} împotriva ${mobName}. Ai câștigat ${expGained} experiență și ${yangGained} yang.\n\n` +
+  let contentPrefix = '';
+  switch (result) {
+    case 'victory':
+      contentPrefix = `Ai finalizat cu succes o misiune de ${work.type} împotriva ${mobName}. Ai câștigat ${actualExpGained} experiență și ${actualYangGained} yang.`;
+      break;
+    case 'defeat':
+      contentPrefix = `Ai fost învins într-o misiune de ${work.type} împotriva ${mobName}. Nu ai primit nicio recompensă.`;
+      break;
+    case 'impartial':
+      contentPrefix = `O misiune de ${work.type} împotriva ${mobName} s-a terminat fără un câștigător clar. Nu ai primit nicio recompensă.`;
+      break;
+  }
+  
+  const content = `${contentPrefix}\n\n` +
     `Statistici duel:\n` +
     `- Ai provocat ${damageDealt.toLocaleString()} damage\n` +
     `- Ai pierdut ${playerHpLost.toLocaleString()} HP\n` +
     `- Runde: ${totalRounds}\n\n` +
     `Desfășurarea luptei:\n${combatLogs.join('\n')}\n\n` +
-    `Recompense: +${expGained} XP, +${yangGained} Yang`;
+    `Recompense: +${actualExpGained} XP, +${actualYangGained} Yang`;
   
   // Create report
   await Report.create({
     characterId: work.characterId,
     type: 'attack',
-    subject: `Misiune completată: ${mobName}`,
+    subject: `Misiune ${result === 'victory' ? 'completată' : result === 'defeat' ? 'eșuată' : 'nefinalizată'}: ${mobName}`,
     content,
     read: false,
     mobName: mobName,
     mobType: work.mobType,
-    result: 'victory',
+    result: result,
     combatStats: {
       playerHpLost,
       damageDealt,
-      expGained,
-      yangGained,
+      expGained: actualExpGained,
+      yangGained: actualYangGained,
       totalRounds,
       remainingMobHp
     }
   });
   
-  // Update character stats
+  // Update character stats - acordăm experiență și bani doar în caz de victorie
   const newHp = Math.max(0, character.hp.current - playerHpLost);
-  const newExp = character.experience.current + expGained;
-  const newYang = character.money.cash + yangGained;
+  const newExp = character.experience.current + actualExpGained;
+  const newYang = character.money.cash + actualYangGained;
   
   await Character.findByIdAndUpdate(character._id, {
     'hp.current': newHp,
     'experience.current': newExp,
     'money.cash': newYang
   });
+  
+  // Dacă jucătorul a murit (HP = 0), anulăm toate muncile rămase
+  if (newHp <= 0) {
+    // Găsim toate muncile rămase și le anulăm
+    const remainingWorks = await Work.find({ characterId: character._id });
+    
+    // Ștergem toate muncile
+    if (remainingWorks.length > 0) {
+      // Rambursăm stamina pentru fiecare muncă anulată
+      let totalStaminaRefund = 0;
+      remainingWorks.forEach(work => {
+        totalStaminaRefund += work.staminaCost || 0;
+      });
+      
+      // Ștergem toate muncile
+      await Work.deleteMany({ characterId: character._id });
+      
+      // Rambursăm stamina (dar nu depășim maximul)
+      if (totalStaminaRefund > 0) {
+        const currentStamina = Math.max(0, character.stamina.current);
+        const newStamina = Math.min(character.stamina.max, currentStamina + totalStaminaRefund);
+        
+        await Character.findByIdAndUpdate(character._id, {
+          'stamina.current': newStamina
+        });
+      }
+      
+      // Creăm un raport pentru anularea muncilor
+      await Report.create({
+        characterId: character._id,
+        type: 'attack',
+        subject: `Munci anulate din cauza HP-ului 0`,
+        content: `Toate muncile tale au fost anulate automat deoarece ai rămas fără HP în urma luptei cu ${mobName}. Trebuie să te odihnești înainte de a putea începe alte munci.`,
+        read: false,
+        result: 'defeat',
+      });
+    }
+  }
 };
 
 // @desc    Create a new work
@@ -319,6 +377,11 @@ export const createWork = async (req: Request & { user?: any }, res: Response): 
     // Check if user is authorized to create works for this character
     if (req.user && character.userId.toString() !== req.user._id.toString() && !req.user.isAdmin) {
       throw new ApiError('Not authorized to create works for this character', 401);
+    }
+
+    // Verifica dacă jucătorul are HP
+    if (character.hp.current <= 0) {
+      throw new ApiError('Nu poți începe o muncă cu 0 HP', 400);
     }
 
     // Check if character has enough stamina
