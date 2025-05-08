@@ -14,6 +14,9 @@ const ReportsPanel: React.FC<ReportsPanelProps> = ({ isOpen, onClose }) => {
     deleteMultipleReports,
     markAsRead,
     markAllAsRead,
+    isLoading,
+    error,
+    refetch
   } = useReports();
 
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -152,7 +155,7 @@ const ReportsPanel: React.FC<ReportsPanelProps> = ({ isOpen, onClose }) => {
     const newSelectAll = !selectAll;
     setSelectAll(newSelectAll);
     if (newSelectAll) {
-      setSelectedReports(currentReports.map((report) => report.id));
+      setSelectedReports(currentReports.map((report) => report._id));
     } else {
       setSelectedReports([]);
     }
@@ -178,7 +181,7 @@ const ReportsPanel: React.FC<ReportsPanelProps> = ({ isOpen, onClose }) => {
 
   const handleOpenReport = (report: Report) => {
     if (!report.read) {
-      markAsRead(report.id);
+      markAsRead(report._id);
     }
     setSelectedReport(report);
     setIsReportDetailOpen(true);
@@ -189,24 +192,37 @@ const ReportsPanel: React.FC<ReportsPanelProps> = ({ isOpen, onClose }) => {
     setSelectedReport(null);
   };
 
-  const formatDate = (date: Date) =>
-    `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1)
+  const formatDate = (date: Date | string) => {
+    const d = date instanceof Date ? date : new Date(date);
+    return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1)
       .toString()
-      .padStart(2, '0')}/${date.getFullYear()} ${date.getHours().toString().padStart(2, '0')}:${date
+      .padStart(2, '0')}/${d.getFullYear()} ${d.getHours().toString().padStart(2, '0')}:${d
       .getMinutes()
       .toString()
       .padStart(2, '0')}`;
+  };
 
-  const formatShortDate = (date: Date) =>
-    `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1)
+  const formatShortDate = (date: Date | string) => {
+    const d = date instanceof Date ? date : new Date(date);
+    return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1)
       .toString()
-      .padStart(2, '0')}/${date.getFullYear().toString().slice(2)} ${date
+      .padStart(2, '0')}/${d.getFullYear().toString().slice(2)} ${d
       .getHours()
       .toString()
-      .padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+      .padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+  };
 
-  const getReportIcon = (type: ReportType, result?: 'victory' | 'defeat') =>
-    type === 'duel' ? (result === 'victory' ? '⚔️' : '💔') : result === 'victory' ? '🏆' : '❌';
+  const getReportIcon = (type: ReportType, result?: 'victory' | 'defeat' | 'impartial') => {
+    if (type === 'duel') {
+      if (result === 'victory') return '⚔️';
+      if (result === 'defeat') return '💔';
+      return '⚔';
+    }
+    if (result === 'victory') return '🏆';
+    if (result === 'defeat') return '❌';
+    if (result === 'impartial') return '⚖️';
+    return '📋';
+  };
 
   const formatCombatLogLine = (line: string, index: number) => {
     let className = '';
@@ -283,7 +299,7 @@ const ReportsPanel: React.FC<ReportsPanelProps> = ({ isOpen, onClose }) => {
               <span className="text-xl sm:text-lg mr-2">{getReportIcon(selectedReport.type, selectedReport.result)}</span>
               <h3 className="text-metin-gold font-medium text-base sm:text-lg">{selectedReport.subject}</h3>
             </div>
-            <div className="text-metin-light/80 text-sm sm:text-xs">{formatDate(selectedReport.timestamp)}</div>
+            <div className="text-metin-light/80 text-sm sm:text-xs">{formatDate(selectedReport.createdAt)}</div>
           </div>
 
           <div className="flex-grow overflow-y-auto pr-1">
@@ -386,7 +402,7 @@ const ReportsPanel: React.FC<ReportsPanelProps> = ({ isOpen, onClose }) => {
           <div className="flex justify-end mt-4">
             <button
               onClick={() => {
-                deleteReport(selectedReport.id);
+                deleteReport(selectedReport._id);
                 handleCloseReportDetail();
               }}
               className="bg-metin-red/80 hover:bg-metin-red text-white px-4 py-1 rounded flex items-center text-sm sm:text-base transition-colors"
@@ -449,10 +465,25 @@ const ReportsPanel: React.FC<ReportsPanelProps> = ({ isOpen, onClose }) => {
           </div>
 
           <div className="flex-grow overflow-y-auto my-2">
-            {currentReports.length > 0 ? (
+            {isLoading ? (
+              <div className="flex items-center justify-center h-full text-metin-light/70">
+                <div className="animate-spin mr-2">⏳</div>
+                Se încarcă rapoartele...
+              </div>
+            ) : error ? (
+              <div className="flex items-center justify-center h-full text-red-400 text-center px-4">
+                {error}
+                <button 
+                  onClick={refetch}
+                  className="ml-2 text-metin-gold underline hover:text-metin-gold/80"
+                >
+                  Încearcă din nou
+                </button>
+              </div>
+            ) : currentReports.length > 0 ? (
               currentReports.map((report) => (
                 <div
-                  key={report.id}
+                  key={report._id}
                   className={`flex items-center py-2 border-b border-metin-gold/10 hover:bg-black/30 transition-colors ${
                     !report.read ? 'font-semibold' : ''
                   } cursor-pointer`}
@@ -466,10 +497,10 @@ const ReportsPanel: React.FC<ReportsPanelProps> = ({ isOpen, onClose }) => {
                   >
                     <input
                       type="checkbox"
-                      checked={selectedReports.includes(report.id)}
+                      checked={selectedReports.includes(report._id)}
                       onChange={(e) => {
                         e.stopPropagation();
-                        handleSelectReport(report.id);
+                        handleSelectReport(report._id);
                       }}
                       className="accent-metin-gold w-4 h-4 cursor-pointer"
                     />
@@ -480,13 +511,13 @@ const ReportsPanel: React.FC<ReportsPanelProps> = ({ isOpen, onClose }) => {
                     <span className={!report.read ? 'text-metin-light' : 'text-metin-light/80'}>{report.subject}</span>
                   </div>
                   <div className="w-3/12 px-2 text-xs sm:text-sm text-metin-light/70 text-center">
-                    {formatShortDate(report.timestamp)}
+                    {formatShortDate(report.createdAt)}
                   </div>
                   <div className="w-12 flex justify-end pr-3" onClick={(e) => e.stopPropagation()}>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        deleteReport(report.id);
+                        deleteReport(report._id);
                       }}
                       className="text-metin-red/70 hover:text-metin-red transition-colors"
                       title="Șterge raport"

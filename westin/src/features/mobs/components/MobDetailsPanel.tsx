@@ -146,6 +146,15 @@ const MobDetailsPanel: React.FC<MobDetailsPanelProps> = ({
   const handleAttack = async (duration: '15s' | '10m' | '1h') => {
     if (!selectedMob) return;
     
+    // Clear any existing error
+    setErrorMessage('');
+    
+    // Verify character has enough HP
+    if (characterStats.hp.current <= 0) {
+      setErrorMessage('Nu poți lupta cu 0 HP! Odihnește-te pentru a-ți recupera HP.');
+      return;
+    }
+    
     const staminaCost = 
       duration === '15s' ? 1 : 
       duration === '10m' ? 4 : 

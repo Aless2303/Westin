@@ -12,19 +12,23 @@ export interface CombatStats {
 }
 
 export interface Report {
-  id: string;
+  _id: string;      // Folosim _id în loc de id pentru a fi consistent cu MongoDB
+  characterId: string;
   type: ReportType;
   subject: string;
-  timestamp: Date;
   content: string;
   read: boolean;
   
   // Additional metadata to differentiate report types
   playerName?: string;      // For duel reports - opponent name
   mobName?: string;         // For attack reports - mob/boss name 
-  mobType?: 'boss' | 'metin';  // Mob type for attack reports
-  result?: 'victory' | 'defeat'; // Outcome of duel or attack
+  mobType?: 'boss' | 'metin' | 'duel' | 'town' | 'sleep';  // Mob type for attack reports
+  result?: 'victory' | 'defeat' | 'impartial'; // Outcome of duel or attack
   
   // Statistici de luptă
   combatStats?: CombatStats;
+  
+  // Timestamps
+  createdAt: string | Date;
+  updatedAt: string | Date;
 }

@@ -156,11 +156,49 @@ export const workService = {
   },
 };
 
+// Reports
+export const reportService = {
+  // Obține rapoartele personajului
+  getReports: async (characterId: string) => {
+    return fetchWithAuth(`/reports/${characterId}`);
+  },
+  
+  // Marchează un raport ca citit
+  markAsRead: async (characterId: string, reportId: string) => {
+    return fetchWithAuth(`/reports/${characterId}/${reportId}/read`, {
+      method: 'PUT',
+    });
+  },
+  
+  // Marchează toate rapoartele ca citite
+  markAllAsRead: async (characterId: string) => {
+    return fetchWithAuth(`/reports/${characterId}/read-all`, {
+      method: 'PUT',
+    });
+  },
+  
+  // Șterge un raport
+  deleteReport: async (characterId: string, reportId: string) => {
+    return fetchWithAuth(`/reports/${characterId}/${reportId}`, {
+      method: 'DELETE',
+    });
+  },
+  
+  // Șterge mai multe rapoarte
+  deleteMultipleReports: async (characterId: string, reportIds: string[]) => {
+    return fetchWithAuth(`/reports/${characterId}/multiple`, {
+      method: 'DELETE',
+      body: JSON.stringify({ reportIds }),
+    });
+  },
+};
+
 // Exportă serviciile pentru a fi utilizate în aplicație
 export default {
   auth: authService,
   password: passwordService,
   character: characterService,
   work: workService,
+  report: reportService,
   // Aici poți adăuga alte servicii pentru alte funcționalități
 };
