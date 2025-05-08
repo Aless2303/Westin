@@ -1,11 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { Report } from '../types';
+import { Report, ReportType } from '../types';
 import { reportService } from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 
 // Modificăm interfața pentru a accepta rapoarte cu ID-uri predefinite
 interface ReportsContextType {
   reports: Report[];
+  addReport: (reportData: Omit<Report, '_id' | 'characterId' | 'createdAt' | 'updatedAt'>) => Promise<void>;
   deleteReport: (id: string) => Promise<void>;
   deleteMultipleReports: (ids: string[]) => Promise<void>;
   markAsRead: (id: string) => Promise<void>;
@@ -19,6 +20,7 @@ interface ReportsContextType {
 // Create context with default values
 const ReportsContext = createContext<ReportsContextType>({
   reports: [],
+  addReport: async () => {},
   deleteReport: async () => {},
   deleteMultipleReports: async () => {},
   markAsRead: async () => {},
@@ -44,12 +46,47 @@ export const ReportsProvider: React.FC<ReportsProviderProps> = ({ children }) =>
   const { currentCharacter } = useAuth();
   
   // Funcție pentru a procesa datele de la API
-  const processApiReports = (apiReports: any[]): Report[] => {
-    return apiReports.map(report => ({
-      ...report,
-      createdAt: new Date(report.createdAt),
-      updatedAt: new Date(report.updatedAt)
-    }));
+  const processApiReports = (apiReports: {
+    _id: string;
+    characterId: string;
+    type: string;
+    subject: string;
+    content: string;
+    read: boolean;
+    playerName?: string;
+    mobName?: string;
+    mobType?: string;
+    result?: string;
+    combatStats?: {
+      playerHpLost: number;
+      damageDealt: number;
+      expGained: number;
+      yangGained: number;
+      totalRounds: number;
+      remainingMobHp: number;
+    };
+    createdAt: string;
+    updatedAt: string;
+  }[]): Report[] => {
+    return apiReports.map(report => {
+      // Convert report to correct types
+      const typedReport: Report = {
+        _id: report._id,
+        characterId: report.characterId,
+        type: report.type as ReportType,
+        subject: report.subject,
+        content: report.content,
+        read: report.read,
+        playerName: report.playerName,
+        mobName: report.mobName,
+        mobType: report.mobType as 'boss' | 'metin' | 'duel' | 'town' | 'sleep' | undefined,
+        result: report.result as 'victory' | 'defeat' | 'impartial' | undefined,
+        combatStats: report.combatStats,
+        createdAt: new Date(report.createdAt),
+        updatedAt: new Date(report.updatedAt)
+      };
+      return typedReport;
+    });
   };
   
   // Funcție pentru a încărca rapoartele din backend
@@ -137,8 +174,30 @@ export const ReportsProvider: React.FC<ReportsProviderProps> = ({ children }) =>
     return reports.filter(report => !report.read).length;
   }, [reports]);
 
+  // Add a new report
+  const addReport = useCallback(async (reportData: Omit<Report, '_id' | 'characterId' | 'createdAt' | 'updatedAt'>) => {
+    if (!currentCharacter?._id) return;
+    
+    try {
+      const newReport = await reportService.createReport(currentCharacter._id, reportData);
+      
+      // Update the reports list with the new report
+      setReports(prev => [{
+        ...newReport,
+        createdAt: new Date(newReport.createdAt),
+        updatedAt: new Date(newReport.updatedAt)
+      }, ...prev]);
+      
+      return newReport;
+    } catch (err) {
+      console.error('Error creating report:', err);
+      setError('Nu s-a putut crea raportul. Încearcă din nou mai târziu.');
+    }
+  }, [currentCharacter?._id]);
+
   const value = {
     reports,
+    addReport,
     deleteReport,
     deleteMultipleReports,
     markAsRead,

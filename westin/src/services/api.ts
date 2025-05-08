@@ -191,6 +191,31 @@ export const reportService = {
       body: JSON.stringify({ reportIds }),
     });
   },
+  
+  // Creează un nou raport
+  createReport: async (characterId: string, reportData: {
+    type: string;
+    subject: string;
+    content: string;
+    read?: boolean;
+    playerName?: string;
+    mobName?: string;
+    mobType?: string;
+    result?: string;
+    combatStats?: {
+      playerHpLost: number;
+      damageDealt: number;
+      expGained: number;
+      yangGained: number;
+      totalRounds: number;
+      remainingMobHp: number;
+    };
+  }) => {
+    return fetchWithAuth(`/reports/${characterId}`, {
+      method: 'POST',
+      body: JSON.stringify(reportData),
+    });
+  },
 };
 
 // Exportă serviciile pentru a fi utilizate în aplicație

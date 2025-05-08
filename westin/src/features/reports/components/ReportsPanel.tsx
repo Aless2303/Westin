@@ -55,8 +55,11 @@ const ReportsPanel: React.FC<ReportsPanelProps> = ({ isOpen, onClose }) => {
       setCurrentPage(1);
       setSelectedReport(null);
       setIsReportDetailOpen(false);
+    } else {
+      // Reîncarcă rapoartele când panoul este deschis
+      refetch();
     }
-  }, [isOpen]);
+  }, [isOpen, refetch]);
 
   // Reset selectAll when filtered reports change
   useEffect(() => {

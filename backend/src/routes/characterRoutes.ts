@@ -9,7 +9,8 @@ import {
   updateCharacterMoney,
   markCharacterCreationComplete,
   searchCharacters,
-  getPlayerData
+  getPlayerData,
+  getNearbyPlayers
 } from '../controllers/characterController';
 import { protect } from '../middleware/authMiddleware';
 
@@ -24,6 +25,11 @@ router.get('/search', searchCharacters);
 // @desc    Get all characters for leaderboard
 // @access  Public
 router.get('/leaderboard', getLeaderboard);
+
+// @route   GET /api/characters/nearby
+// @desc    Get nearby players for duels
+// @access  Private
+router.get('/nearby', protect, getNearbyPlayers);
 
 // @route   GET /api/characters/player/:userId
 // @desc    Get player data by user ID for chat

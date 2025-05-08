@@ -210,12 +210,7 @@ const GamePage: React.FC = () => {
     setCharacterData((prev) => {
       const updatedHp = Math.max(0, Math.min(prev.hp.max, newHp));
       
-      if (updatedHp <= 0) {
-        setSystemMessage('Ai pierdut toată viața! Folosește poțiuni pentru a te vindeca.');
-        setShowSystemMessage(true);
-        setTimeout(() => setShowSystemMessage(false), 5000);
-        return { ...prev, hp: { ...prev.hp, current: 0 } };
-      }
+
       
       return { ...prev, hp: { ...prev.hp, current: updatedHp } };
     });

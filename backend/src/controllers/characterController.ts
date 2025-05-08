@@ -456,3 +456,90 @@ export const getPlayerData = async (req: Request & { user?: any }, res: Response
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+// @desc    Get nearby players for duels
+// @route   GET /api/characters/nearby
+// @access  Private
+export const getNearbyPlayers = async (req: Request & { user?: any }, res: Response): Promise<void> => {
+  try {
+    console.log('Nearby players request received for user:', req.user?._id);
+    
+    if (!req.user) {
+      throw new ApiError('Not authorized', 401);
+    }
+
+    // Get current player's character
+    const character = await Character.findOne({ userId: req.user._id }).lean();
+    console.log('Character found:', character ? 'Yes' : 'No');
+    
+    if (!character) {
+      throw new ApiError('Character not found', 404);
+    }
+
+    // Extract the current character's position
+    const { x, y } = character;
+    const maxDistance = req.query.distance ? parseInt(req.query.distance as string) : 1000; // Default range 1000 units
+    console.log(`Searching nearby players around position (${x}, ${y}) with max distance ${maxDistance}`);
+
+    // Find other characters nearby (excluding the current player)
+    const nearbyCharacters = await Character.find({
+      _id: { $ne: character._id },
+      // Use simple distance calculation rather than geospatial query for now
+      $expr: {
+        $lt: [
+          { $add: [
+            { $pow: [{ $subtract: ["$x", x] }, 2] },
+            { $pow: [{ $subtract: ["$y", y] }, 2] }
+          ]},
+          { $pow: [maxDistance, 2] } // Square of the maximum distance
+        ]
+      }
+    })
+    .limit(20) // Limit to 20 nearby players
+    .select('_id name level race gender hp attack defense x y duelsWon duelsLost motto')
+    .lean();
+
+    console.log(`Found ${nearbyCharacters.length} nearby players`);
+
+    // Transform the data for the frontend
+    const players = nearbyCharacters.map(char => {
+      try {
+        if (!char._id) {
+          console.log('Warning: Character without _id found:', char);
+          return null;
+        }
+        
+        return {
+          id: char._id.toString(),
+          name: char.name || 'Unknown',
+          level: char.level || 1,
+          race: char.race || 'Unknown',
+          gender: char.gender || 'Unknown',
+          x: char.x || 0,
+          y: char.y || 0,
+          image: `/Races/${char.gender || 'Unknown'}/${char.race || 'Unknown'}.png`,
+          hp: char.hp || { current: 100, max: 100 },
+          attack: char.attack || 10,
+          defense: char.defense || 5,
+          duelsWon: char.duelsWon || 0,
+          duelsLost: char.duelsLost || 0,
+          motto: char.motto || ""
+        };
+      } catch (err) {
+        console.error('Error processing character data:', err);
+        return null;
+      }
+    }).filter(player => player !== null);
+
+    res.status(200).json(players);
+  } catch (error) {
+    console.error('Error in getNearbyPlayers:', error);
+    if (error instanceof ApiError) {
+      res.status(error.statusCode).json({ message: error.message });
+    } else if (error instanceof Error) {
+      res.status(500).json({ message: error.message });
+    } else {
+      res.status(500).json({ message: 'An unknown error occurred' });
+    }
+  }
+};
