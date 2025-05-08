@@ -145,23 +145,115 @@ const createWorkCompletionReport = async (work: any, character: any) => {
   const expGained = Math.round((work.mobExp * expPercentage) / 100);
   const yangGained = Math.round((work.mobYang * yangPercentage) / 100);
   
-  // Simulate combat results
-  const playerHpLost = Math.round(Math.random() * 20 + 10); // Random HP loss between 10-30
-  const damageDealt = work.mobHp;
-  const remainingMobHp = 0;
-  const totalRounds = Math.floor(Math.random() * 10) + 5; // Random rounds between 5-15
+  // Generate detailed combat logs
+  const combatLogs: string[] = [];
+  const playerAttack = character.attack || 100;
+  const playerDefense = character.defense || 50;
+  const playerHp = character.hp.current;
+  const mobAttack = work.mobAttack || 80;
+  const mobHp = work.mobHp;
+  const mobName = work.mobName;
   
-  // Create report content
-  const content = `Ai finalizat o misiune de ${work.type} împotriva ${work.mobName}. Ai câștigat ${expGained} experiență și ${yangGained} yang.`;
+  let currentPlayerHp = playerHp;
+  let currentMobHp = mobHp;
+  
+  // Calculate total rounds based on work type
+  let totalRounds = 5; // Default for short jobs
+  switch(work.type) {
+    case '15s':
+      totalRounds = Math.floor(Math.random() * 3) + 3; // 3-5 rounds
+      break;
+    case '10m':
+      totalRounds = Math.floor(Math.random() * 5) + 6; // 6-10 rounds
+      break;
+    case '1h':
+      totalRounds = Math.floor(Math.random() * 10) + 11; // 11-20 rounds
+      break;
+  }
+  
+  // Start combat log
+  combatLogs.push(`[Lupta începe] Tu vs ${mobName}`);
+  
+  // Simulate combat rounds
+  for (let round = 1; round <= totalRounds; round++) {
+    if (currentPlayerHp <= 0 || currentMobHp <= 0) break;
+    
+    combatLogs.push(`-------- Runda ${round} --------`);
+    
+    // Player attacks first
+    const isCritical = Math.random() < 0.2; // 20% chance for critical hit
+    let damageToMob = Math.round(playerAttack * (Math.random() * 0.4 + 0.8)); // 80-120% of attack
+    
+    if (isCritical) {
+      damageToMob = Math.round(damageToMob * 1.5);
+      combatLogs.push(`[CRITIC] Tu ataci ${mobName} pentru ${damageToMob} damage!`);
+    } else {
+      combatLogs.push(`Tu ataci ${mobName} pentru ${damageToMob} damage.`);
+    }
+    
+    currentMobHp = Math.max(0, currentMobHp - damageToMob);
+    combatLogs.push(`→ HP-ul lui ${mobName}: ${currentMobHp}/${mobHp}`);
+    
+    if (currentMobHp <= 0) {
+      combatLogs.push(`Victorie! Ai învins pe ${mobName}!`);
+      break;
+    }
+    
+    // Mob attacks
+    const isMobCritical = Math.random() < 0.15; // 15% chance for mob critical hit
+    let damageToPlayer = Math.round(mobAttack * (Math.random() * 0.3 + 0.7)); // 70-100% of mob attack
+    
+    if (isMobCritical) {
+      damageToPlayer = Math.round(damageToPlayer * 1.5);
+      combatLogs.push(`[CRITIC] ${mobName} te atacă pentru ${damageToPlayer} damage!`);
+    } else {
+      combatLogs.push(`${mobName} te atacă pentru ${damageToPlayer} damage.`);
+    }
+    
+    currentPlayerHp = Math.max(0, currentPlayerHp - damageToPlayer);
+    combatLogs.push(`→ HP-ul tău: ${currentPlayerHp}/${playerHp}`);
+    
+    if (currentPlayerHp <= 0) {
+      combatLogs.push(`Înfrângere! Ai fost învins de ${mobName}!`);
+      break;
+    }
+    
+    // Add round summary
+    combatLogs.push(`Status la finalul rundei ${round}: Tu (${currentPlayerHp}/${playerHp}) - ${mobName} (${currentMobHp}/${mobHp})`);
+  }
+  
+  // Always ensure player wins (since the work is completed)
+  if (currentMobHp > 0) {
+    const finalDamage = currentMobHp;
+    combatLogs.push(`-------- Runda finală --------`);
+    combatLogs.push(`Tu ataci ${mobName} pentru ${finalDamage} damage.`);
+    combatLogs.push(`→ HP-ul lui ${mobName}: 0/${mobHp}`);
+    combatLogs.push(`Victorie! Ai învins pe ${mobName}!`);
+    currentMobHp = 0;
+  }
+  
+  // Calculate final stats
+  const playerHpLost = playerHp - currentPlayerHp;
+  const damageDealt = mobHp;
+  const remainingMobHp = 0;
+  
+  // Create detailed report content
+  const content = `Ai finalizat o misiune de ${work.type} împotriva ${mobName}. Ai câștigat ${expGained} experiență și ${yangGained} yang.\n\n` +
+    `Statistici duel:\n` +
+    `- Ai provocat ${damageDealt.toLocaleString()} damage\n` +
+    `- Ai pierdut ${playerHpLost.toLocaleString()} HP\n` +
+    `- Runde: ${totalRounds}\n\n` +
+    `Desfășurarea luptei:\n${combatLogs.join('\n')}\n\n` +
+    `Recompense: +${expGained} XP, +${yangGained} Yang`;
   
   // Create report
   await Report.create({
     characterId: work.characterId,
     type: 'attack',
-    subject: `Misiune completată: ${work.mobName}`,
+    subject: `Misiune completată: ${mobName}`,
     content,
     read: false,
-    mobName: work.mobName,
+    mobName: mobName,
     mobType: work.mobType,
     result: 'victory',
     combatStats: {

@@ -1,0 +1,30 @@
+[{
+  "_id": {
+    "$oid": "681c7f4a70cf08c1d8eec58c"
+  },
+  "characterId": {
+    "$oid": "6818b9e27a7b28b97f4b4aea"
+  },
+  "type": "attack",
+  "subject": "Misiune completată: Alastor",
+  "content": "Ai finalizat o misiune de 15s împotriva Alastor. Ai câștigat 850 experiență și 1500 yang.\n\nStatistici duel:\n- Ai provocat 75,000 damage\n- Ai pierdut 2,787 HP\n- Runde: 4\n\nDesfășurarea luptei:\n[Lupta începe] Tu vs Alastor\n-------- Runda 1 --------\nTu ataci Alastor pentru 11 damage.\n→ HP-ul lui Alastor: 74989/75000\nAlastor te atacă pentru 632 damage.\n→ HP-ul tău: 5697/6329\nStatus la finalul rundei 1: Tu (5697/6329) - Alastor (74989/75000)\n-------- Runda 2 --------\n[CRITIC] Tu ataci Alastor pentru 21 damage!\n→ HP-ul lui Alastor: 74968/75000\nAlastor te atacă pentru 729 damage.\n→ HP-ul tău: 4968/6329\nStatus la finalul rundei 2: Tu (4968/6329) - Alastor (74968/75000)\n-------- Runda 3 --------\nTu ataci Alastor pentru 10 damage.\n→ HP-ul lui Alastor: 74958/75000\nAlastor te atacă pentru 821 damage.\n→ HP-ul tău: 4147/6329\nStatus la finalul rundei 3: Tu (4147/6329) - Alastor (74958/75000)\n-------- Runda 4 --------\nTu ataci Alastor pentru 12 damage.\n→ HP-ul lui Alastor: 74946/75000\nAlastor te atacă pentru 605 damage.\n→ HP-ul tău: 3542/6329\nStatus la finalul rundei 4: Tu (3542/6329) - Alastor (74946/75000)\n-------- Runda finală --------\nTu ataci Alastor pentru 74946 damage.\n→ HP-ul lui Alastor: 0/75000\nVictorie! Ai învins pe Alastor!\n\nRecompense: +850 XP, +1500 Yang",
+  "read": false,
+  "mobName": "Alastor",
+  "mobType": "boss",
+  "result": "victory",
+  "combatStats": {
+    "playerHpLost": 2787,
+    "damageDealt": 75000,
+    "expGained": 850,
+    "yangGained": 1500,
+    "totalRounds": 4,
+    "remainingMobHp": 0
+  },
+  "createdAt": {
+    "$date": "2025-05-08T09:54:18.771Z"
+  },
+  "updatedAt": {
+    "$date": "2025-05-08T09:54:18.771Z"
+  },
+  "__v": 0
+}]

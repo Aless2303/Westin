@@ -148,6 +148,9 @@ export const WorksProvider: React.FC<WorksProviderProps> = ({
   // Flag pentru a indica dacă este nevoie de sincronizare cu backend-ul
   const needsSyncRef = useRef<boolean>(false);
   
+  // Reference to track when travel completes
+  const travelCompletedRef = useRef<{ x: number, y: number } | null>(null);
+  
   // Helper to update both internal state and parent component
   const setCharacterPosition = useCallback((x: number, y: number) => {
     setCharacterPositionInternal({ x, y });
@@ -168,6 +171,15 @@ export const WorksProvider: React.FC<WorksProviderProps> = ({
       pendingPositionUpdateRef.current = null;
     }
   }, [jobs, characterPositionUpdater]);
+  
+  // Handle travel completion position updates
+  useEffect(() => {
+    if (travelCompletedRef.current && characterPositionUpdater) {
+      const { x, y } = travelCompletedRef.current;
+      characterPositionUpdater(x, y);
+      travelCompletedRef.current = null;
+    }
+  }, [characterPositionUpdater]);
 
   // Calculate travel time based on current character position and mob position
   const calculateRealTravelTime = (
@@ -251,9 +263,9 @@ export const WorksProvider: React.FC<WorksProviderProps> = ({
               isActive: true
             };
             
-            // Update character position in database when travel completes
-            if (characterPositionUpdater && activeJob.mobX && activeJob.mobY) {
-              characterPositionUpdater(activeJob.mobX, activeJob.mobY);
+            // Store position update for useEffect instead of updating directly
+            if (activeJob.mobX && activeJob.mobY) {
+              travelCompletedRef.current = { x: activeJob.mobX, y: activeJob.mobY };
             }
           } else {
             updatedJobs[0] = {
