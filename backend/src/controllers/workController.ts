@@ -55,6 +55,12 @@ export const getWorks = async (req: Request & { user?: any }, res: Response): Pr
             work.isInProgress = true;
             work.travelTime = 0;
             
+            // Update character position to the mob's position when travel completes
+            await Character.findByIdAndUpdate(characterId, {
+              x: work.mobX,
+              y: work.mobY
+            });
+            
             // If job end time is also in the past, mark for completion
             if (now >= work.jobEndTime) {
               completedWorks.push(work);

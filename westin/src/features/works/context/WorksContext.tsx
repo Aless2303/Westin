@@ -250,6 +250,11 @@ export const WorksProvider: React.FC<WorksProviderProps> = ({
               lastLocalUpdate: now,
               isActive: true
             };
+            
+            // Update character position in database when travel completes
+            if (characterPositionUpdater && activeJob.mobX && activeJob.mobY) {
+              characterPositionUpdater(activeJob.mobX, activeJob.mobY);
+            }
           } else {
             updatedJobs[0] = {
               ...activeJob,
