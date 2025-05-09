@@ -50,8 +50,8 @@ const TownPanel: React.FC = () => {
   const handleSleep = () => {
     if (addJob) {
       const sleepJob = {
-        type: '1h' as '15s' | '10m' | '1h',
-        remainingTime: 7200,
+        type: '15s' as '15s' | '10m' | '1h',
+        remainingTime: 15,
         travelTime: travelTime,
         isInProgress: false,
         mobName: 'Patul din Han',
@@ -65,7 +65,7 @@ const TownPanel: React.FC = () => {
         mobExp: 0,
         mobYang: 0,
         mobType: 'sleep',
-        originalJobTime: 7200,
+        originalJobTime: 15,
       };
       if (addJob(sleepJob)) {
         console.log("Job de somn adăugat cu succes, început deplasarea spre Han");

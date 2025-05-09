@@ -123,6 +123,42 @@ export const getWorks = async (req: Request & { user?: any }, res: Response): Pr
 
 // Helper function to create a report for completed work
 const createWorkCompletionReport = async (work: any, character: any) => {
+  // Special handling for sleep jobs (restoring HP and stamina)
+  if (work.mobType === 'sleep') {
+    // Create a sleep report
+    await Report.create({
+      characterId: work.characterId,
+      type: 'sleep',
+      subject: `Te-ai odihnit în Han`,
+      content: `Te-ai odihnit în Hanul din Westin și ți s-au regenerat complet HP-ul și stamina.\n\n` +
+               `HP anterior: ${character.hp.current}/${character.hp.max}\n` +
+               `Stamina anterioară: ${character.stamina.current}/${character.stamina.max}\n\n` +
+               `Acum te simți complet refăcut și gata de aventură!`,
+      read: false,
+      mobName: 'Patul din Han',
+      mobType: 'sleep',
+      result: 'victory',
+      combatStats: {
+        playerHpLost: 0,
+        damageDealt: 0,
+        expGained: 0,
+        yangGained: 0,
+        totalRounds: 0,
+        remainingMobHp: 0
+      }
+    });
+    
+    // Fully restore HP and stamina
+    await Character.findByIdAndUpdate(character._id, {
+      'hp.current': character.hp.max,
+      'stamina.current': character.stamina.max
+    });
+    
+    return; // Exit early - we don't need to do the combat simulation for sleep
+  }
+  
+  // Regular work processing continues below
+  
   // Calculate rewards based on work type
   let expPercentage = 0;
   let yangPercentage = 0;

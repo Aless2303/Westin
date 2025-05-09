@@ -120,6 +120,7 @@ export const WorksProvider: React.FC<WorksProviderProps> = ({
   children, 
   characterPositionUpdater,
   characterStats,
+  updatePlayerHp,
   updatePlayerStamina
 }) => {
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -209,6 +210,29 @@ export const WorksProvider: React.FC<WorksProviderProps> = ({
       // Obține muncile actualizate de la server
       const workData = await workService.getWorks(currentCharacter._id);
       
+      // After jobs update, also get the latest character data to reflect HP/stamina changes
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          const response = await fetch(`http://localhost:5000/api/characters/${currentCharacter._id}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (response.ok) {
+            const characterData = await response.json();
+            
+            // Update HP and stamina in the UI with the new values from the server
+            updatePlayerHp(characterData.hp.current);
+            updatePlayerStamina(characterData.stamina.current);
+          }
+        } catch (err) {
+          console.error('Error fetching updated character data:', err);
+        }
+      }
+      
       // Adăugăm timestamp-ul pentru actualizare locală și marcăm prima muncă ca activă
       const now = Date.now();
       const enhancedWorkData = workData.map((job: Job, index: number) => ({
@@ -225,7 +249,7 @@ export const WorksProvider: React.FC<WorksProviderProps> = ({
     } catch (err) {
       console.error('Error syncing with backend:', err);
     }
-  }, [currentCharacter?._id]);
+  }, [currentCharacter?._id, updatePlayerHp, updatePlayerStamina]);
 
   // Actualizează local timpul rămas pentru munci
   const updateLocalJobTimes = useCallback(() => {
