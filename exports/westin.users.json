@@ -1,60 +1,100 @@
 [{
   "_id": {
-    "$oid": "6818b9da7a7b28b97f4b4ae0"
-  },
-  "username": "qwe1",
-  "email": "milea84.am@gmail.com",
-  "password": "$2b$10$y6HhoNRmdPHUXnVCCn0sw.IJdhbaV5lW/CCn.zbin5bdXGYrnqPs6",
-  "isAdmin": false,
-  "hasCreatedCharacter": true,
-  "createdAt": {
-    "$date": "2025-05-05T13:15:06.671Z"
-  },
-  "updatedAt": {
-    "$date": "2025-05-05T13:17:05.272Z"
-  },
-  "__v": 0,
-  "characterId": {
-    "$oid": "6818b9da7a7b28b97f4b4ae2"
-  }
-},
-{
-  "_id": {
-    "$oid": "6818b9e27a7b28b97f4b4ae8"
+    "$oid": "681e21181c44972ddd34faf2"
   },
   "username": "qwe",
-  "email": "qweqk@gmail.com",
-  "password": "$2b$10$LV74MlbbCWjPCaUEe1NpeOh6GAmY1BXi.KTFO9Mc8RFpUyPu8D5Di",
+  "email": "qwdewq@gmail.com",
+  "password": "$2b$10$Y7O7p0yA.b8PBjyNB2LGFuGYuubx4y/pG4jq65MLSozPL9WCaBoFm",
   "isAdmin": false,
   "hasCreatedCharacter": true,
   "createdAt": {
-    "$date": "2025-05-05T13:15:14.179Z"
+    "$date": "2025-05-09T15:36:56.763Z"
   },
   "updatedAt": {
-    "$date": "2025-05-05T13:15:54.511Z"
+    "$date": "2025-05-09T15:41:33.078Z"
   },
   "__v": 0,
   "characterId": {
-    "$oid": "6818b9e27a7b28b97f4b4aea"
+    "$oid": "681e21181c44972ddd34faf4"
   }
 },
 {
   "_id": {
-    "$oid": "6818b9ea7a7b28b97f4b4af0"
+    "$oid": "681e21211c44972ddd34fafa"
   },
-  "username": "qwe2",
-  "email": "wjqewm@gmail.com",
-  "password": "$2b$10$JqCnAVQgS2rDYBtb0bfokuX/ZFGzbVJu0XJYjD3lNN3nxmoTNdkUC",
+  "username": "qwe1",
+  "email": "edwqqew@gmail.com",
+  "password": "$2b$10$jfKJWNEE2q9yEl9WBM0vCOfO2Te78iykZ.zBmJnWcjl7FLWLfXY.2",
   "isAdmin": false,
   "hasCreatedCharacter": true,
   "createdAt": {
-    "$date": "2025-05-05T13:15:22.820Z"
+    "$date": "2025-05-09T15:37:05.902Z"
   },
   "updatedAt": {
-    "$date": "2025-05-05T13:16:28.584Z"
+    "$date": "2025-05-09T15:41:52.337Z"
   },
   "__v": 0,
   "characterId": {
-    "$oid": "6818b9ea7a7b28b97f4b4af2"
+    "$oid": "681e21211c44972ddd34fafc"
+  }
+},
+{
+  "_id": {
+    "$oid": "681e212b1c44972ddd34fb02"
+  },
+  "username": "qwe2",
+  "email": "qwedwq@gmail.com",
+  "password": "$2b$10$UqBtKQOUmA8O5ybs0YMyOOBOv7E/tf8RoQF6L5F6v3O90y.B5c.qC",
+  "isAdmin": false,
+  "hasCreatedCharacter": true,
+  "createdAt": {
+    "$date": "2025-05-09T15:37:15.016Z"
+  },
+  "updatedAt": {
+    "$date": "2025-05-09T15:42:19.354Z"
+  },
+  "__v": 0,
+  "characterId": {
+    "$oid": "681e212b1c44972ddd34fb04"
+  }
+},
+{
+  "_id": {
+    "$oid": "681e21331c44972ddd34fb0a"
+  },
+  "username": "qwe3",
+  "email": "milea84.am@gmail.com",
+  "password": "$2b$10$/yZ7dqpTeJgNa7r7yfzH9uV/vbx50tMZ34TDvWsKU40TS4xfMVGgm",
+  "isAdmin": true,
+  "hasCreatedCharacter": true,
+  "createdAt": {
+    "$date": "2025-05-09T15:37:23.886Z"
+  },
+  "updatedAt": {
+    "$date": "2025-05-09T15:37:58.877Z"
+  },
+  "__v": 0,
+  "characterId": {
+    "$oid": "681e21331c44972ddd34fb0c"
+  }
+},
+{
+  "_id": {
+    "$oid": "681e43f10b27fc1e7a4182a6"
+  },
+  "username": "sile",
+  "email": "sile@gmail.com",
+  "password": "$2b$10$dxs81XL20.FXWZsYaRtECOTom3/jR60iai00l4UAPA1DdGxglcSsK",
+  "isAdmin": false,
+  "hasCreatedCharacter": true,
+  "createdAt": {
+    "$date": "2025-05-09T18:05:37.679Z"
+  },
+  "updatedAt": {
+    "$date": "2025-05-09T18:05:58.771Z"
+  },
+  "__v": 0,
+  "characterId": {
+    "$oid": "681e43f10b27fc1e7a4182a8"
   }
 }]

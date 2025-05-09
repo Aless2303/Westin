@@ -28,6 +28,7 @@ import backgroundRoutes from "./routes/backgroundRoutes";
 import raceRoutes from "./routes/raceRoutes";
 import chatRoutes from "./routes/chatRoutes";
 import workRoutes from './routes/workRoutes';
+import adminRoutes from './routes/adminRoutes';
 
 // Load environment variables
 dotenv.config();
@@ -76,6 +77,7 @@ app.use('/api/password-reset', passwordResetRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/mobs', mobRoutes);
 app.use('/api/works', workRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Default route
 app.get('/', (req, res) => {

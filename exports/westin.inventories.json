@@ -30,22 +30,22 @@
   "backpack": [
     {
       "itemId": {
-        "$oid": "68153939429002f715323089"
-      },
-      "quantity": 1,
-      "slot": 0,
-      "_id": {
-        "$oid": "6818bac07a7b28b97f4b4c45"
-      }
-    },
-    {
-      "itemId": {
         "$oid": "68153939429002f7153230a7"
       },
       "quantity": 1,
       "slot": 1,
       "_id": {
         "$oid": "6818bac17a7b28b97f4b4c55"
+      }
+    },
+    {
+      "itemId": {
+        "$oid": "68153939429002f715323089"
+      },
+      "quantity": 1,
+      "slot": 0,
+      "_id": {
+        "$oid": "681dfe959bdcba36a16e78f8"
       }
     }
   ],
@@ -54,9 +54,9 @@
     "$date": "2025-05-05T13:15:06.734Z"
   },
   "updatedAt": {
-    "$date": "2025-05-05T13:18:57.286Z"
+    "$date": "2025-05-09T13:09:43.140Z"
   },
-  "__v": 2
+  "__v": 6
 },
 {
   "_id": {
@@ -64,6 +64,241 @@
   },
   "characterId": {
     "$oid": "6818b9e27a7b28b97f4b4aea"
+  },
+  "equippedItems": {
+    "weapon": {
+      "$oid": "68153939429002f71532305d"
+    },
+    "helmet": {
+      "$oid": "68153939429002f715323084"
+    },
+    "armor": {
+      "$oid": "68153939429002f715323071"
+    },
+    "shield": {
+      "$oid": "68153939429002f7153230ac"
+    },
+    "earrings": {
+      "$oid": "68153939429002f71532309d"
+    },
+    "bracelet": {
+      "$oid": "68153939429002f715323098"
+    },
+    "necklace": null,
+    "boots": {
+      "$oid": "68153939429002f7153230a7"
+    }
+  },
+  "backpack": [
+    {
+      "itemId": {
+        "$oid": "68153939429002f7153230a2"
+      },
+      "quantity": 1,
+      "slot": 0,
+      "_id": {
+        "$oid": "681bcec8adfca60887076a2c"
+      }
+    },
+    {
+      "itemId": {
+        "$oid": "68153939429002f71532305c"
+      },
+      "quantity": 1,
+      "slot": 2,
+      "_id": {
+        "$oid": "681e0ae8d541459f8e81cf8e"
+      }
+    },
+    {
+      "itemId": {
+        "$oid": "68153939429002f715323070"
+      },
+      "quantity": 1,
+      "slot": 3,
+      "_id": {
+        "$oid": "681e0af6d541459f8e81d100"
+      }
+    },
+    {
+      "itemId": {
+        "$oid": "68153939429002f71532305c"
+      },
+      "quantity": 1,
+      "slot": 1,
+      "_id": {
+        "$oid": "681e0af6d541459f8e81d134"
+      }
+    }
+  ],
+  "maxSlots": 20,
+  "createdAt": {
+    "$date": "2025-05-05T13:15:14.238Z"
+  },
+  "updatedAt": {
+    "$date": "2025-05-09T14:02:30.906Z"
+  },
+  "__v": 40
+},
+{
+  "_id": {
+    "$oid": "6818b9ea7a7b28b97f4b4af5"
+  },
+  "characterId": {
+    "$oid": "6818b9ea7a7b28b97f4b4af2"
+  },
+  "equippedItems": {
+    "weapon": {
+      "$oid": "68153939429002f71532306b"
+    },
+    "helmet": {
+      "$oid": "68153939429002f715323093"
+    },
+    "armor": {
+      "$oid": "68153939429002f71532307f"
+    },
+    "shield": {
+      "$oid": "68153939429002f7153230ac"
+    },
+    "earrings": {
+      "$oid": "68153939429002f71532309d"
+    },
+    "bracelet": {
+      "$oid": "68153939429002f715323098"
+    },
+    "necklace": {
+      "$oid": "68153939429002f7153230a2"
+    },
+    "boots": {
+      "$oid": "68153939429002f7153230a7"
+    }
+  },
+  "backpack": [
+    {
+      "itemId": {
+        "$oid": "68153939429002f71532306b"
+      },
+      "quantity": 1,
+      "slot": 0,
+      "_id": {
+        "$oid": "6818bad17a7b28b97f4b4ca8"
+      }
+    },
+    {
+      "itemId": {
+        "$oid": "68153939429002f715323098"
+      },
+      "quantity": 1,
+      "slot": 1,
+      "_id": {
+        "$oid": "6818bdef7a7b28b97f4b514c"
+      }
+    },
+    {
+      "itemId": {
+        "$oid": "68153939429002f71532309d"
+      },
+      "quantity": 1,
+      "slot": 2,
+      "_id": {
+        "$oid": "6818f8d8c10c6b62d83062ad"
+      }
+    }
+  ],
+  "maxSlots": 20,
+  "createdAt": {
+    "$date": "2025-05-05T13:15:22.878Z"
+  },
+  "updatedAt": {
+    "$date": "2025-05-06T13:45:14.015Z"
+  },
+  "__v": 7
+},
+{
+  "_id": {
+    "$oid": "681a12ac0004c54c40128cbf"
+  },
+  "characterId": {
+    "$oid": "681a12ac0004c54c40128cbc"
+  },
+  "equippedItems": {
+    "weapon": {
+      "$oid": "68153939429002f715323066"
+    },
+    "helmet": null,
+    "armor": {
+      "$oid": "68153939429002f71532307a"
+    },
+    "shield": {
+      "$oid": "68153939429002f7153230ac"
+    },
+    "earrings": {
+      "$oid": "68153939429002f71532309d"
+    },
+    "bracelet": {
+      "$oid": "68153939429002f715323098"
+    },
+    "necklace": {
+      "$oid": "68153939429002f7153230a2"
+    },
+    "boots": {
+      "$oid": "68153939429002f7153230a7"
+    }
+  },
+  "backpack": [
+    {
+      "itemId": {
+        "$oid": "68153939429002f71532308e"
+      },
+      "quantity": 1,
+      "slot": 0,
+      "_id": {
+        "$oid": "681a12fc0004c54c40128ee5"
+      }
+    }
+  ],
+  "maxSlots": 20,
+  "createdAt": {
+    "$date": "2025-05-06T13:46:20.132Z"
+  },
+  "updatedAt": {
+    "$date": "2025-05-09T06:00:26.317Z"
+  },
+  "__v": 3
+},
+{
+  "_id": {
+    "$oid": "681d9ea54e25ca9a79e79248"
+  },
+  "characterId": {
+    "$oid": "681d9ea54e25ca9a79e79245"
+  },
+  "equippedItems": {
+    "weapon": null,
+    "helmet": null,
+    "armor": null,
+    "shield": null,
+    "earrings": null,
+    "bracelet": null,
+    "necklace": null,
+    "boots": null
+  },
+  "backpack": [],
+  "maxSlots": 20,
+  "createdAt": {
+    "$date": "2025-05-09T06:20:21.033Z"
+  },
+  "updatedAt": {
+    "$date": "2025-05-09T06:20:21.033Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "681e18a15515bee0c76f6052"
+  },
+  "characterId": {
+    "$oid": "681e18a15515bee0c76f604f"
   },
   "equippedItems": {
     "weapon": {
@@ -94,19 +329,193 @@
   "backpack": [],
   "maxSlots": 20,
   "createdAt": {
-    "$date": "2025-05-05T13:15:14.238Z"
+    "$date": "2025-05-09T15:00:49.403Z"
   },
   "updatedAt": {
-    "$date": "2025-05-05T13:28:08.897Z"
+    "$date": "2025-05-09T15:00:56.720Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "681e21181c44972ddd34faf7"
+  },
+  "characterId": {
+    "$oid": "681e21181c44972ddd34faf4"
+  },
+  "equippedItems": {
+    "weapon": {
+      "$oid": "68153939429002f71532305c"
+    },
+    "helmet": {
+      "$oid": "68153939429002f715323084"
+    },
+    "armor": null,
+    "shield": {
+      "$oid": "68153939429002f7153230ac"
+    },
+    "earrings": {
+      "$oid": "68153939429002f71532309d"
+    },
+    "bracelet": {
+      "$oid": "68153939429002f715323098"
+    },
+    "necklace": {
+      "$oid": "68153939429002f7153230a2"
+    },
+    "boots": {
+      "$oid": "68153939429002f7153230a7"
+    }
+  },
+  "backpack": [
+    {
+      "itemId": {
+        "$oid": "68153939429002f715323060"
+      },
+      "quantity": 1,
+      "slot": 1,
+      "_id": {
+        "$oid": "681e581e0b27fc1e7a41e4e6"
+      }
+    },
+    {
+      "itemId": {
+        "$oid": "68153939429002f715323070"
+      },
+      "quantity": 1,
+      "slot": 0,
+      "_id": {
+        "$oid": "681e5a9a0b27fc1e7a4207e6"
+      }
+    },
+    {
+      "itemId": {
+        "$oid": "68153939429002f715323071"
+      },
+      "quantity": 1,
+      "slot": 2,
+      "_id": {
+        "$oid": "681e5aa90b27fc1e7a420d6b"
+      }
+    },
+    {
+      "itemId": {
+        "$oid": "68153939429002f715323088"
+      },
+      "quantity": 1,
+      "slot": 3,
+      "_id": {
+        "$oid": "681e5aaa0b27fc1e7a420d8f"
+      }
+    }
+  ],
+  "maxSlots": 20,
+  "createdAt": {
+    "$date": "2025-05-09T15:36:56.827Z"
+  },
+  "updatedAt": {
+    "$date": "2025-05-09T19:42:34.766Z"
   },
   "__v": 6
 },
 {
   "_id": {
-    "$oid": "6818b9ea7a7b28b97f4b4af5"
+    "$oid": "681e21211c44972ddd34faff"
   },
   "characterId": {
-    "$oid": "6818b9ea7a7b28b97f4b4af2"
+    "$oid": "681e21211c44972ddd34fafc"
+  },
+  "equippedItems": {
+    "weapon": {
+      "$oid": "68153939429002f715323066"
+    },
+    "helmet": null,
+    "armor": {
+      "$oid": "68153939429002f71532307a"
+    },
+    "shield": null,
+    "earrings": null,
+    "bracelet": null,
+    "necklace": null,
+    "boots": null
+  },
+  "backpack": [
+    {
+      "itemId": {
+        "$oid": "68153939429002f7153230a7"
+      },
+      "quantity": 1,
+      "slot": 0,
+      "_id": {
+        "$oid": "681e22711c44972ddd351fd2"
+      }
+    },
+    {
+      "itemId": {
+        "$oid": "68153939429002f715323098"
+      },
+      "quantity": 1,
+      "slot": 1,
+      "_id": {
+        "$oid": "681e22721c44972ddd351ff0"
+      }
+    },
+    {
+      "itemId": {
+        "$oid": "68153939429002f7153230ac"
+      },
+      "quantity": 1,
+      "slot": 2,
+      "_id": {
+        "$oid": "681e22721c44972ddd352002"
+      }
+    },
+    {
+      "itemId": {
+        "$oid": "68153939429002f71532308e"
+      },
+      "quantity": 1,
+      "slot": 3,
+      "_id": {
+        "$oid": "681e22721c44972ddd352016"
+      }
+    },
+    {
+      "itemId": {
+        "$oid": "68153939429002f71532309d"
+      },
+      "quantity": 1,
+      "slot": 4,
+      "_id": {
+        "$oid": "681e22731c44972ddd35202c"
+      }
+    },
+    {
+      "itemId": {
+        "$oid": "68153939429002f7153230a2"
+      },
+      "quantity": 1,
+      "slot": 5,
+      "_id": {
+        "$oid": "681e22731c44972ddd352044"
+      }
+    }
+  ],
+  "maxSlots": 20,
+  "createdAt": {
+    "$date": "2025-05-09T15:37:05.960Z"
+  },
+  "updatedAt": {
+    "$date": "2025-05-09T15:42:43.924Z"
+  },
+  "__v": 6
+},
+{
+  "_id": {
+    "$oid": "681e212b1c44972ddd34fb07"
+  },
+  "characterId": {
+    "$oid": "681e212b1c44972ddd34fb04"
   },
   "equippedItems": {
     "weapon": null,
@@ -122,7 +531,9 @@
     "earrings": {
       "$oid": "68153939429002f71532309d"
     },
-    "bracelet": null,
+    "bracelet": {
+      "$oid": "68153939429002f715323098"
+    },
     "necklace": {
       "$oid": "68153939429002f7153230a2"
     },
@@ -138,26 +549,133 @@
       "quantity": 1,
       "slot": 0,
       "_id": {
-        "$oid": "6818bad17a7b28b97f4b4ca8"
-      }
-    },
-    {
-      "itemId": {
-        "$oid": "68153939429002f715323098"
-      },
-      "quantity": 1,
-      "slot": 1,
-      "_id": {
-        "$oid": "6818bdef7a7b28b97f4b514c"
+        "$oid": "681e225f1c44972ddd351d87"
       }
     }
   ],
   "maxSlots": 20,
   "createdAt": {
-    "$date": "2025-05-05T13:15:22.878Z"
+    "$date": "2025-05-09T15:37:15.077Z"
   },
   "updatedAt": {
-    "$date": "2025-05-05T13:32:31.439Z"
+    "$date": "2025-05-09T15:42:23.388Z"
   },
-  "__v": 6
+  "__v": 1
+},
+{
+  "_id": {
+    "$oid": "681e21331c44972ddd34fb0f"
+  },
+  "characterId": {
+    "$oid": "681e21331c44972ddd34fb0c"
+  },
+  "equippedItems": {
+    "weapon": {
+      "$oid": "68153939429002f715323061"
+    },
+    "helmet": {
+      "$oid": "68153939429002f715323089"
+    },
+    "armor": {
+      "$oid": "68153939429002f715323075"
+    },
+    "shield": {
+      "$oid": "68153939429002f7153230ac"
+    },
+    "earrings": {
+      "$oid": "68153939429002f71532309d"
+    },
+    "bracelet": {
+      "$oid": "68153939429002f715323098"
+    },
+    "necklace": {
+      "$oid": "68153939429002f7153230a2"
+    },
+    "boots": {
+      "$oid": "68153939429002f7153230a7"
+    }
+  },
+  "backpack": [
+    {
+      "itemId": {
+        "$oid": "68153939429002f715323079"
+      },
+      "quantity": 1,
+      "slot": 1,
+      "_id": {
+        "$oid": "681e21a61c44972ddd350770"
+      }
+    },
+    {
+      "itemId": {
+        "$oid": "68153939429002f7153230a8"
+      },
+      "quantity": 1,
+      "slot": 2,
+      "_id": {
+        "$oid": "681e21ea1c44972ddd350b54"
+      }
+    },
+    {
+      "itemId": {
+        "$oid": "68153939429002f7153230a7"
+      },
+      "quantity": 1,
+      "slot": 0,
+      "_id": {
+        "$oid": "681e24471c44972ddd35f16b"
+      }
+    }
+  ],
+  "maxSlots": 20,
+  "createdAt": {
+    "$date": "2025-05-09T15:37:23.943Z"
+  },
+  "updatedAt": {
+    "$date": "2025-05-09T15:50:31.764Z"
+  },
+  "__v": 9
+},
+{
+  "_id": {
+    "$oid": "681e43f10b27fc1e7a4182ab"
+  },
+  "characterId": {
+    "$oid": "681e43f10b27fc1e7a4182a8"
+  },
+  "equippedItems": {
+    "weapon": {
+      "$oid": "68153939429002f715323066"
+    },
+    "helmet": {
+      "$oid": "68153939429002f71532308e"
+    },
+    "armor": {
+      "$oid": "68153939429002f71532307a"
+    },
+    "shield": {
+      "$oid": "68153939429002f7153230ac"
+    },
+    "earrings": {
+      "$oid": "68153939429002f71532309d"
+    },
+    "bracelet": {
+      "$oid": "68153939429002f715323098"
+    },
+    "necklace": {
+      "$oid": "68153939429002f7153230a2"
+    },
+    "boots": {
+      "$oid": "68153939429002f7153230a7"
+    }
+  },
+  "backpack": [],
+  "maxSlots": 20,
+  "createdAt": {
+    "$date": "2025-05-09T18:05:37.748Z"
+  },
+  "updatedAt": {
+    "$date": "2025-05-09T18:06:13.686Z"
+  },
+  "__v": 2
 }]

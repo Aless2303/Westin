@@ -1,15 +1,15 @@
 [{
   "_id": {
-    "$oid": "6818b9da7a7b28b97f4b4ae2"
+    "$oid": "681e21181c44972ddd34faf4"
   },
-  "name": "qwetrei",
-  "level": 13,
-  "race": "Warrior",
-  "gender": "Masculin",
-  "background": "blob:http://localhost:3000/78b5ee0e-fbb6-4cd9-b014-ff533aa3c54a",
+  "name": "qwezero",
+  "level": 1,
+  "race": "Ninja",
+  "gender": "Feminin",
+  "background": "blob:http://localhost:3000/f58933ec-eea7-4842-9c72-a2f39a52d992",
   "hp": {
-    "current": 100,
-    "max": 100
+    "current": 884,
+    "max": 1000
   },
   "stamina": {
     "current": 100,
@@ -17,39 +17,40 @@
   },
   "experience": {
     "current": 0,
-    "percentage": 0
+    "percentage": 0,
+    "required": 100
   },
   "money": {
-    "cash": 1000,
-    "bank": 0
+    "cash": 0,
+    "bank": 1000
   },
   "x": 350,
   "y": 611,
   "attack": 12,
   "defense": 10,
-  "duelsWon": 15,
-  "duelsLost": 6,
+  "duelsWon": 0,
+  "duelsLost": 0,
   "motto": "",
   "userId": {
-    "$oid": "6818b9da7a7b28b97f4b4ae0"
+    "$oid": "681e21181c44972ddd34faf2"
   },
   "createdAt": {
-    "$date": "2025-05-05T13:15:06.729Z"
+    "$date": "2025-05-09T15:36:56.824Z"
   },
   "updatedAt": {
-    "$date": "2025-05-05T13:17:05.273Z"
+    "$date": "2025-05-09T21:13:54.596Z"
   },
   "__v": 0
 },
 {
   "_id": {
-    "$oid": "6818b9e27a7b28b97f4b4aea"
+    "$oid": "681e21211c44972ddd34fafc"
   },
   "name": "qweunu",
-  "level": 12,
-  "race": "Ninja",
+  "level": 1,
+  "race": "Sura",
   "gender": "Masculin",
-  "background": "blob:http://localhost:3000/ce4c8872-4ceb-413c-9f57-ab5b642acdfa",
+  "background": "blob:http://localhost:3000/1412d6b6-aa48-4cdc-988c-1b7c7b781b98",
   "hp": {
     "current": 100,
     "max": 100
@@ -60,7 +61,8 @@
   },
   "experience": {
     "current": 0,
-    "percentage": 0
+    "percentage": 0,
+    "required": 100
   },
   "money": {
     "cash": 1000,
@@ -70,29 +72,73 @@
   "y": 611,
   "attack": 12,
   "defense": 10,
-  "duelsWon": 3,
-  "duelsLost": 12,
-  "motto": "am cel mai bun scut de pe sv",
+  "duelsWon": 0,
+  "duelsLost": 0,
+  "motto": "",
   "userId": {
-    "$oid": "6818b9e27a7b28b97f4b4ae8"
+    "$oid": "681e21211c44972ddd34fafa"
   },
   "createdAt": {
-    "$date": "2025-05-05T13:15:14.235Z"
+    "$date": "2025-05-09T15:37:05.958Z"
   },
   "updatedAt": {
-    "$date": "2025-05-05T13:16:15.064Z"
+    "$date": "2025-05-09T21:17:52.813Z"
   },
   "__v": 0
 },
 {
   "_id": {
-    "$oid": "6818b9ea7a7b28b97f4b4af2"
+    "$oid": "681e212b1c44972ddd34fb04"
   },
   "name": "qwedoi",
-  "level": 115,
+  "level": 6,
   "race": "Shaman",
-  "gender": "Feminin",
-  "background": "blob:http://localhost:3000/7a254afb-acbb-4670-9443-4135dc21eabe",
+  "gender": "Masculin",
+  "background": "blob:http://localhost:3000/3031924a-d03e-441e-8cb7-7df5febffcd8",
+  "hp": {
+    "current": 150,
+    "max": 150
+  },
+  "stamina": {
+    "current": 125,
+    "max": 125
+  },
+  "experience": {
+    "current": 176,
+    "percentage": 87,
+    "required": 201
+  },
+  "money": {
+    "cash": 2500,
+    "bank": 0
+  },
+  "x": 350,
+  "y": 611,
+  "attack": 20,
+  "defense": 10,
+  "duelsWon": 0,
+  "duelsLost": 0,
+  "motto": "",
+  "userId": {
+    "$oid": "681e212b1c44972ddd34fb02"
+  },
+  "createdAt": {
+    "$date": "2025-05-09T15:37:15.075Z"
+  },
+  "updatedAt": {
+    "$date": "2025-05-09T20:59:57.075Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "681e21331c44972ddd34fb0c"
+  },
+  "name": "qwetrei",
+  "level": 1,
+  "race": "Warrior",
+  "gender": "Masculin",
+  "background": "blob:http://localhost:3000/48c81b6e-b079-4565-8f80-082d2a3a8452",
   "hp": {
     "current": 100,
     "max": 100
@@ -103,7 +149,52 @@
   },
   "experience": {
     "current": 0,
-    "percentage": 0
+    "percentage": 0,
+    "required": 100
+  },
+  "money": {
+    "cash": 98680,
+    "bank": 0
+  },
+  "x": 350,
+  "y": 611,
+  "attack": 12,
+  "defense": 10,
+  "duelsWon": 0,
+  "duelsLost": 0,
+  "motto": "",
+  "userId": {
+    "$oid": "681e21331c44972ddd34fb0a"
+  },
+  "createdAt": {
+    "$date": "2025-05-09T15:37:23.941Z"
+  },
+  "updatedAt": {
+    "$date": "2025-05-09T21:17:59.874Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "681e43f10b27fc1e7a4182a8"
+  },
+  "name": "SileBos",
+  "level": 1,
+  "race": "Sura",
+  "gender": "Masculin",
+  "background": "blob:http://localhost:3000/45af85bb-ae96-4a62-8368-12a82bd4eda4",
+  "hp": {
+    "current": 100,
+    "max": 100
+  },
+  "stamina": {
+    "current": 100,
+    "max": 100
+  },
+  "experience": {
+    "current": 0,
+    "percentage": 0,
+    "required": 100
   },
   "money": {
     "cash": 1000,
@@ -113,17 +204,17 @@
   "y": 611,
   "attack": 12,
   "defense": 10,
-  "duelsWon": 3,
-  "duelsLost": 13,
+  "duelsWon": 0,
+  "duelsLost": 0,
   "motto": "",
   "userId": {
-    "$oid": "6818b9ea7a7b28b97f4b4af0"
+    "$oid": "681e43f10b27fc1e7a4182a6"
   },
   "createdAt": {
-    "$date": "2025-05-05T13:15:22.876Z"
+    "$date": "2025-05-09T18:05:37.741Z"
   },
   "updatedAt": {
-    "$date": "2025-05-05T13:16:28.587Z"
+    "$date": "2025-05-09T18:07:48.928Z"
   },
   "__v": 0
 }]

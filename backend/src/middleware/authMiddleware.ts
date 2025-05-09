@@ -61,3 +61,21 @@ export const admin = (
     res.status(401).json({ message: 'Not authorized as an admin' });
   }
 };
+
+// Alias pentru protect pentru a fi folosit în rutele de admin
+export const authenticateUser = protect;
+
+// Middleware pentru a autoriza roluri
+export const authorizeRoles = (...roles: string[]) => {
+  return (req: IGetUserAuthInfoRequest, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Not authorized, no user' });
+    }
+    
+    if (roles.includes('admin') && req.user.isAdmin) {
+      return next();
+    }
+    
+    res.status(403).json({ message: 'Not authorized for this action' });
+  };
+};
