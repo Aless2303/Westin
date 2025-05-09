@@ -8,7 +8,8 @@ import {
   deleteItem,
   getItemsByCategory,
   getItemsByType,
-  getMarketItems
+  getMarketItems,
+  getItemsByFilter
 } from '../controllers/itemController';
 import { protect, admin } from '../middleware/authMiddleware';
 
@@ -20,9 +21,14 @@ const router = express.Router();
 router.get('/', getItems);
 
 // @route   GET /api/items/market
-// @desc    Get market items
+// @desc    Get items for the market
 // @access  Public
 router.get('/market', getMarketItems);
+
+// @route   GET /api/items/filter
+// @desc    Get items by filter (race, type, category, level)
+// @access  Public
+router.get('/filter', getItemsByFilter);
 
 // @route   GET /api/items/category/:category
 // @desc    Get items by category

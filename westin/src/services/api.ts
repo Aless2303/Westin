@@ -133,6 +133,38 @@ export const characterService = {
   },
 };
 
+// Inventory service
+export const inventoryService = {
+  // Obține inventarul personajului
+  getInventory: async (characterId: string) => {
+    return fetchWithAuth(`/inventory/${characterId}`);
+  },
+  
+  // Adaugă un item în inventar
+  addItem: async (characterId: string, itemId: string, quantity: number = 1, slot?: number) => {
+    return fetchWithAuth(`/inventory/${characterId}/items`, {
+      method: 'POST',
+      body: JSON.stringify({ itemId, quantity, slot }),
+    });
+  },
+  
+  // Echipează un item
+  equipItem: async (characterId: string, itemId: string, slotType: string) => {
+    return fetchWithAuth(`/inventory/${characterId}/equip`, {
+      method: 'PUT',
+      body: JSON.stringify({ itemId, slotType }),
+    });
+  },
+  
+  // Dezechipează un item
+  unequipItem: async (characterId: string, slotType: string) => {
+    return fetchWithAuth(`/inventory/${characterId}/unequip`, {
+      method: 'PUT',
+      body: JSON.stringify({ slotType }),
+    });
+  },
+};
+
 // Works
 export const workService = {
   // Obține muncile personajului
@@ -226,12 +258,45 @@ export const reportService = {
   },
 };
 
+// Items service
+export const itemService = {
+  // Obține toate itemele
+  getAllItems: async () => {
+    return fetchWithAuth('/items');
+  },
+  
+  // Obține un item specific
+  getItem: async (itemId: string) => {
+    return fetchWithAuth(`/items/${itemId}`);
+  },
+  
+  // Obține itemele în funcție de filtru
+  getItemsByFilter: async (filters: {
+    type?: string;
+    category?: string;
+    raceRestriction?: string;
+    requiredLevel?: number;
+  }) => {
+    // Construiește query string-ul
+    const queryParams = new URLSearchParams();
+    
+    if (filters.type) queryParams.append('type', filters.type);
+    if (filters.category) queryParams.append('category', filters.category);
+    if (filters.raceRestriction) queryParams.append('raceRestriction', filters.raceRestriction);
+    if (filters.requiredLevel) queryParams.append('requiredLevel', filters.requiredLevel.toString());
+    
+    const queryString = queryParams.toString();
+    return fetchWithAuth(`/items/filter${queryString ? `?${queryString}` : ''}`);
+  }
+};
+
 // Exportă serviciile pentru a fi utilizate în aplicație
 export default {
   auth: authService,
   password: passwordService,
   character: characterService,
+  inventory: inventoryService,
   work: workService,
   report: reportService,
-  // Aici poți adăuga alte servicii pentru alte funcționalități
+  item: itemService
 };

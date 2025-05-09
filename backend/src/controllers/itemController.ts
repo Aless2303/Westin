@@ -291,3 +291,56 @@ export const getMarketItems = async (req: Request, res: Response): Promise<void>
     }
   }
 };
+
+// @desc    Get items by filter (race, type, category, level)
+// @route   GET /api/items/filter
+// @access  Public
+export const getItemsByFilter = async (req: Request, res: Response): Promise<void> => {
+  try {
+    // Get query parameters for filtering
+    const { raceRestriction, type, category, requiredLevel } = req.query;
+    
+    // Build filter object
+    const filter: any = {};
+    
+    if (type) {
+      filter.type = type;
+    }
+    
+    if (category) {
+      filter.category = category;
+    }
+    
+    if (requiredLevel) {
+      filter.requiredLevel = { $lte: parseInt(requiredLevel as string) };
+    }
+    
+    // Handle race restriction - empty string means no race restriction
+    if (raceRestriction !== undefined) {
+      if (raceRestriction === '') {
+        // Find items with no race restriction
+        filter.$or = [
+          { raceRestriction: { $exists: false } },
+          { raceRestriction: null },
+          { raceRestriction: '' }
+        ];
+      } else {
+        // Find items for specific race
+        filter.raceRestriction = raceRestriction;
+      }
+    }
+    
+    // Get items based on filter
+    const items = await Item.find(filter).sort({ requiredLevel: 1, category: 1, name: 1 });
+    
+    res.status(200).json(items);
+  } catch (error) {
+    if (error instanceof ApiError) {
+      res.status(error.statusCode).json({ message: error.message });
+    } else if (error instanceof Error) {
+      res.status(500).json({ message: error.message });
+    } else {
+      res.status(500).json({ message: 'An unknown error occurred' });
+    }
+  }
+};
