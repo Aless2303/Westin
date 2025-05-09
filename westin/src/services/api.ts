@@ -154,6 +154,14 @@ export const workService = {
       method: 'DELETE',
     });
   },
+  
+  // Actualizează o muncă
+  updateWork: async (characterId: string, workId: string, workData: Record<string, unknown>) => {
+    return fetchWithAuth(`/works/${characterId}/${workId}`, {
+      method: 'PUT',
+      body: JSON.stringify(workData),
+    });
+  },
 };
 
 // Reports

@@ -28,16 +28,14 @@ const ProfileWindow: React.FC<ProfileWindowProps> = ({
   const [tempMotto, setTempMotto] = useState("");
   const [savingMotto, setSavingMotto] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Update local state whenever the profile changes
-  useEffect(() => {
-    if (profile) {
-      if (profile.motto !== undefined) {
-        setMotto(profile.motto);
-      }
-    }
-  }, [profile]);
   
+  useEffect(() => {
+    if (profile && profile.motto !== undefined && profile.motto !== motto) {
+      setMotto(profile.motto);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile]);
+
   if (!isOpen || !profile) return null;
 
   const handleEditStart = () => {

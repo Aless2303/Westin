@@ -25,7 +25,7 @@ const MobDetailsPanel: React.FC<MobDetailsPanelProps> = ({
   const panelRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
   
-  const { addJob, characterPosition, jobs, characterStats } = useWorks();
+  const { addJob, jobs, characterStats } = useWorks();
   
   const [travelTimeText, setTravelTimeText] = useState("00:00");
   const [travelTimeFromLastJobText, setTravelTimeFromLastJobText] = useState("00:00");
@@ -68,7 +68,7 @@ const MobDetailsPanel: React.FC<MobDetailsPanelProps> = ({
   
   const getLastJobPosition = (): { x: number, y: number } => {
     if (jobs.length === 0) {
-      return characterPosition;
+      return { x: characterX, y: characterY };
     }
     
     const lastJob = jobs[jobs.length - 1];
@@ -88,8 +88,8 @@ const MobDetailsPanel: React.FC<MobDetailsPanelProps> = ({
   useEffect(() => {
     if (selectedMob) {
       const secondsFromCurrent = calculateTravelTimeSeconds(
-        characterPosition.x, 
-        characterPosition.y, 
+        characterX, 
+        characterY, 
         selectedMob.x, 
         selectedMob.y
       );
@@ -104,7 +104,7 @@ const MobDetailsPanel: React.FC<MobDetailsPanelProps> = ({
       );
       setTravelTimeFromLastJobText(formatTime(secondsFromLastJob));
     }
-  }, [characterPosition, jobs, selectedMob]);
+  }, [characterX, characterY, selectedMob]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -173,8 +173,8 @@ const MobDetailsPanel: React.FC<MobDetailsPanelProps> = ({
     const startPos = getLastJobPosition();
     
     const travelTimeSeconds = calculateTravelTimeSeconds(
-      startPos.x, 
-      startPos.y, 
+      startPos.x || characterX, 
+      startPos.y || characterY, 
       selectedMob.x, 
       selectedMob.y
     );

@@ -543,3 +543,67 @@ export const getNearbyPlayers = async (req: Request & { user?: any }, res: Respo
     }
   }
 };
+
+// @desc    Update character HP only
+// @route   PUT /api/characters/:id/hp
+// @access  Private
+export const updateCharacterHp = async (req: Request & { user?: any }, res: Response): Promise<void> => {
+  try {
+    const character = await Character.findById(req.params.id);
+
+    if (!character) {
+      throw new ApiError('Character not found', 404);
+    }
+
+    // Check if user is the owner of this character
+    if (req.user && req.user._id.toString() !== character.userId.toString() && !req.user.isAdmin) {
+      throw new ApiError('Not authorized to update this character', 401);
+    }
+
+    const { hp } = req.body;
+
+    if (hp === undefined) {
+      throw new ApiError('HP value is required', 400);
+    }
+
+    const newHp = Math.max(0, Math.min(hp, character.hp.max));
+    
+    // Create an update object for the character
+    const updateData: any = {
+      'hp.current': newHp
+    };
+    
+    // If HP drops to 0, reset cash to 0
+    if (newHp <= 0 && character.hp.current > 0) {
+      updateData['money.cash'] = 0;
+      
+      // Create a report to inform the player about losing cash
+      const Report = (await import('../models/reportModel')).default;
+      
+      await Report.create({
+        characterId: character._id,
+        type: 'attack',
+        subject: 'Ai pierdut toți yang din inventar!',
+        content: 'Deoarece ai rămas fără HP, ți-ai pierdut toți yang din inventar (cash). Yang din depozitul bancar rămâne intact.',
+        read: false,
+        result: 'defeat',
+      });
+    }
+
+    const updatedCharacter = await Character.findByIdAndUpdate(
+      req.params.id,
+      { $set: updateData },
+      { new: true }
+    );
+
+    res.status(200).json(updatedCharacter);
+  } catch (error) {
+    if (error instanceof ApiError) {
+      res.status(error.statusCode).json({ message: error.message });
+    } else if (error instanceof Error) {
+      res.status(500).json({ message: error.message });
+    } else {
+      res.status(500).json({ message: 'An unknown error occurred' });
+    }
+  }
+};

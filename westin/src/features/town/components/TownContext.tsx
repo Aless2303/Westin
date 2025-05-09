@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { CharacterType } from '../../../types/character';
 
 interface TownContextType {
@@ -24,6 +24,11 @@ export const TownProvider: React.FC<TownProviderProps> = ({ children, characterD
   const [isMarketOpen, setIsMarketOpen] = useState(false);
   const [isBankOpen, setIsBankOpen] = useState(false);
   const [characterData, setCharacterData] = useState<CharacterType>(initialCharacterData);
+  
+  // Update the internal character data when the prop changes
+  useEffect(() => {
+    setCharacterData(initialCharacterData);
+  }, [initialCharacterData]);
 
   return (
     <TownContext.Provider

@@ -3,7 +3,8 @@ import express from 'express';
 import { 
   getWorks,
   createWork,
-  deleteWork
+  deleteWork,
+  updateWork
 } from '../controllers/workController';
 import { protect } from '../middleware/authMiddleware';
 
@@ -23,5 +24,10 @@ router.post('/:characterId', protect, createWork);
 // @desc    Delete a work
 // @access  Private
 router.delete('/:characterId/:workId', protect, deleteWork);
+
+// @route   PUT /api/works/:characterId/:workId
+// @desc    Update a work
+// @access  Private
+router.put('/:characterId/:workId', protect, updateWork);
 
 export default router; 

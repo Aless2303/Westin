@@ -297,7 +297,7 @@ const createWorkCompletionReport = async (work: any, character: any) => {
     'money.cash': newYang
   });
   
-  // Dacă jucătorul a murit (HP = 0), anulăm toate muncile rămase
+  // Dacă jucătorul a murit (HP = 0), anulăm toate muncile rămase și resetăm banii cash la 0
   if (newHp <= 0) {
     // Găsim toate muncile rămase și le anulăm
     const remainingWorks = await Work.find({ characterId: character._id });
@@ -333,6 +333,21 @@ const createWorkCompletionReport = async (work: any, character: any) => {
         result: 'defeat',
       });
     }
+    
+    // Resetăm banii cash la 0 și creăm un raport despre pierderea banilor
+    await Character.findByIdAndUpdate(character._id, {
+      'money.cash': 0
+    });
+    
+    // Creăm un raport pentru pierderea banilor
+    await Report.create({
+      characterId: character._id,
+      type: 'attack',
+      subject: `Ai pierdut toți yang din inventar!`,
+      content: `Din cauza înfrângerii împotriva lui ${mobName}, ți-ai pierdut toți yang din inventar (cash). Yang din depozitul bancar rămâne intact.`,
+      read: false,
+      result: 'defeat',
+    });
   }
 };
 
@@ -467,7 +482,7 @@ export const deleteWork = async (req: Request & { user?: any }, res: Response): 
 
     // Validate IDs
     if (!mongoose.Types.ObjectId.isValid(characterId) || !mongoose.Types.ObjectId.isValid(workId)) {
-      throw new ApiError('Invalid IDs provided', 400);
+      throw new ApiError('Invalid character or work ID', 400);
     }
 
     // Get character
@@ -477,64 +492,86 @@ export const deleteWork = async (req: Request & { user?: any }, res: Response): 
       throw new ApiError('Character not found', 404);
     }
 
-    // Check if user is authorized to delete this character's work
+    // Check if user is authorized to delete works for this character
     if (req.user && character.userId.toString() !== req.user._id.toString() && !req.user.isAdmin) {
-      throw new ApiError('Not authorized to delete this work', 401);
+      throw new ApiError('Not authorized to delete works for this character', 401);
     }
 
-    // Get work
+    // Get the work
     const work = await Work.findOne({ _id: workId, characterId });
 
     if (!work) {
       throw new ApiError('Work not found', 404);
     }
 
-    // Get the stamina cost before deleting the work
-    const staminaCost = work.staminaCost || 0;
+    // Refund stamina if the work has not been completed
+    if (work.staminaCost) {
+      character.stamina.current = Math.min(character.stamina.max, character.stamina.current + work.staminaCost);
+      await character.save();
+    }
 
     // Delete work
     await Work.findByIdAndDelete(workId);
-    
-    // Refund the stamina cost to the character
-    if (staminaCost > 0) {
-      character.stamina.current = Math.min(
-        character.stamina.max, 
-        character.stamina.current + staminaCost
-      );
-      await character.save();
+
+    res.status(200).json({ message: 'Work deleted successfully' });
+  } catch (error) {
+    if (error instanceof ApiError) {
+      res.status(error.statusCode).json({ message: error.message });
+    } else if (error instanceof Error) {
+      res.status(500).json({ message: error.message });
+    } else {
+      res.status(500).json({ message: 'An unknown error occurred' });
     }
-    
-    // Recalculează timpii pentru muncile rămase
-    const remainingWorks = await Work.find({ characterId }).sort({ createdAt: 1 });
-    
-    if (remainingWorks.length > 0) {
-      // Dacă munca ștearsă era prima, actualizăm timpii pentru prima muncă rămasă
-      const firstWork = remainingWorks[0];
-      const now = new Date();
-      
-      // Actualizăm timpul de deplasare
-      firstWork.travelEndTime = new Date(now.getTime() + firstWork.travelTime * 1000);
-      firstWork.jobEndTime = new Date(firstWork.travelEndTime.getTime() + firstWork.remainingTime * 1000);
-      
-      await firstWork.save();
-      
-      // Actualizăm timpii pentru restul muncilor
-      for (let i = 1; i < remainingWorks.length; i++) {
-        const previousWork = remainingWorks[i - 1];
-        const currentWork = remainingWorks[i];
-        
-        currentWork.travelEndTime = new Date(previousWork.jobEndTime.getTime() + currentWork.travelTime * 1000);
-        currentWork.jobEndTime = new Date(currentWork.travelEndTime.getTime() + currentWork.remainingTime * 1000);
-        
-        await currentWork.save();
-      }
+  }
+};
+
+// @desc    Update a work
+// @route   PUT /api/works/:characterId/:workId
+// @access  Private
+export const updateWork = async (req: Request & { user?: any }, res: Response): Promise<void> => {
+  try {
+    const { characterId, workId } = req.params;
+    const updateData = req.body;
+
+    // Validate IDs
+    if (!mongoose.Types.ObjectId.isValid(characterId) || !mongoose.Types.ObjectId.isValid(workId)) {
+      throw new ApiError('Invalid character or work ID', 400);
     }
 
-    res.status(200).json({ 
-      message: 'Work deleted successfully',
-      staminaRefunded: staminaCost,
-      currentStamina: character.stamina.current
-    });
+    // Get character
+    const character = await Character.findById(characterId);
+
+    if (!character) {
+      throw new ApiError('Character not found', 404);
+    }
+
+    // Check if user is authorized to update works for this character
+    if (req.user && character.userId.toString() !== req.user._id.toString() && !req.user.isAdmin) {
+      throw new ApiError('Not authorized to update works for this character', 401);
+    }
+
+    // Get the work
+    const work = await Work.findOne({ _id: workId, characterId });
+
+    if (!work) {
+      throw new ApiError('Work not found', 404);
+    }
+
+    // Verificam dacă se actualizează timpul de travel și se oferă și originalTravelTime
+    // Dacă nu se oferă originalTravelTime, dar se actualizează travelTime, setăm originalTravelTime = travelTime
+    if (updateData.travelTime !== undefined && updateData.originalTravelTime === undefined) {
+      updateData.originalTravelTime = updateData.travelTime;
+    }
+
+    // Update work with new data
+    // Folosim update în loc de save pentru a evita hooks mongoose
+    const updatedWork = await Work.findByIdAndUpdate(
+      workId,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    );
+
+    res.status(200).json(updatedWork);
   } catch (error) {
     if (error instanceof ApiError) {
       res.status(error.statusCode).json({ message: error.message });

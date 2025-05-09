@@ -10,7 +10,8 @@ import {
   markCharacterCreationComplete,
   searchCharacters,
   getPlayerData,
-  getNearbyPlayers
+  getNearbyPlayers,
+  updateCharacterHp
 } from '../controllers/characterController';
 import { protect } from '../middleware/authMiddleware';
 
@@ -65,5 +66,10 @@ router.put('/:id/money', protect, updateCharacterMoney);
 // @desc    Mark character creation complete and update character details
 // @access  Private
 router.put('/:id/creation-complete', protect, markCharacterCreationComplete);
+
+// @route   PUT /api/characters/:id/hp
+// @desc    Update character HP
+// @access  Private
+router.put('/:id/hp', protect, updateCharacterHp);
 
 export default router;

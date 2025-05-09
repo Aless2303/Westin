@@ -56,16 +56,16 @@ const WorksPanel: React.FC<WorksPanelProps> = ({
         progress => progress.jobId === currentJobId
       );
       
-      // If job exists and has the same details, preserve its progress
-      if (existingProgressIndex >= 0) {
+      // If job exists and it doesn't need progress reset, preserve its progress
+      if (existingProgressIndex >= 0 && !job.progressReset) {
         return jobProgresses[existingProgressIndex];
       }
       
-      // Otherwise create new progress data with progress at 0
+      // For new jobs or jobs that need progress reset, create fresh progress tracking
       return {
         originalTravelTime: job.originalTravelTime || Math.max(1, job.travelTime), // Use stored original or current
         originalJobTime: job.originalJobTime || (job.type === '15s' ? 15 : job.type === '10m' ? 600 : 3600),
-        progressPercent: 0, // Always start at 0 for new jobs
+        progressPercent: 0, // Always start at 0 for new jobs or reset jobs
         lastUpdate: now,
         jobId: currentJobId
       };

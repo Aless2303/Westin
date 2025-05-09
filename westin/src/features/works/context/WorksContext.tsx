@@ -46,6 +46,9 @@ export interface Job {
   
   // Flag pentru a marca dacă munca este activă (prima din coadă)
   isActive?: boolean;
+  
+  // Flag for UI to reset progress bars when a job is updated
+  progressReset?: boolean;
 }
 
 interface CharacterStats {
@@ -61,6 +64,8 @@ interface CharacterStats {
   };
   attack?: number;
   defense?: number;
+  x?: number;
+  y?: number;
 }
 
 interface WorksContextType {
@@ -105,20 +110,7 @@ export const useWorks = () => useContext(WorksContext);
 interface WorksProviderProps {
   children: ReactNode;
   characterPositionUpdater?: (x: number, y: number) => void;
-  characterStats: {
-    name: string;
-    level: number;
-    hp: {
-      current: number;
-      max: number;
-    };
-    stamina: {
-      current: number;
-      max: number;
-    };
-    attack?: number;
-    defense?: number;
-  };
+  characterStats: CharacterStats;
   updatePlayerHp: (newHp: number) => void;
   updatePlayerStamina: (newStamina: number) => void;
 }
@@ -131,7 +123,7 @@ export const WorksProvider: React.FC<WorksProviderProps> = ({
   updatePlayerStamina
 }) => {
   const [jobs, setJobs] = useState<Job[]>([]);
-  const [characterPosition, setCharacterPositionInternal] = useState({ x: 350, y: 611 }); // Default position
+  const [characterPosition, setCharacterPositionInternal] = useState({ x: characterStats.x || 350, y: characterStats.y || 611 }); // Folosim poziția caracterului din props
   const { currentCharacter } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -151,6 +143,13 @@ export const WorksProvider: React.FC<WorksProviderProps> = ({
   // Reference to track when travel completes
   const travelCompletedRef = useRef<{ x: number, y: number } | null>(null);
   
+  // Actualizăm poziția caracterului când se schimbă props-urile
+  useEffect(() => {
+    if (characterStats.x && characterStats.y) {
+      setCharacterPositionInternal({ x: characterStats.x, y: characterStats.y });
+    }
+  }, [characterStats.x, characterStats.y]);
+
   // Helper to update both internal state and parent component
   const setCharacterPosition = useCallback((x: number, y: number) => {
     setCharacterPositionInternal({ x, y });
@@ -465,15 +464,66 @@ export const WorksProvider: React.FC<WorksProviderProps> = ({
       }
       
       // Actualizăm starea locală și marcăm următoarea muncă ca activă
-      setJobs(prev => {
-        if (prev.length <= 1) return [];
+      const updatedJobs = await (async () => {
+        const newJobs = jobs.slice(1);
         
-        const newJobs = prev.slice(1);
+        // Recalculăm timpul de deplasare pentru prima muncă rămasă, folosind poziția actuală a caracterului
+        if (newJobs.length > 0) {
+          const firstRemainingJob = newJobs[0];
+          const now = Date.now();
+          
+          // Calculăm timpul de la poziția curentă a caracterului
+          const travelTime = calculateRealTravelTime(
+            characterPosition.x,
+            characterPosition.y,
+            firstRemainingJob.mobX,
+            firstRemainingJob.mobY
+          );
+          
+          // Actualizăm timpul de deplasare
+          const travelEndTime = now + (travelTime * 1000);
+          const jobEndTime = travelEndTime + (firstRemainingJob.originalJobTime || firstRemainingJob.remainingTime) * 1000;
+          
+          // Actualizăm primul job din coadă
+          const updatedFirstJob = {
+            ...firstRemainingJob,
+            travelTime,
+            isInProgress: false, // Începem de la faza de deplasare
+            travelEndTime,
+            jobEndTime,
+            lastLocalUpdate: now,
+            isActive: true
+          };
+          
+          newJobs[0] = updatedFirstJob;
+          
+          // Actualizăm și pe server timpul de deplasare pentru noul prim job
+          if (firstRemainingJob._id) {
+            try {
+              // Transmitem către server datele actualizate despre timpul de deplasare
+              await workService.updateWork(currentCharacter._id, firstRemainingJob._id, {
+                travelTime,
+                isInProgress: false,
+                travelEndTime,
+                jobEndTime
+              });
+              
+              // Flagăm că nu mai avem nevoie de sincronizare imediată
+              needsSyncRef.current = false;
+            } catch (err) {
+              console.error("Error updating travel time on server:", err);
+            }
+          }
+        }
+        
         return newJobs.map((job, index) => ({
           ...job,
           isActive: index === 0 // Doar prima muncă este activă
         }));
-      });
+      })();
+      
+      // Setăm starea cu joburile actualizate
+      setJobs(updatedJobs);
       
       // Refund the stamina cost to the player
       if (staminaCost > 0) {
@@ -484,15 +534,13 @@ export const WorksProvider: React.FC<WorksProviderProps> = ({
         updatePlayerStamina(newStamina);
       }
       
-      // Sincronizăm cu backend-ul pentru a ne asigura că totul este actualizat
-      setTimeout(() => {
-        syncWithBackend();
-      }, 500);
+      // Nu mai apelăm syncWithBackend() imediat, pentru a evita suprascrierea modificărilor locale
+      // Sincronizarea periodică va prelua modificările în câteva secunde
     } catch (err) {
       console.error('Error removing job:', err);
       setError('Nu s-a putut șterge munca. Încearcă din nou mai târziu.');
     }
-  }, [jobs, currentCharacter?._id, syncWithBackend, characterStats.stamina, updatePlayerStamina]);
+  }, [jobs, currentCharacter?._id, characterStats.stamina, updatePlayerStamina, characterPosition, calculateRealTravelTime]);
 
   // Remove a job by index
   const removeJobById = useCallback(async (index: number) => {
@@ -509,13 +557,71 @@ export const WorksProvider: React.FC<WorksProviderProps> = ({
       }
       
       // Actualizăm starea locală și marcăm prima muncă rămasă ca activă
-      setJobs(prev => {
-        const newJobs = prev.filter((_, i) => i !== index);
+      const updatedJobs = await (async () => {
+        const newJobs = jobs.filter((_, i) => i !== index);
+        
+        // Recalculăm timpul de deplasare pentru muncile afectate
+        const now = Date.now();
+        
+        // Dacă am eliminat primul job și mai avem joburi, recalculăm primul job rămas
+        if (index === 0 && newJobs.length > 0) {
+          const firstRemainingJob = newJobs[0];
+          
+          // Calculăm timpul de la poziția curentă a caracterului
+          const travelTime = calculateRealTravelTime(
+            characterPosition.x,
+            characterPosition.y,
+            firstRemainingJob.mobX,
+            firstRemainingJob.mobY
+          );
+          
+          // Actualizăm timpul de deplasare
+          const travelEndTime = now + (travelTime * 1000);
+          const jobEndTime = travelEndTime + (firstRemainingJob.originalJobTime || firstRemainingJob.remainingTime) * 1000;
+          
+          // Actualizăm primul job din coadă - adăugăm și flag-ul de resetare a progresului
+          const updatedFirstJob = {
+            ...firstRemainingJob,
+            travelTime,
+            isInProgress: false, // Începem de la faza de deplasare
+            travelEndTime,
+            jobEndTime,
+            lastLocalUpdate: now,
+            isActive: true,
+            originalTravelTime: travelTime, // Actualizăm și durata originală pentru calculul corect
+            progressReset: true // Flag pentru UI să reseteze bara de progres
+          };
+          
+          newJobs[0] = updatedFirstJob;
+          
+          // Actualizăm și pe server timpul de deplasare pentru noul prim job
+          if (firstRemainingJob._id) {
+            try {
+              // Transmitem către server datele actualizate despre timpul de deplasare
+              await workService.updateWork(currentCharacter._id, firstRemainingJob._id, {
+                travelTime,
+                isInProgress: false,
+                travelEndTime,
+                jobEndTime,
+                originalTravelTime: travelTime // Includem și durata originală
+              });
+              
+              // Flagăm că nu mai avem nevoie de sincronizare imediată
+              needsSyncRef.current = false;
+            } catch (err) {
+              console.error("Error updating travel time on server:", err);
+            }
+          }
+        }
+        
         return newJobs.map((job, i) => ({
           ...job,
           isActive: i === 0 // Doar prima muncă este activă
         }));
-      });
+      })();
+      
+      // Setăm starea cu joburile actualizate
+      setJobs(updatedJobs);
       
       // Refund the stamina cost to the player
       if (staminaCost > 0) {
@@ -526,15 +632,13 @@ export const WorksProvider: React.FC<WorksProviderProps> = ({
         updatePlayerStamina(newStamina);
       }
       
-      // Sincronizăm cu backend-ul pentru a ne asigura că totul este actualizat
-      setTimeout(() => {
-        syncWithBackend();
-      }, 500);
+      // Nu mai apelăm syncWithBackend() imediat, pentru a evita suprascrierea modificărilor locale
+      // Sincronizarea periodică va prelua modificările în câteva secunde
     } catch (err) {
       console.error('Error removing job by index:', err);
       setError('Nu s-a putut șterge munca. Încearcă din nou mai târziu.');
     }
-  }, [jobs, currentCharacter?._id, syncWithBackend, characterStats.stamina, updatePlayerStamina]);
+  }, [jobs, currentCharacter?._id, characterStats.stamina, updatePlayerStamina, characterPosition, calculateRealTravelTime]);
 
   const value = {
     jobs,

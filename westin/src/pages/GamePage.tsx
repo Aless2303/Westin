@@ -16,6 +16,7 @@ import { MobType } from '../types/mob';
 import { CharacterType } from '../types/character';
 import ChatNotificationIndicator from '../features/chat/components/ChatNotificationIndicator';
 import { useChatContext } from '../features/chat/context/ChatContext';
+import { PlayerType } from '../types/player';
 
 // Separate component for chat features that need the ChatContext
 const ChatFeatures = ({ isChatOpen, setIsChatOpen, characterId }: { 
@@ -100,6 +101,7 @@ const GamePage: React.FC = () => {
   const [characterData, setCharacterData] = useState<CharacterType>(mockData.character);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
+  const [players, setPlayers] = useState<PlayerType[]>([]);
 
   const MIN_SCALE = 1.0;
   const MAX_SCALE = 2.5;
@@ -124,6 +126,8 @@ const GamePage: React.FC = () => {
           if (!response.ok) return;
           
           const data = await response.json();
+          console.log("Date inițiale caracter:", data);
+          
           setCharacterData(prevData => ({
             ...prevData,
             name: data.name,
@@ -131,7 +135,9 @@ const GamePage: React.FC = () => {
             gender: data.gender,
             motto: data.motto,
             duelsWon: data.duelsWon || 0,
-            duelsLost: data.duelsLost || 0
+            duelsLost: data.duelsLost || 0,
+            x: data.x, // Adăugăm coordonatele x și y
+            y: data.y  // pentru a le prelua din baza de date
           }));
         } catch (err) {
           console.error("Error loading initial character data:", err);
@@ -165,6 +171,7 @@ const GamePage: React.FC = () => {
       }
       
       const data = await response.json();
+      console.log("Character data from API:", data); // Afișăm datele pentru debug
       
       // Update character data with the new data from the server
       // But preserve the local changes we've made (like position)
@@ -182,7 +189,9 @@ const GamePage: React.FC = () => {
         defense: data.defense,
         motto: data.motto,
         duelsWon: data.duelsWon || 0,
-        duelsLost: data.duelsLost || 0
+        duelsLost: data.duelsLost || 0,
+        x: data.x, // Ne asigurăm că preluăm valorile x și y din baza de date
+        y: data.y  // Ne asigurăm că preluăm valorile x și y din baza de date
       }));
       
     } catch (err) {
@@ -202,6 +211,50 @@ const GamePage: React.FC = () => {
     
     return () => clearInterval(refreshInterval);
   }, [fetchCharacterData]);
+
+  // Fetch all players from database
+  const fetchAllPlayers = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error("No authentication token found");
+        return;
+      }
+      
+      const response = await fetch(`http://localhost:5000/api/characters/nearby`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        // Set a larger distance to get more players if needed
+        method: 'GET'
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${await response.text()}`);
+      }
+      
+      const data = await response.json();
+      // Update players state with fetched data
+      setPlayers(data);
+      
+    } catch (err) {
+      console.error("Error fetching all players:", err);
+    }
+  }, []);
+
+  // Fetch players initially and set up periodic refresh
+  useEffect(() => {
+    // Fetch immediately
+    fetchAllPlayers();
+    
+    // Set up interval to refresh players data
+    const refreshInterval = setInterval(() => {
+      fetchAllPlayers();
+    }, 10000); // Refresh every 10 seconds
+    
+    return () => clearInterval(refreshInterval);
+  }, [fetchAllPlayers]);
 
   const updatePlayerHp = useCallback(async (newHp: number) => {
     if (!currentUser?.characterId) return;
@@ -327,6 +380,8 @@ const GamePage: React.FC = () => {
   }, [characterData.stamina, currentUser?.characterId]);
 
   const updateCharacterPosition = useCallback(async (newX: number, newY: number) => {
+    console.log(`Actualizare poziție: (${newX}, ${newY})`);
+    
     // Update local state
     setCharacterData((prev) => ({ ...prev, x: newX, y: newY }));
     setAnimation({ x: newX, y: newY, visible: true });
@@ -341,7 +396,9 @@ const GamePage: React.FC = () => {
           return;
         }
         
-        await fetch(`http://localhost:5000/api/characters/${currentUser.characterId}/position`, {
+        console.log(`Trimit către server noua poziție: (${newX}, ${newY})`);
+        
+        const response = await fetch(`http://localhost:5000/api/characters/${currentUser.characterId}/position`, {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -349,30 +406,20 @@ const GamePage: React.FC = () => {
           },
           body: JSON.stringify({ x: newX, y: newY })
         });
+        
+        const responseData = await response.json();
+        console.log("Răspuns actualizare poziție:", responseData);
+        
       } catch (err) {
         console.error("Error updating character position:", err);
       }
     }
   }, [currentUser?.characterId]);
 
-  const findClosestMob = (characterX: number, characterY: number): MobType => {
-    let closestMob = mockData.mobs[0];
-    let minDistance = Infinity;
-    mockData.mobs.forEach((mob) => {
-      const distance = Math.sqrt(Math.pow(mob.x - characterX, 2) + Math.pow(mob.y - characterY, 2));
-      if (distance < minDistance) {
-        minDistance = distance;
-        closestMob = mob;
-      }
-    });
-    return closestMob;
-  };
-
-  const closestMob = findClosestMob(characterData.x, characterData.y);
   const characterImagePath = `/Races/${characterData.gender.toLowerCase()}/${characterData.race.toLowerCase()}.png`;
 
   // Helper function to update position with bounds
-  const updatePosition = (newX: number, newY: number) => {
+  const updatePosition = useCallback((newX: number, newY: number) => {
     const container = mapContainerRef.current;
     if (!container) return;
 
@@ -390,7 +437,7 @@ const GamePage: React.FC = () => {
     const boundedY = Math.max(minY, Math.min(maxY, newY));
 
     setPosition({ x: boundedX, y: boundedY });
-  };
+  }, [scale]);
 
   // Mouse Handlers
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -601,9 +648,9 @@ const GamePage: React.FC = () => {
                           </span>
                         </button>
                       ))}
-                    {mockData.players.map((player, index) => (
+                    {players.map((player) => (
                       <div
-                        key={`player-${index}`}
+                        key={`player-${player.id}`}
                         className="absolute rounded-full bg-white border-2 border-blue-500"
                         style={{
                           width: '40px',
@@ -625,8 +672,8 @@ const GamePage: React.FC = () => {
                       style={{
                         width: '40px',
                         height: '40px',
-                        left: `${((closestMob.x - 40) / MAP_WIDTH) * 100}%`,
-                        top: `${((closestMob.y + 20) / MAP_HEIGHT) * 100}%`,
+                        left: `${((characterData.x - 40) / MAP_WIDTH) * 100}%`,
+                        top: `${((characterData.y + 20) / MAP_HEIGHT) * 100}%`,
                         transform: 'translate(-50%, -50%)',
                         pointerEvents: 'none',
                         zIndex: 25,
@@ -671,6 +718,7 @@ const GamePage: React.FC = () => {
                 setIsChatOpen={setIsChatOpen}
                 characterId={currentUser?._id || ""}
               />
+              
               {isAdmin && (
                 <button
                   onClick={() => setIsAdminPanelOpen(true)}

@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { useTown } from '../components/TownContext';
+import { characterService } from '../../../services/api';
+import { useAuth } from '../../../context/AuthContext';
 
 const Bank: React.FC = () => {
   const { isBankOpen, setIsBankOpen, characterData, setCharacterData } = useTown();
+  const { currentCharacter } = useAuth();
   const [amount, setAmount] = useState<string>('');
   const [message, setMessage] = useState<{ text: string, isError: boolean } | null>(null);
   const [activeTab, setActiveTab] = useState<'deposit' | 'withdraw'>('deposit');
+  const [isProcessing, setIsProcessing] = useState(false);
 
   if (!isBankOpen || !characterData) return null;
 
@@ -21,47 +25,97 @@ const Bank: React.FC = () => {
     }
   };
 
-  const handleDeposit = () => {
+  const updateMoneyOnServer = async (cash: number, bank: number) => {
+    if (!currentCharacter?._id) {
+      setMessage({ text: 'Eroare la actualizarea banilor. Te rugăm să reîncarci pagina.', isError: true });
+      return false;
+    }
+
+    try {
+      await characterService.updateMoney(currentCharacter._id, { cash, bank });
+      return true;
+    } catch (error) {
+      console.error('Error updating money:', error);
+      setMessage({ text: 'Eroare la actualizarea banilor în baza de date.', isError: true });
+      return false;
+    }
+  };
+
+  const handleDeposit = async () => {
+    if (isProcessing) return;
+    
     const depositAmount = parseInt(amount, 10);
     if (isNaN(depositAmount) || depositAmount <= 0) {
       setMessage({ text: 'Te rog introdu o sumă validă.', isError: true });
       return;
     }
+    
     if (depositAmount > characterData.money.cash) {
       setMessage({ text: 'Nu ai suficienți yang pentru a face acest depozit.', isError: true });
       return;
     }
-    setCharacterData({
-      ...characterData,
-      money: {
-        cash: characterData.money.cash - depositAmount,
-        bank: characterData.money.bank + depositAmount,
-      },
-    });
-    setAmount('');
-    setMessage({ text: `Ai depozitat cu succes ${depositAmount} yang.`, isError: false });
+    
+    setIsProcessing(true);
+    
+    const newCash = characterData.money.cash - depositAmount;
+    const newBank = characterData.money.bank + depositAmount;
+    
+    // Update on server first
+    const success = await updateMoneyOnServer(newCash, newBank);
+    
+    if (success) {
+      // If server update was successful, update local state
+      setCharacterData({
+        ...characterData,
+        money: {
+          cash: newCash,
+          bank: newBank,
+        },
+      });
+      setAmount('');
+      setMessage({ text: `Ai depozitat cu succes ${depositAmount} yang.`, isError: false });
+    }
+    
+    setIsProcessing(false);
     setTimeout(() => setMessage(null), 3000);
   };
 
-  const handleWithdraw = () => {
+  const handleWithdraw = async () => {
+    if (isProcessing) return;
+    
     const withdrawAmount = parseInt(amount, 10);
     if (isNaN(withdrawAmount) || withdrawAmount <= 0) {
       setMessage({ text: 'Te rog introdu o sumă validă.', isError: true });
       return;
     }
+    
     if (withdrawAmount > characterData.money.bank) {
       setMessage({ text: 'Nu ai suficienți yang în depozit pentru a retrage această sumă.', isError: true });
       return;
     }
-    setCharacterData({
-      ...characterData,
-      money: {
-        cash: characterData.money.cash + withdrawAmount,
-        bank: characterData.money.bank - withdrawAmount,
-      },
-    });
-    setAmount('');
-    setMessage({ text: `Ai retras cu succes ${withdrawAmount} yang.`, isError: false });
+    
+    setIsProcessing(true);
+    
+    const newCash = characterData.money.cash + withdrawAmount;
+    const newBank = characterData.money.bank - withdrawAmount;
+    
+    // Update on server first
+    const success = await updateMoneyOnServer(newCash, newBank);
+    
+    if (success) {
+      // If server update was successful, update local state
+      setCharacterData({
+        ...characterData,
+        money: {
+          cash: newCash,
+          bank: newBank,
+        },
+      });
+      setAmount('');
+      setMessage({ text: `Ai retras cu succes ${withdrawAmount} yang.`, isError: false });
+    }
+    
+    setIsProcessing(false);
     setTimeout(() => setMessage(null), 3000);
   };
 
@@ -160,6 +214,7 @@ const Bank: React.FC = () => {
               onChange={handleAmountChange}
               className="w-full bg-metin-dark/80 border border-metin-gold/40 rounded-md px-3 py-2 text-white focus:outline-none focus:border-metin-gold text-sm sm:text-base"
               placeholder="Introdu suma..."
+              disabled={isProcessing}
             />
           </div>
 
@@ -171,14 +226,21 @@ const Bank: React.FC = () => {
                 const maxAmount = activeTab === 'deposit' ? characterData.money.cash : characterData.money.bank;
                 setAmount(maxAmount.toString());
               }}
+              disabled={isProcessing}
             >
               Sumă maximă
             </button>
             <button
               type="submit"
               className="flex-1 bg-metin-gold/20 hover:bg-metin-gold/40 text-metin-gold py-2 rounded transition-colors text-sm sm:text-base"
+              disabled={isProcessing}
             >
-              {activeTab === 'deposit' ? 'Depozitează' : 'Retrage'}
+              {isProcessing 
+                ? 'Se procesează...' 
+                : activeTab === 'deposit' 
+                  ? 'Depozitează' 
+                  : 'Retrage'
+              }
             </button>
           </div>
         </form>
