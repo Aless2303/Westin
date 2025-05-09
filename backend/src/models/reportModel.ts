@@ -32,7 +32,7 @@ const reportSchema = new Schema<IReport>(
     type: {
       type: String,
       required: true,
-      enum: ['duel', 'attack', 'sleep'],
+      enum: ['duel', 'attack', 'sleep', 'info'],
     },
     subject: {
       type: String,

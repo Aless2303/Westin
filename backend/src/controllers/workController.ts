@@ -4,6 +4,7 @@ import Character from '../models/characterModel';
 import Report from '../models/reportModel';
 import { ApiError } from '../middleware/errorMiddleware';
 import mongoose from 'mongoose';
+import { updateCharacterExperience } from '../services/characterService';
 
 // @desc    Get works for a character
 // @route   GET /api/works/:characterId
@@ -324,14 +325,17 @@ const createWorkCompletionReport = async (work: any, character: any) => {
   
   // Update character stats - acordăm experiență și bani doar în caz de victorie
   const newHp = Math.max(0, character.hp.current - playerHpLost);
-  const newExp = character.experience.current + actualExpGained;
   const newYang = character.money.cash + actualYangGained;
   
   await Character.findByIdAndUpdate(character._id, {
     'hp.current': newHp,
-    'experience.current': newExp,
     'money.cash': newYang
   });
+  
+  // Update experience with level-up check
+  if (actualExpGained > 0) {
+    await updateCharacterExperience(character._id.toString(), actualExpGained);
+  }
   
   // Dacă jucătorul a murit (HP = 0), anulăm toate muncile rămase și resetăm banii cash la 0
   if (newHp <= 0) {

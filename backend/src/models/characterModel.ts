@@ -17,6 +17,7 @@ export interface ICharacter extends Document {
   experience: {
     current: number;
     percentage: number;
+    required?: number;
   };
   money: {
     cash: number;
@@ -94,6 +95,10 @@ const characterSchema = new Schema<ICharacter>(
         type: Number,
         required: true,
         default: 0,
+      },
+      required: {
+        type: Number,
+        default: 100,
       },
     },
     money: {

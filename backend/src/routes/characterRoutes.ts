@@ -11,7 +11,8 @@ import {
   searchCharacters,
   getPlayerData,
   getNearbyPlayers,
-  updateCharacterHp
+  updateCharacterHp,
+  getCharacterRequiredExp
 } from '../controllers/characterController';
 import { protect } from '../middleware/authMiddleware';
 
@@ -41,6 +42,11 @@ router.get('/player/:userId', protect, getPlayerData);
 // @desc    Get character by ID
 // @access  Private
 router.get('/:id', protect, getCharacterById);
+
+// @route   GET /api/characters/:id/required-exp
+// @desc    Get required experience for character level up
+// @access  Private
+router.get('/:id/required-exp', protect, getCharacterRequiredExp);
 
 // @route   PUT /api/characters/:id
 // @desc    Update character profile

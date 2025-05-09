@@ -131,6 +131,11 @@ export const characterService = {
   getLeaderboard: async () => {
     return fetchWithAuth('/characters/leaderboard');
   },
+  
+  // Obține experiența necesară pentru avansarea la nivelul următor
+  getRequiredExperience: async (characterId: string) => {
+    return fetchWithAuth(`/characters/${characterId}/required-exp`);
+  },
 };
 
 // Inventory service

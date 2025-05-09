@@ -3,6 +3,7 @@ import Character from '../models/characterModel';
 import { ApiError } from '../middleware/errorMiddleware';
 import mongoose from 'mongoose';
 import User from '../models/userModel';
+import { getRequiredExperience } from '../services/characterService';
 
 // @desc    Get character by ID
 // @route   GET /api/characters/:id
@@ -605,5 +606,42 @@ export const updateCharacterHp = async (req: Request & { user?: any }, res: Resp
     } else {
       res.status(500).json({ message: 'An unknown error occurred' });
     }
+  }
+};
+
+// @desc    Get required experience for character level up
+// @route   GET /api/characters/:id/required-exp
+// @access  Private
+export const getCharacterRequiredExp = async (req: Request & { user?: any }, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    
+    // Validate characterId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      res.status(400).json({ message: 'Invalid character ID' });
+      return;
+    }
+    
+    // Get character
+    const character = await Character.findById(id);
+    
+    if (!character) {
+      res.status(404).json({ message: 'Character not found' });
+      return;
+    }
+    
+    // Check if user is authorized to access this character
+    if (req.user && character.userId.toString() !== req.user._id.toString() && !req.user.isAdmin) {
+      res.status(401).json({ message: 'Not authorized to access this character' });
+      return;
+    }
+    
+    // Get required experience
+    const expData = await getRequiredExperience(id);
+    
+    res.status(200).json(expData);
+  } catch (error) {
+    console.error('Error getting required experience:', error);
+    res.status(500).json({ message: 'Server error' });
   }
 };
