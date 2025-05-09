@@ -98,9 +98,6 @@ const GeneralMarket: React.FC = () => {
         if (uniqueCategories.length > 0 && !selectedCategory) {
           setSelectedCategory(uniqueCategories[0]);
         }
-        
-        // Set the cash amount from character data
-        setCashAmount(currentCharacter.money.cash);
       } catch (err) {
         console.error("Error fetching items:", err);
         setError("Nu s-au putut încărca itemele. Încearcă din nou mai târziu.");
@@ -109,7 +106,39 @@ const GeneralMarket: React.FC = () => {
       }
     };
     
+    // Add a function to fetch player's current cash
+    const fetchPlayerCash = async () => {
+      try {
+        if (!currentCharacter?._id) return;
+        
+        // Get the latest character data to have the current cash amount
+        const characterData = await characterService.getCharacter(currentCharacter._id);
+        setCashAmount(characterData.money.cash);
+      } catch (err) {
+        console.error("Error fetching player cash:", err);
+      }
+    };
+    
+    // Fetch both items and player cash when market opens
     fetchItems();
+    fetchPlayerCash();
+  }, [isMarketOpen, currentCharacter, selectedCategory]);
+
+  // Add a useEffect to update cash amount when market is shown
+  useEffect(() => {
+    if (isMarketOpen && currentCharacter?._id) {
+      // Fetch current cash amount
+      const fetchPlayerCash = async () => {
+        try {
+          const characterData = await characterService.getCharacter(currentCharacter._id);
+          setCashAmount(characterData.money.cash);
+        } catch (err) {
+          console.error("Error updating player cash:", err);
+        }
+      };
+      
+      fetchPlayerCash();
+    }
   }, [isMarketOpen, currentCharacter]);
 
   const handleClose = () => {
@@ -255,7 +284,7 @@ const GeneralMarket: React.FC = () => {
                     key={`${item._id}-${index}`}
                     className="bg-metin-dark border border-metin-gold/20 rounded-lg p-2 hover:border-metin-gold/50 transition-all relative group"
                   >
-                    <div className="flex flex-col h-[120px] sm:h-[130px]">
+                    <div className="flex flex-col h-[135px] sm:h-[150px]">
                       <div className="h-[50px] sm:h-[55px] flex items-center justify-center">
                         <Image
                           src={item.image ? `data:image/png;base64,${item.image}` : "/Items/placeholder.png"}
@@ -266,7 +295,7 @@ const GeneralMarket: React.FC = () => {
                         />
                       </div>
                       <h4
-                        className="text-metin-gold font-medium text-[10px] sm:text-xs text-center line-clamp-1 mb-1"
+                        className="text-metin-gold font-medium text-[10px] sm:text-xs text-center min-h-[24px] sm:min-h-[28px] line-clamp-2 mb-1"
                         title={item.name}
                       >
                         {item.name}
@@ -281,7 +310,7 @@ const GeneralMarket: React.FC = () => {
                           </span>
                         </div>
                       )}
-                      <div className="mt-2 flex justify-between items-center">
+                      <div className="mt-auto flex justify-between items-center">
                         <span className="text-yellow-500 text-[10px] sm:text-xs">{item.price.toLocaleString()}</span>
                         <button
                           onClick={() => handleBuyItem(item)}

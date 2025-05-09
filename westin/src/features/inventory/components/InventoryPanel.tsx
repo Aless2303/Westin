@@ -79,7 +79,7 @@ interface InventoryData {
 }
 
 const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose, playerRace }) => {
-  const { currentUser } = useAuth();
+  const { currentUser, currentCharacter } = useAuth();
   const [position, setPosition] = useState({ x: 100, y: 100 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
@@ -325,6 +325,16 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose, player
       return;
     }
     
+    // Check if player level is high enough to equip the item
+    if (currentCharacter && item.requiredLevel > currentCharacter.level) {
+      setError(`Nu poți echipa acest item. Nivel necesar: ${item.requiredLevel}. Nivelul tău: ${currentCharacter.level}.`);
+      // Set a timer to clear the error message after 3 seconds
+      setTimeout(() => {
+        setError(null);
+      }, 3000);
+      return;
+    }
+    
     const slot = equipmentSlots.find((s) => s.id === item.type);
     if (!slot) {
       console.log(`Itemul de tip ${item.type} nu poate fi echipat!`);
@@ -392,7 +402,8 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose, player
       });
       
       if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${await response.text()}`);
+        const errorData = await response.json().catch(() => ({ message: 'Eroare la echiparea item-ului' }));
+        throw new Error(errorData.message);
       }
       
       const equippedItem = slot.item;
@@ -414,9 +425,20 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose, player
       });
     } catch (err) {
       console.error("Error equipping item:", err);
-      setError("Eroare la echiparea item-ului");
+      
+      // Show error message without closing inventory
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Eroare la echiparea item-ului");
+      }
+      
+      // Clear error after 3 seconds
+      setTimeout(() => {
+        setError(null);
+      }, 3000);
     }
-  }, [equipmentSlots, backpackItems, currentPage, equipmentFilter, slotsPerPage, currentUser?.characterId]);
+  }, [equipmentSlots, backpackItems, currentPage, equipmentFilter, slotsPerPage, currentUser?.characterId, currentCharacter]);
 
   // Dragging handlers
   const handleMouseDown = (e: React.MouseEvent) => {
