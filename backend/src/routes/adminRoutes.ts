@@ -1,5 +1,5 @@
 import express from 'express';
-import { getAllPlayers, getPlayerById, updatePlayer, deletePlayer } from '../controllers/adminController';
+import { getAllPlayers, getPlayerById, updatePlayer, deletePlayer, toggleBanStatus } from '../controllers/adminController';
 import { protect, admin } from '../middleware/authMiddleware';
 
 const router = express.Router();
@@ -23,5 +23,10 @@ router.put('/players/:id', protect, admin, updatePlayer);
 // @desc    Delete player
 // @access  Admin
 router.delete('/players/:id', protect, admin, deletePlayer);
+
+// @route   PUT /api/admin/players/:id/ban
+// @desc    Toggle ban status for a user
+// @access  Admin
+router.put('/players/:id/ban', protect, admin, toggleBanStatus);
 
 export default router; 

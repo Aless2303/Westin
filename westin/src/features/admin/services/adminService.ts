@@ -117,6 +117,19 @@ export const adminService = {
       throw error;
     }
   },
+
+  // Banează/Debanează un jucător
+  toggleBanStatus: async (playerId: string, isBanned: boolean) => {
+    try {
+      return await fetchWithAuth(`/admin/players/${playerId}/ban`, {
+        method: 'PUT',
+        body: JSON.stringify({ isBanned }),
+      });
+    } catch (error) {
+      console.error(`Error toggling ban status for player ${playerId}:`, error);
+      throw error;
+    }
+  },
 };
 
 export default adminService; 

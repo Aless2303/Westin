@@ -13,7 +13,18 @@ export const getAllPlayers = async (req: Request, res: Response): Promise<void> 
   try {
     const characters = await Character.find().sort({ createdAt: -1 });
     
-    res.status(StatusCodes.OK).json(characters);
+    // Adaugă informații despre ban din colecția User
+    const extendedCharacters = await Promise.all(
+      characters.map(async (character) => {
+        const user = await User.findById(character.userId).select('isBanned');
+        return {
+          ...character.toObject(),
+          isBanned: user?.isBanned || false
+        };
+      })
+    );
+    
+    res.status(StatusCodes.OK).json(extendedCharacters);
   } catch (error) {
     console.error('Error fetching players:', error);
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
@@ -40,11 +51,64 @@ export const getPlayerById = async (req: Request, res: Response): Promise<void> 
       return;
     }
     
-    res.status(StatusCodes.OK).json(character);
+    // Adaugă informații despre ban din colecția User
+    const user = await User.findById(character.userId).select('isBanned');
+    const characterWithBanStatus = {
+      ...character.toObject(),
+      isBanned: user?.isBanned || false
+    };
+    
+    res.status(StatusCodes.OK).json(characterWithBanStatus);
   } catch (error) {
     console.error('Error fetching player:', error);
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       message: 'A apărut o eroare la obținerea jucătorului.'
+    });
+  }
+};
+
+/**
+ * @desc    Banează/Debanează un utilizator
+ * @route   PUT /api/admin/players/:id/ban
+ * @access  Admin
+ */
+export const toggleBanStatus = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { isBanned } = req.body;
+    
+    // Verifică dacă jucătorul există
+    const character = await Character.findById(id);
+    
+    if (!character) {
+      res.status(StatusCodes.NOT_FOUND).json({
+        message: 'Jucătorul nu a fost găsit.'
+      });
+      return;
+    }
+    
+    // Actualizează statusul de ban al utilizatorului
+    const user = await User.findByIdAndUpdate(
+      character.userId,
+      { isBanned: isBanned },
+      { new: true }
+    ).select('isBanned');
+    
+    if (!user) {
+      res.status(StatusCodes.NOT_FOUND).json({
+        message: 'Utilizatorul nu a fost găsit.'
+      });
+      return;
+    }
+    
+    res.status(StatusCodes.OK).json({
+      message: isBanned ? 'Utilizatorul a fost banat cu succes.' : 'Utilizatorul a fost debanat cu succes.',
+      isBanned: user.isBanned
+    });
+  } catch (error) {
+    console.error('Error updating ban status:', error);
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      message: 'A apărut o eroare la actualizarea statusului de ban.'
     });
   }
 };
@@ -151,5 +215,6 @@ export default {
   getAllPlayers,
   getPlayerById,
   updatePlayer,
-  deletePlayer
+  deletePlayer,
+  toggleBanStatus
 }; 

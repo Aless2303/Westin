@@ -25,7 +25,12 @@ const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
     // Verifică dacă cererea a reușit
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ message: 'A apărut o eroare la server.' }));
-      throw new Error(errorData.message || 'A apărut o eroare la server.');
+      const error = new Error(errorData.message || 'A apărut o eroare la server.') as Error & { response?: { status: number, data: any } };
+      error.response = { 
+        status: response.status,
+        data: errorData 
+      };
+      throw error;
     }
     
     return response.json();

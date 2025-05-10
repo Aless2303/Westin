@@ -8,6 +8,7 @@ export interface IUser extends Document {
   isAdmin: boolean;
   characterId: mongoose.Types.ObjectId;
   hasCreatedCharacter: boolean;
+  isBanned: boolean;
   createdAt: Date;
   updatedAt: Date;
   matchPassword(enteredPassword: string): Promise<boolean>;
@@ -39,6 +40,10 @@ const userSchema = new Schema<IUser>(
       ref: 'Character',
     },
     hasCreatedCharacter: {
+      type: Boolean,
+      default: false,
+    },
+    isBanned: {
       type: Boolean,
       default: false,
     }

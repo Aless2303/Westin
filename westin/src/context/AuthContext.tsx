@@ -140,8 +140,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
       
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login failed:', error);
+      
+      // Check if user is banned
+      if (error.response && error.response.status === 403) {
+        throw { ...error, isBanned: true };
+      }
+      
       return false;
     }
   };

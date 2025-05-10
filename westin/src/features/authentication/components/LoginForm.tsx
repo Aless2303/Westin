@@ -57,8 +57,12 @@ const LoginForm: React.FC<LoginFormProps> = ({
         } else {
           setLoginError('Utilizator sau parolă incorecte');
         }
-      } catch (error) {
-        setLoginError('A apărut o eroare. Te rugăm să încerci din nou.');
+      } catch (error: any) {
+        if (error.isBanned) {
+          setLoginError('Acest cont a fost blocat. Pentru detalii, contactați milea84.am@gmail.com');
+        } else {
+          setLoginError('A apărut o eroare. Te rugăm să încerci din nou.');
+        }
       } finally {
         setIsLoading(false);
       }

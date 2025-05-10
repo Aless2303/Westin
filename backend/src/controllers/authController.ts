@@ -107,6 +107,16 @@ export const authUser = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    // Check if user is banned
+    if (user.isBanned) {
+      console.log('User is banned'); // Pentru debugging
+      res.status(403).json({ 
+        message: 'Acest cont a fost blocat. Pentru detalii, contactați milea84.am@gmail.com',
+        isBanned: true 
+      });
+      return;
+    }
+
     // Check if password matches
     const isMatch = await user.matchPassword(password);
 

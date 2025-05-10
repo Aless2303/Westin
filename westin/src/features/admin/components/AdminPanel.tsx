@@ -30,6 +30,7 @@ interface Character {
   duelsLost: number;
   motto: string;
   userId: string;
+  isBanned?: boolean;
 }
 
 interface AdminPanelProps {
@@ -164,6 +165,33 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
       setError(null);
     } catch (err) {
       setError('Nu s-au putut salva modificările.');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Gestionează ban/unban jucător
+  const handleToggleBan = async (playerId: string, currentBanStatus: boolean) => {
+    try {
+      setLoading(true);
+      
+      // Inversează statusul de ban
+      const newBanStatus = !currentBanStatus;
+      
+      // Trimite cererea către server
+      await adminService.toggleBanStatus(playerId, newBanStatus);
+      
+      // Actualizează lista de jucători cu noul status de ban
+      setPlayers(players.map(player => 
+        player._id === playerId 
+          ? { ...player, isBanned: newBanStatus } 
+          : player
+      ));
+      
+      setError(null);
+    } catch (err) {
+      setError('Nu s-a putut actualiza statusul de ban al utilizatorului.');
       console.error(err);
     } finally {
       setLoading(false);
@@ -450,12 +478,20 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
                         <>
                           <div className="flex justify-between items-center">
                             <h4 className="font-medium text-metin-gold/90">{player.name}</h4>
-                            <button 
-                              onClick={() => handleEditPlayer(player)}
-                              className="text-xs bg-metin-gold/30 hover:bg-metin-gold/50 text-metin-light px-2 py-1 rounded"
-                            >
-                              Editează
-                            </button>
+                            <div className="flex space-x-2">
+                              <button 
+                                onClick={() => handleToggleBan(player._id, player.isBanned || false)}
+                                className={`text-xs ${player.isBanned ? 'bg-green-600/70 hover:bg-green-600' : 'bg-red-700/70 hover:bg-red-700'} text-metin-light px-2 py-1 rounded`}
+                              >
+                                {player.isBanned ? 'Debanează' : 'Banează'}
+                              </button>
+                              <button 
+                                onClick={() => handleEditPlayer(player)}
+                                className="text-xs bg-metin-gold/30 hover:bg-metin-gold/50 text-metin-light px-2 py-1 rounded"
+                              >
+                                Editează
+                              </button>
+                            </div>
                           </div>
                           <div className="text-xs sm:text-sm mt-2 text-metin-light/80">
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-x-2 gap-y-1">
@@ -471,6 +507,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
                               <span>Bancă: {player.money.bank}</span>
                               <span>Dueluri W/L: {player.duelsWon}/{player.duelsLost}</span>
                               {player.motto && <span className="col-span-2">Motto: {player.motto}</span>}
+                              {player.isBanned && (
+                                <span className="text-red-400 font-semibold">
+                                  Status: BANAT
+                                </span>
+                              )}
                             </div>
                           </div>
                         </>
