@@ -74,7 +74,7 @@ export const authService = {
 export const passwordService = {
   // Solicită resetarea parolei
   requestReset: async (username: string, email: string) => {
-    return fetchWithAuth('/password/request-reset', {
+    return fetchWithAuth('/password-reset/request-reset', {
       method: 'POST',
       body: JSON.stringify({ username, email }),
     });
@@ -82,12 +82,12 @@ export const passwordService = {
   
   // Validează token-ul de resetare
   validateToken: async (token: string) => {
-    return fetchWithAuth(`/password/validate-token/${token}`);
+    return fetchWithAuth(`/password-reset/validate-token/${token}`);
   },
   
   // Resetează parola
   resetPassword: async (token: string, newPassword: string) => {
-    return fetchWithAuth('/password/reset-password', {
+    return fetchWithAuth('/password-reset/reset-password', {
       method: 'POST',
       body: JSON.stringify({ token, newPassword }),
     });

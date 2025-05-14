@@ -33,6 +33,22 @@ interface Character {
   isBanned?: boolean;
 }
 
+interface Mob {
+  _id: string;
+  name: string;
+  x: number;
+  y: number;
+  type: string;
+  level: number;
+  hp: number;
+  attack: number;
+  exp: number;
+  yang: number;
+  image: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 interface AdminPanelProps {
   onClose: () => void;
 }
@@ -40,15 +56,39 @@ interface AdminPanelProps {
 const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
   const [activeTab, setActiveTab] = useState<string>('players');
   const [players, setPlayers] = useState<Character[]>([]);
+  const [mobs, setMobs] = useState<Mob[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [editingPlayer, setEditingPlayer] = useState<Character | null>(null);
-  const [editedValues, setEditedValues] = useState<Partial<Character>>({});
+  const [editingMob, setEditingMob] = useState<Mob | null>(null);
+  const [editedValues, setEditedValues] = useState<Partial<Character | Mob>>({});
   const [searchTerm, setSearchTerm] = useState<string>('');
 
+  // Utility function to format image source
+  const formatImageSrc = (imageData: string): string => {
+    if (!imageData) return 'https://i.ibb.co/nQm2RHF/metin.png';
+    
+    try {
+      // Check if it's already a data URL
+      if (imageData.startsWith('data:')) {
+        // For URL-encoded data URLs, decode them first
+        if (imageData.includes('%')) {
+          return decodeURIComponent(imageData);
+        }
+        return imageData;
+      }
+      
+      // Otherwise, it's just the base64 content, so add the data URL prefix
+      return `data:image/png;base64,${imageData}`;
+    } catch (error) {
+      console.error('Error formatting image source:', error);
+      return 'https://i.ibb.co/nQm2RHF/metin.png'; // Fallback to default image
+    }
+  };
+
   const tabs = [
-    { id: 'players', label: 'Jucători' }
-    //aici mai pot adauga daca vreau alte tabs exact in aceeasi maniera.
+    { id: 'players', label: 'Jucători' },
+    { id: 'mobs', label: 'Mobi' }
   ];
 
   // Încarcă lista de jucători
@@ -71,11 +111,38 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
       fetchPlayers();
     }
   }, [activeTab]);
+  
+  // Încarcă lista de mobi
+  useEffect(() => {
+    const fetchMobs = async () => {
+      try {
+        setLoading(true);
+        const data = await adminService.getAllMobs();
+        setMobs(data);
+        setError(null);
+      } catch (err) {
+        setError('Nu s-au putut încărca datele mobilor.');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (activeTab === 'mobs') {
+      fetchMobs();
+    }
+  }, [activeTab]);
 
   // Filtrează jucătorii în funcție de termenul de căutare
   const filteredPlayers = players.filter(player => 
     player.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     player.race.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+  
+  // Filtrează mobii în funcție de termenul de căutare
+  const filteredMobs = mobs.filter(mob => 
+    mob.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    mob.type.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Gestionează începerea editării unui jucător
@@ -192,6 +259,114 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
       setError(null);
     } catch (err) {
       setError('Nu s-a putut actualiza statusul de ban al utilizatorului.');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Gestionează începerea editării unui mob
+  const handleEditMob = (mob: Mob) => {
+    setEditingMob(mob);
+    setEditedValues({});
+  };
+
+  // Gestionează anularea editării mobului
+  const handleCancelEditMob = () => {
+    setEditingMob(null);
+    setEditedValues({});
+  };
+
+  // Gestionează modificarea valorilor în timpul editării mobului
+  const handleMobInputChange = (field: string, value: string | number) => {
+    setEditedValues(prev => {
+      return { ...prev, [field]: isNaN(Number(value)) ? value : Number(value) };
+    });
+  };
+
+  // Salvează modificările mobului
+  const handleSaveMob = async () => {
+    if (!editingMob) return;
+    
+    try {
+      setLoading(true);
+      
+      // Creăm o copie a valorilor editate pentru a evita referințele
+      const mobDataToUpdate = { ...editedValues };
+      
+      await adminService.updateMob(editingMob._id, mobDataToUpdate);
+      
+      // Actualizează lista de mobi cu valorile modificate
+      setMobs(mobs.map(mob => 
+        mob._id === editingMob._id 
+          ? { ...mob, ...mobDataToUpdate } 
+          : mob
+      ));
+      
+      setEditingMob(null);
+      setEditedValues({});
+      setError(null);
+    } catch (err) {
+      setError('Nu s-au putut salva modificările.');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Gestionează ștergerea unui mob
+  const handleDeleteMob = async (mobId: string) => {
+    if (!confirm('Sigur doriți să ștergeți acest mob?')) return;
+    
+    try {
+      setLoading(true);
+      
+      await adminService.deleteMob(mobId);
+      
+      // Elimină mobul șters din lista de mobi
+      setMobs(mobs.filter(mob => mob._id !== mobId));
+      
+      setError(null);
+    } catch (err) {
+      setError('Nu s-a putut șterge mobul.');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Gestionează crearea unui mob nou
+  const handleCreateMob = async () => {
+    // Base64 encoded transparent PNG as default image
+    const defaultImage = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+P+/HgAFdwI2QHdOdAAAAABJRU5ErkJggg==';
+    
+    try {
+      setLoading(true);
+      
+      const newMobData = {
+        name: 'Mob nou',
+        x: 0,
+        y: 0,
+        type: 'metin',
+        level: 1,
+        hp: 100,
+        attack: 10,
+        exp: 10,
+        yang: 10,
+        image: defaultImage // Using Base64 data directly
+      };
+      
+      const createdMob = await adminService.createMob(newMobData);
+      
+      // Adaugă mobul nou în lista de mobi
+      setMobs([...mobs, createdMob]);
+      
+      // Începe editarea mobului nou
+      handleEditMob(createdMob);
+      
+      setError(null);
+    } catch (err) {
+      setError('Nu s-a putut crea mobul nou.');
       console.error(err);
     } finally {
       setLoading(false);
@@ -512,6 +687,244 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
                                   Status: BANAT
                                 </span>
                               )}
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {activeTab === 'mobs' && (
+              <div>
+                <h3 className="text-lg sm:text-xl font-bold text-metin-gold mb-3 sm:mb-4">Gestionare Mobi</h3>
+                
+                {/* Buton pentru adăugare mob nou */}
+                <div className="mb-4">
+                  <button
+                    onClick={handleCreateMob}
+                    className="bg-metin-gold/30 hover:bg-metin-gold/50 text-metin-light px-4 py-2 rounded-md text-sm"
+                  >
+                    + Adaugă Mob Nou
+                  </button>
+                </div>
+                
+                {/* Căutare */}
+                <div className="mb-4">
+                  <input
+                    type="text"
+                    placeholder="Caută după nume sau tip..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full p-2 bg-metin-brown/30 border border-metin-gold/30 rounded-md text-metin-light"
+                  />
+                </div>
+                
+                {/* Mesaj de eroare */}
+                {error && (
+                  <div className="mb-4 p-3 bg-red-900/50 border border-red-700 text-red-200 rounded-md">
+                    {error}
+                  </div>
+                )}
+                
+                {/* Indicator de încărcare */}
+                {loading && (
+                  <div className="flex justify-center items-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-metin-gold"></div>
+                  </div>
+                )}
+                
+                {/* Lista de mobi */}
+                {!loading && filteredMobs.length === 0 && (
+                  <p className="text-metin-light/70 text-center py-8">Nu s-au găsit mobi.</p>
+                )}
+                
+                <div className="mt-4 space-y-4">
+                  {!loading && filteredMobs.map((mob) => (
+                    <div key={mob._id} className="bg-metin-brown/30 rounded-md p-4 border border-metin-gold/20">
+                      {editingMob && editingMob._id === mob._id ? (
+                        // Formular de editare mob
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center mb-2">
+                            <h4 className="font-medium text-metin-gold">Editare Mob</h4>
+                            <div className="space-x-2">
+                              <button 
+                                onClick={handleSaveMob}
+                                className="text-xs bg-green-700/70 hover:bg-green-700 text-metin-light px-3 py-1 rounded"
+                              >
+                                Salvează
+                              </button>
+                              <button 
+                                onClick={handleCancelEditMob}
+                                className="text-xs bg-metin-brown/50 hover:bg-metin-brown/70 text-metin-light px-3 py-1 rounded"
+                              >
+                                Anulează
+                              </button>
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-xs text-metin-light/70 mb-1">Nume</label>
+                              <input
+                                type="text"
+                                value={editedValues.name !== undefined ? editedValues.name : mob.name}
+                                onChange={(e) => handleMobInputChange('name', e.target.value)}
+                                className="w-full p-2 bg-metin-brown/50 border border-metin-gold/30 rounded-md text-metin-light text-sm"
+                              />
+                            </div>
+                            
+                            <div>
+                              <label className="block text-xs text-metin-light/70 mb-1">Tip</label>
+                              <select
+                                value={editedValues.type !== undefined ? editedValues.type : mob.type}
+                                onChange={(e) => handleMobInputChange('type', e.target.value)}
+                                className="w-full p-2 bg-metin-brown/50 border border-metin-gold/30 rounded-md text-metin-light text-sm"
+                              >
+                                <option value="boss">Boss</option>
+                                <option value="metin">Metin</option>
+                                <option value="Oras">Oraș</option>
+                              </select>
+                            </div>
+                            
+                            <div>
+                              <label className="block text-xs text-metin-light/70 mb-1">Coordonată X</label>
+                              <input
+                                type="number"
+                                value={editedValues.x !== undefined ? editedValues.x : mob.x}
+                                onChange={(e) => handleMobInputChange('x', e.target.value)}
+                                className="w-full p-2 bg-metin-brown/50 border border-metin-gold/30 rounded-md text-metin-light text-sm"
+                              />
+                            </div>
+                            
+                            <div>
+                              <label className="block text-xs text-metin-light/70 mb-1">Coordonată Y</label>
+                              <input
+                                type="number"
+                                value={editedValues.y !== undefined ? editedValues.y : mob.y}
+                                onChange={(e) => handleMobInputChange('y', e.target.value)}
+                                className="w-full p-2 bg-metin-brown/50 border border-metin-gold/30 rounded-md text-metin-light text-sm"
+                              />
+                            </div>
+                            
+                            <div>
+                              <label className="block text-xs text-metin-light/70 mb-1">Nivel</label>
+                              <input
+                                type="number"
+                                value={editedValues.level !== undefined ? editedValues.level : mob.level}
+                                onChange={(e) => handleMobInputChange('level', e.target.value)}
+                                className="w-full p-2 bg-metin-brown/50 border border-metin-gold/30 rounded-md text-metin-light text-sm"
+                              />
+                            </div>
+                            
+                            <div>
+                              <label className="block text-xs text-metin-light/70 mb-1">HP</label>
+                              <input
+                                type="number"
+                                value={editedValues.hp !== undefined ? editedValues.hp : mob.hp}
+                                onChange={(e) => handleMobInputChange('hp', e.target.value)}
+                                className="w-full p-2 bg-metin-brown/50 border border-metin-gold/30 rounded-md text-metin-light text-sm"
+                              />
+                            </div>
+                            
+                            <div>
+                              <label className="block text-xs text-metin-light/70 mb-1">Atac</label>
+                              <input
+                                type="number"
+                                value={editedValues.attack !== undefined ? editedValues.attack : mob.attack}
+                                onChange={(e) => handleMobInputChange('attack', e.target.value)}
+                                className="w-full p-2 bg-metin-brown/50 border border-metin-gold/30 rounded-md text-metin-light text-sm"
+                              />
+                            </div>
+                            
+                            <div>
+                              <label className="block text-xs text-metin-light/70 mb-1">Experiență</label>
+                              <input
+                                type="number"
+                                value={editedValues.exp !== undefined ? editedValues.exp : mob.exp}
+                                onChange={(e) => handleMobInputChange('exp', e.target.value)}
+                                className="w-full p-2 bg-metin-brown/50 border border-metin-gold/30 rounded-md text-metin-light text-sm"
+                              />
+                            </div>
+                            
+                            <div>
+                              <label className="block text-xs text-metin-light/70 mb-1">Yang</label>
+                              <input
+                                type="number"
+                                value={editedValues.yang !== undefined ? editedValues.yang : mob.yang}
+                                onChange={(e) => handleMobInputChange('yang', e.target.value)}
+                                className="w-full p-2 bg-metin-brown/50 border border-metin-gold/30 rounded-md text-metin-light text-sm"
+                              />
+                            </div>
+                            
+                            <div className="sm:col-span-2">
+                              <label className="block text-xs text-metin-light/70 mb-1">URL Imagine</label>
+                              <input
+                                type="text"
+                                value={editedValues.image !== undefined ? editedValues.image : mob.image}
+                                onChange={(e) => handleMobInputChange('image', e.target.value)}
+                                className="w-full p-2 bg-metin-brown/50 border border-metin-gold/30 rounded-md text-metin-light text-sm"
+                              />
+                            </div>
+                            
+                            {/* Previzualizare imagine */}
+                            <div className="sm:col-span-2 flex justify-center">
+                              <div className="w-16 h-16 border border-metin-gold/30 rounded-md overflow-hidden">
+                                <img 
+                                  src={formatImageSrc(editedValues.image !== undefined ? editedValues.image : mob.image)}
+                                  alt={mob.name}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = 'https://i.ibb.co/nQm2RHF/metin.png';
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        // Vizualizare mob
+                        <>
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center">
+                              <div className="w-12 h-12 mr-3 border border-metin-gold/30 rounded-md overflow-hidden">
+                                <img 
+                                  src={formatImageSrc(mob.image)}
+                                  alt={mob.name}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = 'https://i.ibb.co/nQm2RHF/metin.png';
+                                  }}
+                                />
+                              </div>
+                              <h4 className="font-medium text-metin-gold/90">{mob.name}</h4>
+                            </div>
+                            <div className="flex space-x-2">
+                              <button 
+                                onClick={() => handleDeleteMob(mob._id)}
+                                className="text-xs bg-red-700/70 hover:bg-red-700 text-metin-light px-2 py-1 rounded"
+                              >
+                                Șterge
+                              </button>
+                              <button 
+                                onClick={() => handleEditMob(mob)}
+                                className="text-xs bg-metin-gold/30 hover:bg-metin-gold/50 text-metin-light px-2 py-1 rounded"
+                              >
+                                Editează
+                              </button>
+                            </div>
+                          </div>
+                          <div className="text-xs sm:text-sm mt-2 text-metin-light/80">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-2 gap-y-1">
+                              <span>Tip: {mob.type}</span>
+                              <span>Nivel: {mob.level}</span>
+                              <span>HP: {mob.hp}</span>
+                              <span>Atac: {mob.attack}</span>
+                              <span>Experiență: {mob.exp}</span>
+                              <span>Yang: {mob.yang}</span>
+                              <span>Poziție: ({mob.x}, {mob.y})</span>
                             </div>
                           </div>
                         </>

@@ -130,6 +130,86 @@ export const adminService = {
       throw error;
     }
   },
+
+  // Obține toți mobii
+  getAllMobs: async () => {
+    try {
+      return await fetchWithAuth('/mobs');
+    } catch (error) {
+      console.error('Error fetching mobs:', error);
+      throw error;
+    }
+  },
+  
+  // Obține un mob specific după ID
+  getMobById: async (mobId: string) => {
+    try {
+      return await fetchWithAuth(`/mobs/${mobId}`);
+    } catch (error) {
+      console.error(`Error fetching mob ${mobId}:`, error);
+      throw error;
+    }
+  },
+  
+  // Creează un mob nou
+  createMob: async (mobData: {
+    name: string;
+    x: number;
+    y: number;
+    type: string;
+    level?: number;
+    hp?: number;
+    attack?: number;
+    exp?: number;
+    yang?: number;
+    image: string;
+  }) => {
+    try {
+      return await fetchWithAuth('/mobs', {
+        method: 'POST',
+        body: JSON.stringify(mobData),
+      });
+    } catch (error) {
+      console.error('Error creating mob:', error);
+      throw error;
+    }
+  },
+  
+  // Actualizează un mob
+  updateMob: async (mobId: string, mobData: {
+    name?: string;
+    x?: number;
+    y?: number;
+    type?: string;
+    level?: number;
+    hp?: number;
+    attack?: number;
+    exp?: number;
+    yang?: number;
+    image?: string;
+  }) => {
+    try {
+      return await fetchWithAuth(`/mobs/${mobId}`, {
+        method: 'PUT',
+        body: JSON.stringify(mobData),
+      });
+    } catch (error) {
+      console.error(`Error updating mob ${mobId}:`, error);
+      throw error;
+    }
+  },
+  
+  // Șterge un mob
+  deleteMob: async (mobId: string) => {
+    try {
+      return await fetchWithAuth(`/mobs/${mobId}`, {
+        method: 'DELETE',
+      });
+    } catch (error) {
+      console.error(`Error deleting mob ${mobId}:`, error);
+      throw error;
+    }
+  },
 };
 
 export default adminService; 

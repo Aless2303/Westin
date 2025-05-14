@@ -6,6 +6,8 @@ import {
   getMobsByType, 
   getMobsByLevelRange,
   createMob,
+  updateMob,
+  deleteMob,
   getNearbyMobs
 } from '../controllers/mobController';
 import { protect, admin } from '../middleware/authMiddleware';
@@ -41,5 +43,15 @@ router.get('/:id', getMobById);
 // @desc    Create a new mob
 // @access  Private/Admin
 router.post('/', protect, admin, createMob);
+
+// @route   PUT /api/mobs/:id
+// @desc    Update a mob
+// @access  Private/Admin
+router.put('/:id', protect, admin, updateMob);
+
+// @route   DELETE /api/mobs/:id
+// @desc    Delete a mob
+// @access  Private/Admin
+router.delete('/:id', protect, admin, deleteMob);
 
 export default router;

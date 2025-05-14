@@ -133,6 +133,74 @@ export const createMob = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
+// @desc    Update a mob (Admin only)
+// @route   PUT /api/mobs/:id
+// @access  Private/Admin
+export const updateMob = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { name, x, y, type, level, hp, attack, exp, yang, image } = req.body;
+    
+    // Find mob by ID
+    const mob = await Mob.findById(req.params.id);
+    
+    if (!mob) {
+      throw new ApiError('Mob not found', 404);
+    }
+    
+    // Update mob fields
+    if (name) mob.name = name;
+    if (x !== undefined) mob.x = x;
+    if (y !== undefined) mob.y = y;
+    if (type && ['boss', 'metin', 'Oras'].includes(type)) mob.type = type;
+    if (level !== undefined) mob.level = level;
+    if (hp !== undefined) mob.hp = hp;
+    if (attack !== undefined) mob.attack = attack;
+    if (exp !== undefined) mob.exp = exp;
+    if (yang !== undefined) mob.yang = yang;
+    if (image) mob.image = image;
+    
+    // Save updated mob
+    const updatedMob = await mob.save();
+    
+    res.status(200).json(updatedMob);
+  } catch (error) {
+    if (error instanceof ApiError) {
+      res.status(error.statusCode).json({ message: error.message });
+    } else if (error instanceof Error) {
+      res.status(500).json({ message: error.message });
+    } else {
+      res.status(500).json({ message: 'An unknown error occurred' });
+    }
+  }
+};
+
+// @desc    Delete a mob (Admin only)
+// @route   DELETE /api/mobs/:id
+// @access  Private/Admin
+export const deleteMob = async (req: Request, res: Response): Promise<void> => {
+  try {
+    // Find mob by ID
+    const mob = await Mob.findById(req.params.id);
+    
+    if (!mob) {
+      throw new ApiError('Mob not found', 404);
+    }
+    
+    // Delete mob
+    await mob.deleteOne();
+    
+    res.status(200).json({ message: 'Mob removed' });
+  } catch (error) {
+    if (error instanceof ApiError) {
+      res.status(error.statusCode).json({ message: error.message });
+    } else if (error instanceof Error) {
+      res.status(500).json({ message: error.message });
+    } else {
+      res.status(500).json({ message: 'An unknown error occurred' });
+    }
+  }
+};
+
 // @desc    Get nearby mobs based on character position
 // @route   GET /api/mobs/nearby
 // @access  Public
