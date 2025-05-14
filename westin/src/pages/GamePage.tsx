@@ -101,7 +101,10 @@ const GamePage: React.FC = () => {
   const [characterData, setCharacterData] = useState<CharacterType>(mockData.character);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
-  const [players, setPlayers] = useState<PlayerType[]>([]);
+  // We fetch nearby players data for system use but don't render markers for them
+  // Note: This variable is maintained for potential future use and API consistency
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [nearbyPlayersData, setNearbyPlayersData] = useState<PlayerType[]>([]);
 
   const MIN_SCALE = 1.0;
   const MAX_SCALE = 2.5;
@@ -213,7 +216,8 @@ const GamePage: React.FC = () => {
   }, [fetchCharacterData]);
 
   // Fetch all players from database
-  const fetchAllPlayers = useCallback(async () => {
+  // We still need this data for features like the duels panel, even though we don't render markers on the map
+  const fetchNearbyPlayersData = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
@@ -236,25 +240,25 @@ const GamePage: React.FC = () => {
       
       const data = await response.json();
       // Update players state with fetched data
-      setPlayers(data);
+      setNearbyPlayersData(data);
       
     } catch (err) {
-      console.error("Error fetching all players:", err);
+      console.error("Error fetching nearby players data:", err);
     }
   }, []);
 
   // Fetch players initially and set up periodic refresh
   useEffect(() => {
     // Fetch immediately
-    fetchAllPlayers();
+    fetchNearbyPlayersData();
     
     // Set up interval to refresh players data
     const refreshInterval = setInterval(() => {
-      fetchAllPlayers();
+      fetchNearbyPlayersData();
     }, 10000); // Refresh every 10 seconds
     
     return () => clearInterval(refreshInterval);
-  }, [fetchAllPlayers]);
+  }, [fetchNearbyPlayersData]);
 
   const updatePlayerHp = useCallback(async (newHp: number) => {
     if (!currentUser?.characterId) return;
@@ -648,25 +652,6 @@ const GamePage: React.FC = () => {
                           </span>
                         </button>
                       ))}
-                    {players.map((player) => (
-                      <div
-                        key={`player-${player.id}`}
-                        className="absolute rounded-full bg-white border-2 border-blue-500"
-                        style={{
-                          width: '40px',
-                          height: '40px',
-                          left: `${((player.x - 40) / MAP_WIDTH) * 100}%`,
-                          top: `${((player.y + 20) / MAP_HEIGHT) * 100}%`,
-                          transform: 'translate(-50%, -50%)',
-                          pointerEvents: 'none',
-                          zIndex: 22,
-                          overflow: 'hidden',
-                        }}
-                        title={player.name}
-                      >
-                        <Image src={player.image} alt={`${player.name} marker`} width={40} height={40} className="object-cover" />
-                      </div>
-                    ))}
                     <div
                       className="absolute rounded-full bg-white border-2 border-black"
                       style={{
