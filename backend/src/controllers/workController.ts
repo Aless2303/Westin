@@ -100,6 +100,29 @@ export const getWorks = async (req: Request & { user?: any }, res: Response): Pr
 
     // Process completed works
     for (const work of completedWorks) {
+      // Log work details to help diagnose the issue
+      console.log('Processing completed work:', {
+        id: work._id,
+        mobName: work.mobName,
+        mobType: work.mobType,
+        isDuel: work.mobType === 'duel',
+        hasDuelOpponentData: !!work.duelOpponent
+      });
+      
+      if (work.mobType === 'duel') {
+        console.log('Found completed duel:', work.mobName);
+        try {
+          if (work.duelOpponent) {
+            const opponentData = JSON.parse(work.duelOpponent);
+            console.log('Duel opponent data:', opponentData);
+          } else {
+            console.warn('Warning: Duel without opponent data:', work.mobName);
+          }
+        } catch (e) {
+          console.error('Error parsing duel opponent data:', e);
+        }
+      }
+      
       // Create a report for the completed work
       await createWorkCompletionReport(work, character);
       
@@ -156,6 +179,270 @@ const createWorkCompletionReport = async (work: any, character: any) => {
     });
     
     return; // Exit early - we don't need to do the combat simulation for sleep
+  }
+  
+  // Special handling for duels - these are PvP encounters
+  if (work.mobType === 'duel') {
+    // Check if we have duel opponent information
+    if (!work.duelOpponent) {
+      console.error('Duel job without opponent data:', work);
+      // Create an error report
+      await Report.create({
+        characterId: work.characterId,
+        type: 'info',
+        subject: `Eroare la procesarea duelului`,
+        content: `A apărut o eroare la procesarea duelului. Te rugăm să contactezi un administrator.`,
+        read: false,
+        result: 'impartial'
+      });
+      return;
+    }
+
+    // Parse the opponent data
+    let opponentData;
+    try {
+      opponentData = JSON.parse(work.duelOpponent);
+    } catch (error) {
+      console.error('Error parsing duel opponent data:', error);
+      return;
+    }
+
+    // Generate detailed combat logs
+    const combatLogs: string[] = [];
+    const playerAttack = character.attack || 100;
+    const playerDefense = character.defense || 50;
+    const playerHp = character.hp.current;
+    const mobAttack = work.mobAttack || 80;
+    const mobHp = work.mobHp;
+    const mobName = work.mobName.replace('Duel cu ', '');
+    
+    let currentPlayerHp = playerHp;
+    let currentMobHp = mobHp;
+    
+    // Default to 10 rounds for duels
+    const totalRounds = 10;
+    
+    // Start combat log
+    combatLogs.push(`[Duel început] Tu vs ${mobName}`);
+    
+    // The player with the higher level attacks first
+    const playerFirst = character.level >= opponentData.level;
+    
+    // Simulate combat rounds
+    for (let round = 1; round <= totalRounds; round++) {
+      if (currentPlayerHp <= 0 || currentMobHp <= 0) break;
+      
+      combatLogs.push(`-------- Runda ${round} --------`);
+      
+      if (playerFirst) {
+        // Player attacks first
+        const damageToMob = Math.round(playerAttack * (1 - opponentData.defense / (opponentData.defense + 300)));
+        currentMobHp = Math.max(0, currentMobHp - damageToMob);
+        combatLogs.push(`Tu ataci ${mobName} pentru ${damageToMob} damage.`);
+        combatLogs.push(`→ HP-ul lui ${mobName}: ${currentMobHp}/${mobHp}`);
+        
+        if (currentMobHp <= 0) {
+          combatLogs.push(`[Victorie] Ai învins pe ${mobName}!`);
+          break;
+        }
+        
+        // Opponent attacks second
+        const damageToPlayer = Math.round(mobAttack * (1 - playerDefense / (playerDefense + 300)));
+        currentPlayerHp = Math.max(0, currentPlayerHp - damageToPlayer);
+        combatLogs.push(`${mobName} te atacă pentru ${damageToPlayer} damage.`);
+        combatLogs.push(`→ HP-ul tău: ${currentPlayerHp}/${playerHp}`);
+        
+        if (currentPlayerHp <= 0) {
+          combatLogs.push(`[Înfrângere] Ai fost învins de ${mobName}!`);
+          break;
+        }
+      } else {
+        // Opponent attacks first
+        const damageToPlayer = Math.round(mobAttack * (1 - playerDefense / (playerDefense + 300)));
+        currentPlayerHp = Math.max(0, currentPlayerHp - damageToPlayer);
+        combatLogs.push(`${mobName} te atacă pentru ${damageToPlayer} damage.`);
+        combatLogs.push(`→ HP-ul tău: ${currentPlayerHp}/${playerHp}`);
+        
+        if (currentPlayerHp <= 0) {
+          combatLogs.push(`[Înfrângere] Ai fost învins de ${mobName}!`);
+          break;
+        }
+        
+        // Player attacks second
+        const damageToMob = Math.round(playerAttack * (1 - opponentData.defense / (opponentData.defense + 300)));
+        currentMobHp = Math.max(0, currentMobHp - damageToMob);
+        combatLogs.push(`Tu ataci ${mobName} pentru ${damageToMob} damage.`);
+        combatLogs.push(`→ HP-ul lui ${mobName}: ${currentMobHp}/${mobHp}`);
+        
+        if (currentMobHp <= 0) {
+          combatLogs.push(`[Victorie] Ai învins pe ${mobName}!`);
+          break;
+        }
+      }
+      
+      // Add round summary
+      combatLogs.push(`Status la finalul rundei ${round}: Tu (${currentPlayerHp}/${playerHp}) - ${mobName} (${currentMobHp}/${mobHp})`);
+    }
+    
+    // Determinăm rezultatul luptei
+    let result = 'impartial';
+    if (currentMobHp <= 0) {
+      result = 'victory';
+    } else if (currentPlayerHp <= 0) {
+      result = 'defeat';
+    }
+    
+    // Calculăm statisticile finale
+    const playerHpLost = playerHp - currentPlayerHp;
+    const damageDealt = mobHp - currentMobHp;
+    const remainingMobHp = currentMobHp;
+    
+    // Acordăm recompense doar în caz de victorie
+    let actualExpGained = 0;
+    let actualYangGained = 0;
+    
+    if (result === 'victory') {
+      // Calculate rewards based on level difference
+      const baseLevelDiff = opponentData.level - character.level;
+      const levelMultiplier = Math.max(0.5, 1 + baseLevelDiff * 0.02);
+      
+      actualExpGained = Math.round(opponentData.level * 50 * levelMultiplier);
+      actualYangGained = Math.round(opponentData.level * 100 * levelMultiplier);
+    }
+    
+    // Create detailed report content
+    let contentPrefix = '';
+    switch (result) {
+      case 'victory':
+        contentPrefix = `Ai câștigat duelul împotriva jucătorului ${mobName}! Ai câștigat ${actualExpGained} experiență și ${actualYangGained} yang.`;
+        break;
+      case 'defeat':
+        contentPrefix = `Ai pierdut duelul împotriva jucătorului ${mobName}. Nu ai primit nicio recompensă.`;
+        break;
+      case 'impartial':
+        contentPrefix = `Duelul tău împotriva jucătorului ${mobName} s-a terminat fără un câștigător clar. Nu ai primit nicio recompensă.`;
+        break;
+    }
+    
+    const content = `${contentPrefix}\n\n` +
+      `Statistici duel:\n` +
+      `- Ai provocat ${damageDealt.toLocaleString()} damage\n` +
+      `- Ai pierdut ${playerHpLost.toLocaleString()} HP\n` +
+      `- Runde: ${totalRounds}\n\n` +
+      `Desfășurarea luptei:\n${combatLogs.join('\n')}\n\n` +
+      `Recompense: +${actualExpGained} XP, +${actualYangGained} Yang`;
+    
+    // Create report
+    await Report.create({
+      characterId: work.characterId,
+      type: 'duel',
+      subject: `Duel ${result === 'victory' ? 'câștigat' : result === 'defeat' ? 'pierdut' : 'nedecis'}: ${mobName}`,
+      content,
+      read: false,
+      playerName: mobName,
+      mobType: 'duel',
+      result: result,
+      combatStats: {
+        playerHpLost,
+        damageDealt,
+        expGained: actualExpGained,
+        yangGained: actualYangGained,
+        totalRounds,
+        remainingMobHp
+      }
+    });
+    
+    // Update character stats - acordăm experiență și bani doar în caz de victorie
+    const newHp = Math.max(0, character.hp.current - playerHpLost);
+    const newYang = character.money.cash + actualYangGained;
+    
+    // Update player's duels statistics based on result
+    let updateData: any = {
+      'hp.current': newHp,
+      'money.cash': newYang
+    };
+    
+    // Update duelsWon or duelsLost based on the result
+    if (result === 'victory') {
+      console.log(`Player ${character.name} (${character._id}) won duel - updating duelsWon from ${character.duelsWon || 0} to ${(character.duelsWon || 0) + 1}`);
+      updateData.duelsWon = (character.duelsWon || 0) + 1;
+    } else if (result === 'defeat') {
+      console.log(`Player ${character.name} (${character._id}) lost duel - updating duelsLost from ${character.duelsLost || 0} to ${(character.duelsLost || 0) + 1}`);
+      updateData.duelsLost = (character.duelsLost || 0) + 1;
+    }
+    
+    try {
+      // Use a separate try-catch for the player update to isolate any issues
+      await Character.findByIdAndUpdate(character._id, updateData);
+      console.log(`Successfully updated player ${character.name} stats:`, updateData);
+    } catch (updateError) {
+      console.error('Error updating player stats:', updateError);
+    }
+    
+    // Update experience with level-up check if there was a victory
+    if (actualExpGained > 0) {
+      await updateCharacterExperience(character._id.toString(), actualExpGained);
+    }
+    
+    // Find opponent's character to update their duel statistics
+    try {
+      // Extract clean opponent name
+      const opponentName = work.mobName.replace('Duel cu ', '').trim();
+      
+      console.log('Looking for opponent with name:', opponentName);
+      
+      // Try to find the opponent by name - we should ensure names are unique
+      const opponentCharacter = await Character.findOne({ name: opponentName });
+      
+      if (opponentCharacter) {
+        console.log('Found opponent character:', opponentCharacter._id, opponentCharacter.name);
+        
+        // Update opponent's duels won/lost (opposite of the player's result)
+        let opponentUpdateData: any = {};
+        
+        if (result === 'victory') {
+          console.log('Opponent lost duel - updating duelsLost from', opponentCharacter.duelsLost || 0, 'to', (opponentCharacter.duelsLost || 0) + 1);
+          opponentUpdateData.duelsLost = (opponentCharacter.duelsLost || 0) + 1;
+        } else if (result === 'defeat') {
+          console.log('Opponent won duel - updating duelsWon from', opponentCharacter.duelsWon || 0, 'to', (opponentCharacter.duelsWon || 0) + 1);
+          opponentUpdateData.duelsWon = (opponentCharacter.duelsWon || 0) + 1;
+        }
+        
+        await Character.findByIdAndUpdate(opponentCharacter._id, opponentUpdateData);
+        console.log('Successfully updated opponent stats:', opponentUpdateData);
+      } else {
+        console.error('Could not find opponent character with name:', opponentName);
+        // Try to find by similar name - maybe case insensitive
+        const similarNameOpponent = await Character.findOne({
+          name: { $regex: new RegExp('^' + opponentName + '$', 'i') }
+        });
+        
+        if (similarNameOpponent) {
+          console.log('Found opponent with similar name:', similarNameOpponent.name);
+          
+          // Update with the same logic as above
+          let similarOpponentUpdateData: any = {};
+          
+          if (result === 'victory') {
+            similarOpponentUpdateData.duelsLost = (similarNameOpponent.duelsLost || 0) + 1;
+          } else if (result === 'defeat') {
+            similarOpponentUpdateData.duelsWon = (similarNameOpponent.duelsWon || 0) + 1;
+          }
+          
+          await Character.findByIdAndUpdate(similarNameOpponent._id, similarOpponentUpdateData);
+          console.log('Successfully updated opponent with similar name:', similarOpponentUpdateData);
+        } else {
+          console.error('No similar name found either. Available names might not match. Checking all characters:');
+          // Let's log all character names to diagnose the issue
+          const allCharacters = await Character.find({}, 'name');
+          console.log('Available character names:', allCharacters.map(c => c.name));
+        }
+      }
+    } catch (error) {
+      console.error('Error updating opponent stats:', error);
+    }
+    
+    return; // Exit early, we've handled the duel
   }
   
   // Regular work processing continues below
@@ -414,8 +701,18 @@ export const createWork = async (req: Request & { user?: any }, res: Response): 
       mobYang,
       staminaCost,
       originalTravelTime,
-      originalJobTime
+      originalJobTime,
+      duelOpponent
     } = req.body;
+
+    // Log the relevant duel information
+    if (mobType === 'duel') {
+      console.log('Creating a new duel work:', { 
+        mobName, 
+        hasDuelOpponent: !!duelOpponent,
+        duelOpponentLength: duelOpponent ? duelOpponent.length : 0
+      });
+    }
 
     // Validate characterId
     if (!mongoose.Types.ObjectId.isValid(characterId)) {
@@ -494,7 +791,9 @@ export const createWork = async (req: Request & { user?: any }, res: Response): 
       originalJobTime,
       startTime: now,
       travelEndTime,
-      jobEndTime
+      jobEndTime,
+      // Include duelOpponent data if it's a duel
+      ...(mobType === 'duel' && duelOpponent ? { duelOpponent } : {})
     });
 
     // Reduce character's stamina

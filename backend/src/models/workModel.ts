@@ -24,6 +24,7 @@ export interface IWork extends Document {
   jobEndTime: Date;
   createdAt: Date;
   updatedAt: Date;
+  duelOpponent?: string;
 }
 
 const workSchema = new Schema<IWork>(
@@ -117,6 +118,10 @@ const workSchema = new Schema<IWork>(
       type: Date,
       required: true,
     },
+    duelOpponent: {
+      type: String,
+      required: false
+    }
   },
   {
     timestamps: true,

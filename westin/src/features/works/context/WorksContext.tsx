@@ -420,7 +420,29 @@ export const WorksProvider: React.FC<WorksProviderProps> = ({
       const travelEndTime = now + (travelTime * 1000);
       const jobEndTime = travelEndTime + (originalJobTime * 1000);
       
-      const workData = {
+      // Create a type that extends the base job data with optional duelOpponent
+      type WorkDataType = {
+        type: '15s' | '10m' | '1h';
+        remainingTime: number;
+        travelTime: number;
+        isInProgress: boolean;
+        mobName?: string;
+        mobImage?: string;
+        mobX: number;
+        mobY: number;
+        mobType?: 'boss' | 'metin' | 'duel' | 'town' | 'sleep';
+        mobLevel?: number;
+        mobHp?: number;
+        mobAttack?: number;
+        mobExp?: number;
+        mobYang?: number;
+        staminaCost?: number;
+        originalTravelTime: number;
+        originalJobTime: number;
+        duelOpponent?: string;
+      };
+      
+      const workData: WorkDataType = {
         type: job.type,
         remainingTime: originalJobTime,
         travelTime,
@@ -440,8 +462,13 @@ export const WorksProvider: React.FC<WorksProviderProps> = ({
         originalJobTime,
       };
       
+      // Add duelOpponent data if available (for duel type jobs)
+      if (job.mobType === 'duel' && job.duelOpponent) {
+        workData.duelOpponent = job.duelOpponent;
+      }
+      
       // Trimite munca la backend
-      const newWork = await workService.createWork(currentCharacter._id, workData as Record<string, unknown>);
+      const newWork = await workService.createWork(currentCharacter._id, workData);
       
       // Actualizează starea locală
       setJobs(prev => {
