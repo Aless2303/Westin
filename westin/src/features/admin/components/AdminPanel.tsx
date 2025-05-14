@@ -64,21 +64,36 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
   const [editedValues, setEditedValues] = useState<Partial<Character | Mob>>({});
   const [searchTerm, setSearchTerm] = useState<string>('');
 
-  // Utility function to format image source
+  // Utility function to format image source - keeping it for edit form
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const formatImageSrc = (imageData: string): string => {
     if (!imageData) return 'https://i.ibb.co/nQm2RHF/metin.png';
     
     try {
-      // Check if it's already a data URL
-      if (imageData.startsWith('data:')) {
-        // For URL-encoded data URLs, decode them first
-        if (imageData.includes('%')) {
-          return decodeURIComponent(imageData);
-        }
+      // Check if it's a URL
+      if (imageData.startsWith('http://') || imageData.startsWith('https://')) {
         return imageData;
       }
       
-      // Otherwise, it's just the base64 content, so add the data URL prefix
+      // Check if it's already a data URL
+      if (imageData.startsWith('data:')) {
+        return imageData;
+      }
+      
+      // Check for binary data by looking for non-printable characters in the first few bytes
+      if (/[^\x20-\x7E]/.test(imageData.substring(0, 20))) {
+        // This is likely binary data incorrectly converted to a string
+        return 'https://i.ibb.co/nQm2RHF/metin.png';
+      }
+      
+      // Check if it looks like valid base64 content (most base64 strings are longer and have specific characters)
+      const base64Regex = /^[A-Za-z0-9+/=]+$/;
+      if (!base64Regex.test(imageData) || imageData.length < 20) {
+        // Not valid base64 format
+        return 'https://i.ibb.co/nQm2RHF/metin.png';
+      }
+      
+      // It seems to be valid base64 content, add the data URL prefix
       return `data:image/png;base64,${imageData}`;
     } catch (error) {
       console.error('Error formatting image source:', error);
@@ -701,25 +716,18 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
               <div>
                 <h3 className="text-lg sm:text-xl font-bold text-metin-gold mb-3 sm:mb-4">Gestionare Mobi</h3>
                 
-                {/* Buton pentru adăugare mob nou */}
-                <div className="mb-4">
-                  <button
-                    onClick={handleCreateMob}
-                    className="bg-metin-gold/30 hover:bg-metin-gold/50 text-metin-light px-4 py-2 rounded-md text-sm"
-                  >
-                    + Adaugă Mob Nou
-                  </button>
-                </div>
-                
-                {/* Căutare */}
-                <div className="mb-4">
-                  <input
-                    type="text"
-                    placeholder="Caută după nume sau tip..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full p-2 bg-metin-brown/30 border border-metin-gold/30 rounded-md text-metin-light"
-                  />
+                <div className="flex justify-between items-center mb-4">
+                  {/* Căutare */}
+                  <div className="flex-1 mr-4">
+                    <input
+                      type="text"
+                      placeholder="Caută după nume sau tip..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full p-2 bg-metin-brown/30 border border-metin-gold/30 rounded-md text-metin-light"
+                    />
+                  </div>
+                  
                 </div>
                 
                 {/* Mesaj de eroare */}
@@ -858,49 +866,15 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
                                 className="w-full p-2 bg-metin-brown/50 border border-metin-gold/30 rounded-md text-metin-light text-sm"
                               />
                             </div>
-                            
-                            <div className="sm:col-span-2">
-                              <label className="block text-xs text-metin-light/70 mb-1">URL Imagine</label>
-                              <input
-                                type="text"
-                                value={editedValues.image !== undefined ? editedValues.image : mob.image}
-                                onChange={(e) => handleMobInputChange('image', e.target.value)}
-                                className="w-full p-2 bg-metin-brown/50 border border-metin-gold/30 rounded-md text-metin-light text-sm"
-                              />
-                            </div>
-                            
-                            {/* Previzualizare imagine */}
-                            <div className="sm:col-span-2 flex justify-center">
-                              <div className="w-16 h-16 border border-metin-gold/30 rounded-md overflow-hidden">
-                                <img 
-                                  src={formatImageSrc(editedValues.image !== undefined ? editedValues.image : mob.image)}
-                                  alt={mob.name}
-                                  className="w-full h-full object-cover"
-                                  onError={(e) => {
-                                    (e.target as HTMLImageElement).src = 'https://i.ibb.co/nQm2RHF/metin.png';
-                                  }}
-                                />
-                              </div>
-                            </div>
+                          
+
                           </div>
                         </div>
                       ) : (
                         // Vizualizare mob
                         <>
                           <div className="flex justify-between items-center">
-                            <div className="flex items-center">
-                              <div className="w-12 h-12 mr-3 border border-metin-gold/30 rounded-md overflow-hidden">
-                                <img 
-                                  src={formatImageSrc(mob.image)}
-                                  alt={mob.name}
-                                  className="w-full h-full object-cover"
-                                  onError={(e) => {
-                                    (e.target as HTMLImageElement).src = 'https://i.ibb.co/nQm2RHF/metin.png';
-                                  }}
-                                />
-                              </div>
-                              <h4 className="font-medium text-metin-gold/90">{mob.name}</h4>
-                            </div>
+                            <h4 className="text-metin-gold font-medium text-lg">{mob.name}</h4>
                             <div className="flex space-x-2">
                               <button 
                                 onClick={() => handleDeleteMob(mob._id)}
@@ -916,15 +890,36 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
                               </button>
                             </div>
                           </div>
-                          <div className="text-xs sm:text-sm mt-2 text-metin-light/80">
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-2 gap-y-1">
-                              <span>Tip: {mob.type}</span>
-                              <span>Nivel: {mob.level}</span>
-                              <span>HP: {mob.hp}</span>
-                              <span>Atac: {mob.attack}</span>
-                              <span>Experiență: {mob.exp}</span>
-                              <span>Yang: {mob.yang}</span>
-                              <span>Poziție: ({mob.x}, {mob.y})</span>
+                          <div className="mt-3 bg-metin-brown/20 border border-metin-gold/20 rounded-md p-3">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 text-sm">
+                              <div className="flex flex-col">
+                                <span className="text-metin-gold/80 text-xs">Tip</span>
+                                <span className="text-metin-light/90">{mob.type}</span>
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-metin-gold/80 text-xs">Nivel</span>
+                                <span className="text-metin-light/90">{mob.level}</span>
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-metin-gold/80 text-xs">HP</span>
+                                <span className="text-metin-light/90">{mob.hp}</span>
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-metin-gold/80 text-xs">Atac</span>
+                                <span className="text-metin-light/90">{mob.attack}</span>
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-metin-gold/80 text-xs">Experiență</span>
+                                <span className="text-metin-light/90">{mob.exp}</span>
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-metin-gold/80 text-xs">Yang</span>
+                                <span className="text-metin-light/90">{mob.yang}</span>
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-metin-gold/80 text-xs">Poziție</span>
+                                <span className="text-metin-light/90">({mob.x}, {mob.y})</span>
+                              </div>
                             </div>
                           </div>
                         </>
