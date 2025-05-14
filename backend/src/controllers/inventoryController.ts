@@ -117,7 +117,7 @@ export const getInventory = async (req: Request & { user?: any }, res: Response)
 export const equipItem = async (req: Request & { user?: any }, res: Response): Promise<void> => {
   try {
     const { characterId } = req.params;
-    const { itemId, slot } = req.body;
+    const { itemId, slot, statsUpdate } = req.body;
 
     // Validate parameters
     if (!mongoose.Types.ObjectId.isValid(characterId) || !mongoose.Types.ObjectId.isValid(itemId)) {
@@ -215,6 +215,20 @@ export const equipItem = async (req: Request & { user?: any }, res: Response): P
     // Equip new item
     (inventory.equippedItems as any)[item.type] = itemToRemove.itemId;
 
+    // Update character stats if statsUpdate provided
+    if (statsUpdate) {
+      // Main stats from frontend - attack and defense
+      if (statsUpdate.attack) {
+        character.attack += statsUpdate.attack;
+      }
+      if (statsUpdate.defense) {
+        character.defense += statsUpdate.defense;
+      }
+      
+      // Save character with updated stats
+      await character.save();
+    }
+
     // Save inventory
     await inventory.save();
 
@@ -277,7 +291,7 @@ export const equipItem = async (req: Request & { user?: any }, res: Response): P
 export const unequipItem = async (req: Request & { user?: any }, res: Response): Promise<void> => {
   try {
     const { characterId } = req.params;
-    const { itemType } = req.body;
+    const { itemType, statsUpdate } = req.body;
 
     // Validate parameters
     if (!mongoose.Types.ObjectId.isValid(characterId)) {
@@ -341,6 +355,21 @@ export const unequipItem = async (req: Request & { user?: any }, res: Response):
 
     // Remove item from equipped items
     (inventory.equippedItems as any)[itemType] = null;
+
+    // Update character stats if statsUpdate provided
+    if (statsUpdate) {
+      // Main stats from frontend - attack and defense
+      // statsUpdate should contain negative values (to be subtracted)
+      if (statsUpdate.attack) {
+        character.attack += statsUpdate.attack; // Will subtract since statsUpdate.attack is negative
+      }
+      if (statsUpdate.defense) {
+        character.defense += statsUpdate.defense; // Will subtract since statsUpdate.defense is negative
+      }
+      
+      // Save character with updated stats
+      await character.save();
+    }
 
     // Save inventory
     await inventory.save();

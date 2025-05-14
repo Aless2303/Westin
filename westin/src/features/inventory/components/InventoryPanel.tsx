@@ -292,13 +292,25 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose, player
         return;
       }
       
+      // Extract item stats that need to be subtracted from character stats
+      const statsToUpdate: {[key: string]: number} = {};
+      if (item.stats) {
+        Object.entries(item.stats).forEach(([statName, value]) => {
+          // Convert stat names if needed (e.g., "attack" and "defence" are the main ones we're interested in)
+          statsToUpdate[statName] = -value; // Negative value because we're removing the stats
+        });
+      }
+      
       const response = await fetch(`http://localhost:5000/api/inventory/${currentUser.characterId}/unequip`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ itemType: slotId })
+        body: JSON.stringify({ 
+          itemType: slotId,
+          statsUpdate: statsToUpdate // Send stats to update along with the unequip request
+        })
       });
       
       if (!response.ok) {
@@ -381,12 +393,30 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose, player
         return;
       }
       
+      // Extract stats from the new item to add to character
+      const statsToUpdate: {[key: string]: number} = {};
+      if (backpackItemData.stats) {
+        Object.entries(backpackItemData.stats).forEach(([statName, value]) => {
+          // We add the stats directly (positive values)
+          statsToUpdate[statName] = value;
+        });
+      }
+      
+      // If we're replacing an existing item, subtract its stats
+      if (slot.item && slot.item.stats) {
+        Object.entries(slot.item.stats).forEach(([statName, value]) => {
+          // Subtract the previous item's stats
+          statsToUpdate[statName] = (statsToUpdate[statName] || 0) - value;
+        });
+      }
+      
       // Log for debugging
       console.log("Equipping item:", { 
         itemId: backpackItemData.id, 
         slot: actualItemIndex,
         name: backpackItemData.name,
-        type: backpackItemData.type
+        type: backpackItemData.type,
+        statsUpdate: statsToUpdate
       });
       
       const response = await fetch(`http://localhost:5000/api/inventory/${currentUser.characterId}/equip`, {
@@ -397,7 +427,8 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose, player
         },
         body: JSON.stringify({ 
           itemId: backpackItemData.id,
-          slot: actualItemIndex
+          slot: actualItemIndex,
+          statsUpdate: statsToUpdate // Send stats to update along with the equip request
         })
       });
       
