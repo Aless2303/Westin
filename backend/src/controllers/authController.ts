@@ -6,6 +6,35 @@ import { generateToken } from '../middleware/authMiddleware';
 import { ApiError } from '../middleware/errorMiddleware';
 import mongoose from 'mongoose';
 
+// Helper function to generate a unique character name
+async function generateUniqueCharacterName(baseName: string): Promise<string> {
+  // Check if the base name already exists
+  const baseNameExists = await Character.findOne({ name: baseName });
+  
+  if (!baseNameExists) {
+    return baseName; // Base name is available
+  }
+  
+  // Base name exists, try adding numbers
+  let counter = 1;
+  let candidateName = '';
+  
+  while (counter < 100) {
+    candidateName = `${baseName}${counter}`;
+    // Check if this name exists
+    const characterExists = await Character.findOne({ name: candidateName });
+    
+    if (!characterExists) {
+      return candidateName;
+    }
+    
+    counter++;
+  }
+  
+  // If we get here, we need a more random approach
+  return `${baseName}_${Math.floor(Math.random() * 10000)}`;
+}
+
 // @desc    Register a new user
 // @route   POST /api/auth/register
 // @access  Public
@@ -22,6 +51,9 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
       res.status(400).json({ message: 'User already exists' });
       return;
     }
+    
+    // Generate a unique character name
+    const uniqueCharacterName = await generateUniqueCharacterName(characterName || username);
 
     // Create user first
     const user = await User.create({
@@ -34,7 +66,7 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
 
     // Then create character with userId
     const character = await Character.create({
-      name: characterName || username,
+      name: uniqueCharacterName,
       race: race || 'Warrior',
       gender: gender || 'Masculin',
       level: 1,

@@ -32,20 +32,43 @@ export const protect = async (
       // Get token from header
       token = req.headers.authorization.split(' ')[1];
 
+      if (!token) {
+        res.status(401).json({ message: 'Not authorized, invalid token format' });
+        return;
+      }
+
       // Verify token
       const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as { id: string };
 
-      // Get user from the token
-      req.user = await User.findById(decoded.id).select('-password');
+      if (!decoded || !decoded.id) {
+        res.status(401).json({ message: 'Not authorized, token verification failed' });
+        return;
+      }
 
+      // Get user from the token
+      const user = await User.findById(decoded.id).select('-password');
+
+      if (!user) {
+        res.status(401).json({ message: 'Not authorized, user not found' });
+        return;
+      }
+
+      // Check if user is banned
+      if (user.isBanned) {
+        res.status(403).json({ message: 'Your account has been banned' });
+        return;
+      }
+
+      req.user = user;
       next();
     } catch (error) {
+      console.error('Token verification error:', error);
       res.status(401).json({ message: 'Not authorized, token failed' });
+      return;
     }
-  }
-
-  if (!token) {
+  } else {
     res.status(401).json({ message: 'Not authorized, no token' });
+    return;
   }
 };
 
@@ -58,7 +81,7 @@ export const admin = (
   if (req.user && req.user.isAdmin) {
     next();
   } else {
-    res.status(401).json({ message: 'Not authorized as an admin' });
+    res.status(403).json({ message: 'Not authorized as an admin' });
   }
 };
 

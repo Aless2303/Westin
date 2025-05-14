@@ -2,6 +2,7 @@
 
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { authService, characterService } from '../services/api';
+import Cookies from 'js-cookie';
 
 interface User {
   _id: string;
@@ -49,7 +50,7 @@ interface AuthContextType {
   isAdmin: boolean;
   loading: boolean;
   hasCreatedCharacter: boolean;
-  markCharacterCreated: (characterId: string, characterData: any) => Promise<boolean>;
+  markCharacterCreated: (characterId: string, characterData: unknown) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -75,10 +76,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // Funcție pentru a seta cookie-urile
+  const setCookieAuth = (token: string, isAdmin: boolean) => {
+    // Setează cookie-ul pentru token cu expirare de 30 zile
+    Cookies.set('token', token, { expires: 30, path: '/' });
+    // Setează cookie-ul pentru admin cu expirare de 30 zile
+    Cookies.set('isAdmin', String(isAdmin), { expires: 30, path: '/' });
+  };
+
+  // Funcție pentru a șterge cookie-urile
+  const clearCookieAuth = () => {
+    Cookies.remove('token');
+    Cookies.remove('isAdmin');
+  };
+
   useEffect(() => {
-    // Verifică dacă există un token salvat în localStorage
-    const token = localStorage.getItem('token');
+    // Verifică dacă există un token salvat în localStorage sau cookie
+    const tokenFromStorage = localStorage.getItem('token');
+    const tokenFromCookie = Cookies.get('token');
+    const token = tokenFromStorage || tokenFromCookie;
+    
     if (token) {
+      // Dacă tokenul există doar în cookie, salvează-l și în localStorage pentru compatibilitate
+      if (!tokenFromStorage && tokenFromCookie) {
+        localStorage.setItem('token', tokenFromCookie);
+      }
+      
       // Încearcă să obții profilul utilizatorului utilizând token-ul
       authService.getProfile()
         .then(userData => {
@@ -93,6 +116,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setIsAdmin(userData.isAdmin);
           setHasCreatedCharacter(userData.hasCreatedCharacter || false);
           
+          // Setează cookie-urile pentru persistență
+          setCookieAuth(token, userData.isAdmin);
+          
           // Încarcă datele caracterului dacă există un ID de caracter
           if (userData.characterId && userData.hasCreatedCharacter) {
             loadCharacterData(userData.characterId);
@@ -101,6 +127,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         .catch(() => {
           // În caz de eroare, șterge token-ul și setează utilizatorul ca null
           localStorage.removeItem('token');
+          clearCookieAuth();
           setCurrentUser(null);
           setCurrentCharacter(null);
           setIsAdmin(false);
@@ -121,6 +148,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Salvează token-ul în localStorage
       localStorage.setItem('token', response.token);
       
+      // Setează cookie-urile pentru autologin
+      setCookieAuth(response.token, response.isAdmin);
+      
       // Setează utilizatorul curent
       setCurrentUser({
         _id: response._id,
@@ -140,11 +170,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
       
       return true;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Login failed:', error);
       
       // Check if user is banned
-      if (error.response && error.response.status === 403) {
+      if (error && typeof error === 'object' && 'response' in error && 
+          error.response && (error.response as { status?: number }).status === 403) {
         throw { ...error, isBanned: true };
       }
       
@@ -154,6 +185,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = () => {
     localStorage.removeItem('token');
+    clearCookieAuth();
     setCurrentUser(null);
     setCurrentCharacter(null);
     setIsAdmin(false);
@@ -161,9 +193,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   // Funcție pentru a marca personajul ca fiind creat
-  const markCharacterCreated = async (characterId: string, characterData: any): Promise<boolean> => {
+  const markCharacterCreated = async (characterId: string, characterData: unknown): Promise<boolean> => {
     try {
-      const response = await characterService.updateCharacterCreation(characterId, characterData);
+      await characterService.updateCharacterCreation(characterId, characterData);
       setHasCreatedCharacter(true);
       
       // Actualizează și utilizatorul curent
