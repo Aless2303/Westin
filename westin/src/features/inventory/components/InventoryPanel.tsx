@@ -337,16 +337,6 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose, player
       return;
     }
     
-    // Check if player level is high enough to equip the item
-    if (currentCharacter && item.requiredLevel > currentCharacter.level) {
-      setError(`Nu poți echipa acest item. Nivel necesar: ${item.requiredLevel}. Nivelul tău: ${currentCharacter.level}.`);
-      // Set a timer to clear the error message after 3 seconds
-      setTimeout(() => {
-        setError(null);
-      }, 3000);
-      return;
-    }
-    
     const slot = equipmentSlots.find((s) => s.id === item.type);
     if (!slot) {
       console.log(`Itemul de tip ${item.type} nu poate fi echipat!`);

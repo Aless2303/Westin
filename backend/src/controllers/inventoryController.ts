@@ -179,7 +179,7 @@ export const equipItem = async (req: Request & { user?: any }, res: Response): P
 
     // Check if character level is high enough
     if (character.level < item.requiredLevel) {
-      throw new ApiError(`Character level too low (required: ${item.requiredLevel})`, 400);
+      throw new ApiError(`Nu poți echipa acest item. Nivel necesar: ${item.requiredLevel}. Nivelul tău actual: ${character.level}.`, 400);
     }
 
     // Remove item from backpack
